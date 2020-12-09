@@ -22,22 +22,21 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.nmrshiftdb.service;
+package org.openscience.webcase.nmrdisplayer.model;
 
-import org.openscience.webcase.nmrshiftdb.model.NMRShiftDBRecord;
+import lombok.*;
 
-import java.util.List;
-import java.util.Optional;
+import java.util.ArrayList;
+import java.util.HashMap;
 
-public interface NMRShiftDBService {
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+@ToString
 
-    long count();
-    void insert(final NMRShiftDBRecord nmrShiftDBRecord);
-    List<NMRShiftDBRecord> findAll();
-    Optional<NMRShiftDBRecord> findById(final String id);
-    List<NMRShiftDBRecord> findByMf(final String mf);
-    List<NMRShiftDBRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount);
+public class Default<T> {
 
-    void deleteAll();
-
+    private HashMap<String, Object> options;
+    private ArrayList<T> values;
 }
