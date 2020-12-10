@@ -32,13 +32,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.openscience.webcase.nmrdisplayer.model.Correlation;
 import org.openscience.webcase.nmrdisplayer.model.Data;
 import org.openscience.webcase.nmrdisplayer.model.Link;
-import org.openscience.webcase.nmrshiftdb.model.NMRShiftDBRecord;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.openscience.webcase.nmrshiftdb.model.DataSetRecord;
+import org.openscience.webcase.nmrshiftdb.service.HybridizationRepository;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import java.io.*;
 import java.text.SimpleDateFormat;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -50,14 +48,16 @@ public class CASEController {
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String PATH_TO_LSD_FILTER_LIST = "/Users/mwenk/work/software/PyLSD-a4/LSD/Filters/list.txt";
     private static final String PATH_TO_PYLSD_FILE = "/Users/mwenk/work/software/PyLSD-a4/Variant/test.pyLSD";
-    private final NMRShiftDBController nmrShiftDBController;
 
-    @Autowired
-    public CASEController(NMRShiftDBController nmrShiftDBController) {
+    private final NMRShiftDBController nmrShiftDBController;
+    private final HybridizationRepository hybridizationRepository;
+
+    public CASEController(final NMRShiftDBController nmrShiftDBController, final HybridizationRepository hybridizationRepository) {
         this.nmrShiftDBController = nmrShiftDBController;
+        this.hybridizationRepository = hybridizationRepository;
     }
 
-    @GetMapping(value = "/elucidation", consumes = "application/json")
+    @GetMapping(value = "/elucidation", consumes = "application/json", produces = "application/json")
     public List<DataSet> elucidate(@RequestBody final String json, @RequestParam final boolean dereplicate, @RequestParam final boolean heteroHeteroBonds) {
 
         final List<DataSet> solutions = new ArrayList<>();
@@ -67,7 +67,15 @@ public class CASEController {
             final Optional<org.openscience.webcase.nmrdisplayer.model.Spectrum> nmrDisplayerQuerySpectrum = data.getSpectra().stream().filter(spectrum -> spectrum.getInfo().containsKey("dimension") && (int) spectrum.getInfo().get("dimension") == 1 && spectrum.getInfo().containsKey("nucleus") && spectrum.getInfo().get("nucleus").equals("13C") && spectrum.getInfo().containsKey("experiment") && spectrum.getInfo().get("experiment").equals("1d")).findFirst();
             //            final Optional<org.openscience.webcase.nmrdisplayer.model.Spectrum> nmrDisplayerQuerySpectrum = data.getSpectra().stream().filter(spectrum -> spectrum.getInfo().containsKey("dimension") && (int) spectrum.getInfo().get("dimension") == 2 && spectrum.getInfo().containsKey("experiment") && spectrum.getInfo().get("experiment").equals("hsqc")).findFirst();
             final String mf = (String) data.getCorrelations().getOptions().get("mf");
+
+            final Map<String, String> nucleiMap = new HashMap<>();
+            nucleiMap.put("C", "13C");
+            nucleiMap.put("N", "15N");
+            nucleiMap.put("H", "1H");
+            // @TODO get as parameter from somewhere
             final Map<String, Double> shiftTols = (HashMap<String, Double>) data.getCorrelations().getOptions().get("tolerance");
+            final double thrs = 0.1; // threshold to take a hybridization into account
+
 
             // DEREPLICATION
             if (dereplicate && nmrDisplayerQuerySpectrum.isPresent()) {
@@ -105,11 +113,36 @@ public class CASEController {
                 stringBuilder.append("PIEC 1").append("\n\n");
 
                 Correlation correlation;
-                final String hybridization = "(1 2 3)";
+                StringBuilder hybridizationStringBuilder;
                 int hydrogenCount;
                 int heavyAtomCorrelationCount = 0;
 
                 // MULT
+                final Map<String, String> defaultHybridization = new HashMap<>();
+                defaultHybridization.put("C", "(1 2 3)");
+                defaultHybridization.put("N", "(1 2 3)");
+                defaultHybridization.put("O", "(2 3)");
+                defaultHybridization.put("S", "(1 2 3)");
+
+                List<Integer> detectedHybridizations;
+                final Map<String, String> attachedHydrogensPerValency = new HashMap<>();
+                //                attachedHydrogensPerValency.put("N", "(0 1 2)");
+                attachedHydrogensPerValency.put("N", "(0 1 2)");
+                attachedHydrogensPerValency.put("N5", "(0 1 2 3)");
+                attachedHydrogensPerValency.put("N35", "(0 1 2 3)");
+                //                attachedHydrogensPerValency.put("S", "(0 1)");
+                attachedHydrogensPerValency.put("S", "(0 1)");
+                attachedHydrogensPerValency.put("S4", "(0 1 2 3)");
+                attachedHydrogensPerValency.put("S6", "(0 1 2 3)");
+                attachedHydrogensPerValency.put("S46", "(0 1 2 3)");
+                attachedHydrogensPerValency.put("O", "(0 1)");
+
+                final Map<String, String> defaultAtomLabel = new HashMap<>();
+                defaultAtomLabel.put("N", "N35");
+                defaultAtomLabel.put("O", "O");
+                defaultAtomLabel.put("S", "S46");
+
+
                 for (int i = 0; i < data.getCorrelations().getValues().size(); i++) {
                     correlation = data.getCorrelations().getValues().get(i);
                     if (correlation.getAtomType().equals("H")) {
@@ -126,7 +159,25 @@ public class CASEController {
                         }
                     }
                     for (int j = 0; j < correlation.getCount(); j++) {
-                        stringBuilder.append("MULT ").append(i + 1).append(" ").append(correlation.getAtomType()).append(" ").append(hybridization).append(" ").append(hydrogenCount).append("\n");
+                        detectedHybridizations = this.detectHybridization(nucleiMap.get(correlation.getAtomType()), (int) correlation.getSignal().getDelta(), correlation.getSignal().getMultiplicity(), thrs);
+                        if (detectedHybridizations.isEmpty()) {
+                            hybridizationStringBuilder = new StringBuilder(defaultHybridization.get(correlation.getAtomType()));
+                        } else {
+                            hybridizationStringBuilder = new StringBuilder();
+                            if (detectedHybridizations.size() > 1) {
+                                hybridizationStringBuilder.append("(");
+                            }
+                            for (int k = 0; k < detectedHybridizations.size(); k++) {
+                                hybridizationStringBuilder.append(detectedHybridizations.get(k));
+                                if (k < detectedHybridizations.size() - 1) {
+                                    hybridizationStringBuilder.append(" ");
+                                }
+                            }
+                            if (detectedHybridizations.size() > 1) {
+                                hybridizationStringBuilder.append(")");
+                            }
+                        }
+                        stringBuilder.append("MULT ").append(i + 1).append(" ").append(correlation.getAtomType()).append(" ").append(hybridizationStringBuilder).append(" ").append(hydrogenCount).append("\n");
                     }
                 }
 
@@ -134,7 +185,7 @@ public class CASEController {
                     for (int i = 0; i < elementCounts.get(set.getKey()); i++) {
                         set.getValue().add(heavyAtomCorrelationCount);
                         heavyAtomCorrelationCount++;
-                        stringBuilder.append("MULT ").append(heavyAtomCorrelationCount).append(" ").append(set.getKey()).append(" ").append(hybridization).append(" ").append(0).append("\n");
+                        stringBuilder.append("MULT ").append(heavyAtomCorrelationCount).append(" ").append(defaultAtomLabel.get(set.getKey())).append(" ").append(defaultHybridization.get(set.getKey())).append(" ").append(attachedHydrogensPerValency.get(defaultAtomLabel.get(set.getKey()))).append("\n");
                     }
                 }
                 stringBuilder.append("\n");
@@ -154,7 +205,7 @@ public class CASEController {
                 stringBuilder.append("\n");
 
                 // HMBC
-                final String bondDistance = "2 3";
+                final String defaultBondDistance = "2 3";
                 for (int i = 0; i < data.getCorrelations().getValues().size(); i++) {
                     correlation = data.getCorrelations().getValues().get(i);
                     if (correlation.getAtomType().equals("H"))
@@ -163,7 +214,7 @@ public class CASEController {
                     for (final Link link : correlation.getLink()) {
                         if (link.getExperimentType().equals("hmbc")) {
                             for (final Integer matchIndex : link.getMatch()) {
-                                stringBuilder.append("HMBC ").append(i + 1).append(" ").append(matchIndex + 1).append(" ").append(bondDistance).append("\n");
+                                stringBuilder.append("HMBC ").append(i + 1).append(" ").append(matchIndex + 1).append(" ").append(defaultBondDistance).append("\n");
                             }
 
                         }
@@ -180,7 +231,7 @@ public class CASEController {
                     for (final Link link : correlation.getLink()) {
                         if (link.getExperimentType().equals("cosy")) {
                             for (final Integer matchIndex : link.getMatch()) {
-                                stringBuilder.append("COSY ").append(i + 1).append(" ").append(matchIndex + 1).append("\n"); //.append(" ").append(bondDistance).append("\n");
+                                stringBuilder.append("COSY ").append(i + 1).append(" ").append(matchIndex + 1).append("\n"); //.append(" ").append(defaultBondDistance).append("\n");
                             }
                         }
                     }
@@ -269,11 +320,10 @@ public class CASEController {
 
                 System.out.println(stringBuilder.toString());
 
-                //                final FileWriter fileWriter = new FileWriter(new File(PATH_TO_PYLSD_FILE));
-                //                final BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
-                //                bufferedWriter.write(stringBuilder.toString());
-                //                bufferedWriter.close();
-
+                final FileWriter fileWriter = new FileWriter(new File(PATH_TO_PYLSD_FILE));
+                final BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
+                bufferedWriter.write(stringBuilder.toString());
+                bufferedWriter.close();
             }
 
 
@@ -288,12 +338,44 @@ public class CASEController {
 
         final List<DataSet> results;
         if (mf != null) {
-            results = this.nmrShiftDBController.getByMf(mf).stream().map(NMRShiftDBRecord::getDataSet).collect(Collectors.toList());
+            results = this.nmrShiftDBController.getByMf(mf).stream().map(DataSetRecord::getDataSet).collect(Collectors.toList());
         } else {
             // @TODO take the nuclei order into account when matching -> now it's just an exact array match
-            results = this.nmrShiftDBController.getByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(querySpectrum.getNuclei(), querySpectrum.getSignalCount()).stream().map(NMRShiftDBRecord::getDataSet).collect(Collectors.toList());
+            results = this.nmrShiftDBController.getByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(querySpectrum.getNuclei(), querySpectrum.getSignalCount()).stream().map(DataSetRecord::getDataSet).collect(Collectors.toList());
         }
 
         return Dereplication.dereplicate1D(querySpectrum, results, shiftTol);
+    }
+
+    public List<Integer> detectHybridization(final String nucleus, final int shift, final String multiplicity, final double thrs) {
+
+
+        final List<String> hybridizations = this.hybridizationRepository.aggregateHybridizationsByNucleusAndShiftAndMultiplicity(nucleus, shift, shift + 1, multiplicity);
+        final Set<String> unique = new HashSet<>(hybridizations);
+
+        // @TODO access this information from MongoDB and store it instead of hard coding it
+        // command in MongoDB: db.hybridizations.aggregate([{$match: {nucleus: "15N"}}, {$group: {_id: null, set: {$addToSet: "$hybridization"}}}])
+        // nucleus -> hybridization string -> number
+        final Map<String, Map<String, Integer>> conversionMap = new HashMap<>();
+        conversionMap.put("13C", new HashMap<>());
+        conversionMap.get("13C").put("PLANAR3", 3);
+        conversionMap.get("13C").put("SP3", 3);
+        conversionMap.get("13C").put("SP2", 2);
+        conversionMap.get("13C").put("SP1", 1);
+        conversionMap.put("15N", new HashMap<>());
+        conversionMap.get("15N").put("PLANAR3", 3);
+        conversionMap.get("15N").put("SP3", 3);
+        conversionMap.get("15N").put("SP2", 2);
+        conversionMap.get("15N").put("SP1", 1);
+
+        final List<Integer> values = new ArrayList<>();
+
+        unique.forEach(label -> {
+            if (conversionMap.containsKey(nucleus) && conversionMap.get(nucleus).containsKey(label) && hybridizations.stream().filter(value -> value.equals(label)).count() / (double) hybridizations.size() > thrs) {
+                values.add(conversionMap.get(nucleus).get(label));
+            }
+        });
+
+        return values;
     }
 }

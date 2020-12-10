@@ -24,7 +24,7 @@
 
 package org.openscience.webcase.nmrshiftdb.service;
 
-import org.openscience.webcase.nmrshiftdb.model.NMRShiftDBRecord;
+import org.openscience.webcase.nmrshiftdb.model.DataSetRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -32,47 +32,52 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class NMRShiftDBServiceImplementation implements NMRShiftDBService{
+public class DataSetServiceImplementation implements DataSetService {
 
-    private final NMRShiftDBRepository nmrShiftDBRepository;
+    private final DataSetRepository dataSetRepository;
 
     @Autowired
-    public NMRShiftDBServiceImplementation(final NMRShiftDBRepository nmrShiftDBRepository) {
-        this.nmrShiftDBRepository = nmrShiftDBRepository;
+    public DataSetServiceImplementation(final DataSetRepository dataSetRepository) {
+        this.dataSetRepository = dataSetRepository;
     }
 
     @Override
     public long count() {
-        return this.nmrShiftDBRepository.count();
+        return this.dataSetRepository.count();
     }
 
     @Override
-    public void insert(final NMRShiftDBRecord nmrShiftDBRecord) {
-        this.nmrShiftDBRepository.insert(nmrShiftDBRecord);
+    public void insert(final DataSetRecord dataSetRecord) {
+        this.dataSetRepository.insert(dataSetRecord);
     }
 
     @Override
-    public List<NMRShiftDBRecord> findAll() {
-        return this.nmrShiftDBRepository.findAll();
+    public List<DataSetRecord> findAll() {
+        return this.dataSetRepository.findAll();
     }
 
     @Override
-    public Optional<NMRShiftDBRecord> findById(final String id) {
-        return this.nmrShiftDBRepository.findById(id);
+    public Optional<DataSetRecord> findById(final String id) {
+        return this.dataSetRepository.findById(id);
     }
 
     @Override
-    public List<NMRShiftDBRecord> findByMf(final String mf) {
-        return this.nmrShiftDBRepository.findByMf(mf);
+    public List<DataSetRecord> findByMf(final String mf) {
+        return this.dataSetRepository.findByMf(mf);
     }
 
     @Override
-    public List<NMRShiftDBRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount) {
-        return this.nmrShiftDBRepository.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(nuclei, signalCount);
+    public List<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei) {
+        return this.dataSetRepository.findByDataSetSpectrumNuclei(nuclei);
+    }
+
+    @Override
+    public List<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount) {
+        return this.dataSetRepository.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(nuclei, signalCount);
     }
 
     @Override
     public void deleteAll() {
-        this.nmrShiftDBRepository.deleteAll();
+        this.dataSetRepository.deleteAll();
     }
 }

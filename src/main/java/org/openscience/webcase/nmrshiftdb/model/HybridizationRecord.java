@@ -22,22 +22,25 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.nmrshiftdb.service;
+package org.openscience.webcase.nmrshiftdb.model;
 
-import org.openscience.webcase.nmrshiftdb.model.NMRShiftDBRecord;
+import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.List;
-import java.util.Optional;
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+@ToString
 
-public interface NMRShiftDBService {
+@Document(collection = "hybridizations")
+public class HybridizationRecord {
 
-    long count();
-    void insert(final NMRShiftDBRecord nmrShiftDBRecord);
-    List<NMRShiftDBRecord> findAll();
-    Optional<NMRShiftDBRecord> findById(final String id);
-    List<NMRShiftDBRecord> findByMf(final String mf);
-    List<NMRShiftDBRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount);
-
-    void deleteAll();
-
+    @Id
+    private String id;
+    private String nucleus;
+    private int shift;
+    private String multiplicity;
+    private String hybridization;
 }

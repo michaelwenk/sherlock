@@ -27,9 +27,8 @@ package org.openscience.webcase.controller;
 import casekit.nmr.dbservice.NMRShiftDB;
 import casekit.nmr.model.DataSet;
 import org.openscience.cdk.exception.CDKException;
-import org.openscience.webcase.nmrshiftdb.model.NMRShiftDBRecord;
-import org.openscience.webcase.nmrshiftdb.service.NMRShiftDBServiceImplementation;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.openscience.webcase.nmrshiftdb.model.DataSetRecord;
+import org.openscience.webcase.nmrshiftdb.service.DataSetServiceImplementation;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
@@ -41,10 +40,9 @@ import java.util.List;
 @RequestMapping(value = "/api/nmrshiftdb")
 public class NMRShiftDBController {
 
-    private final NMRShiftDBServiceImplementation nmrShiftDBRepository;
+    private final DataSetServiceImplementation nmrShiftDBRepository;
 
-    @Autowired
-    public NMRShiftDBController(final NMRShiftDBServiceImplementation nmrShiftDBRepository) {
+    public NMRShiftDBController(final DataSetServiceImplementation nmrShiftDBRepository) {
         this.nmrShiftDBRepository = nmrShiftDBRepository;
     }
 
@@ -54,23 +52,28 @@ public class NMRShiftDBController {
     }
 
     @GetMapping(value = "/get/all")
-    public List<NMRShiftDBRecord> getAll() {
+    public List<DataSetRecord> getAll() {
         return this.nmrShiftDBRepository.findAll();
     }
 
-    @GetMapping(value = "/get/mf", produces = "application/json")
-    public List<NMRShiftDBRecord> getByMf(@RequestParam @Valid final String mf) {
+    @GetMapping(value = "/get/byMf", produces = "application/json")
+    public List<DataSetRecord> getByMf(@RequestParam @Valid final String mf) {
         return this.nmrShiftDBRepository.findByMf(mf);
     }
 
-    @GetMapping(value = "/get/nucleiSignalCount")
-    public List<NMRShiftDBRecord> getByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(@RequestParam @Valid final String[] nuclei, @RequestParam @Valid final int signalCount) {
+    @GetMapping(value = "/get/byNuclei", produces = "application/json")
+    public List<DataSetRecord> getByDataSetSpectrumNuclei(@RequestParam @Valid final String[] nuclei) {
+        return this.nmrShiftDBRepository.findByDataSetSpectrumNuclei(nuclei);
+    }
+
+    @GetMapping(value = "/get/byNucleiAndSignalCount", produces = "application/json")
+    public List<DataSetRecord> getByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(@RequestParam @Valid final String[] nuclei, @RequestParam @Valid final int signalCount) {
         return this.nmrShiftDBRepository.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(nuclei, signalCount);
     }
 
     @PostMapping(value = "/insert", consumes = "application/json")
-    public void insert(@RequestBody @Valid final NMRShiftDBRecord nmrShiftDBRecord) {
-        this.nmrShiftDBRepository.insert(nmrShiftDBRecord);
+    public void insert(@RequestBody @Valid final DataSetRecord dataSetRecord) {
+        this.nmrShiftDBRepository.insert(dataSetRecord);
     }
 
     @DeleteMapping(value = "/delete/all")
@@ -85,7 +88,7 @@ public class NMRShiftDBController {
         try {
             final String[] nuclei = new String[]{"13C", "1H", "15N"};
             final ArrayList<DataSet> dataSets = new ArrayList<>(NMRShiftDB.getDataSetsFromNMRShiftDB(filePath, nuclei));
-            dataSets.forEach(dataSet -> this.nmrShiftDBRepository.insert(new NMRShiftDBRecord(null, dataSet.getMeta().get("mf"), dataSet)));
+            dataSets.forEach(dataSet -> this.nmrShiftDBRepository.insert(new DataSetRecord(null, dataSet.getMeta().get("mf"), dataSet)));
         } catch (FileNotFoundException | CDKException e) {
             e.printStackTrace();
         }

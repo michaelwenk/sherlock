@@ -35,8 +35,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @Setter
 @ToString
 
-@Document(collection = "original")
-public class NMRShiftDBRecord {
+@Document(collection = "datasets")
+public class DataSetRecord {
 
     @Id
     private String id;

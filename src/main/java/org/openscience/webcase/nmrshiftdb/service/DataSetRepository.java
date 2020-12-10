@@ -24,7 +24,7 @@
 
 package org.openscience.webcase.nmrshiftdb.service;
 
-import org.openscience.webcase.nmrshiftdb.model.NMRShiftDBRecord;
+import org.openscience.webcase.nmrshiftdb.model.DataSetRecord;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 
@@ -32,11 +32,13 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface NMRShiftDBRepository extends MongoRepository<NMRShiftDBRecord, String> {
+public interface DataSetRepository extends MongoRepository<DataSetRecord, String> {
 
-    Optional<NMRShiftDBRecord> findById(final String id);
+    Optional<DataSetRecord> findById(final String id);
 
-    List<NMRShiftDBRecord> findByMf(final String mf);
+    List<DataSetRecord> findByMf(final String mf);
 
-    List<NMRShiftDBRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount);
+    List<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
+
+    List<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount);
 }
