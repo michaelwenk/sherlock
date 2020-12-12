@@ -213,7 +213,6 @@ public class CASEController {
                         continue;
                     }
                     hydrogenIndicesMap.put(set.getKey(), new Object[]{set.getValue(), hydrogenIndexInPyLSDFile});
-                    System.out.println(set.getKey() + " -> " + set.getValue() + ", " + hydrogenIndexInPyLSDFile);
                     hydrogenIndexInPyLSDFile++;
                 }
 
@@ -341,7 +340,7 @@ public class CASEController {
                     stringBuilder.append("\"\n");
                 }
 
-                System.out.println(stringBuilder.toString());
+                //                System.out.println(stringBuilder.toString());
 
                 final FileWriter fileWriter = new FileWriter(new File(PATH_TO_PYLSD_FILE));
                 final BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
