@@ -47,7 +47,7 @@ public class CASEController {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
     private static final String PATH_TO_LSD_FILTER_LIST = "/Users/mwenk/work/software/PyLSD-a4/LSD/Filters/list.txt";
-    private static final String PATH_TO_PYLSD_FILE = "/Users/mwenk/work/software/PyLSD-a4/Variant/test.pyLSD";
+    private static final String PATH_TO_PYLSD_FILE_FOLDER = "/Users/mwenk/work/software/PyLSD-a4/Variant/";
 
     private final NMRShiftDBController nmrShiftDBController;
     private final HybridizationRepository hybridizationRepository;
@@ -100,9 +100,8 @@ public class CASEController {
                 stringBuilder.append("; ").append(formatter.format(date)).append("\n\n");
 
                 final Map<String, Integer> elementCounts = new LinkedHashMap<>(Utils.getMolecularFormulaElementCounts(mf));
-                final Map<Integer, String> elementIndicesWithCorrelations = new HashMap<>();
                 // index in correlation data -> [atom type, index in PyLSD file]
-                final Map<Integer, Object[]> elementIndicesWithoutCorrelations = new HashMap<>();
+                final Map<Integer, Object[]> elementIndices = new HashMap<>();
 
                 // FORM
                 stringBuilder.append("; Molecular Formula: ").append(mf).append("\n");
@@ -144,25 +143,42 @@ public class CASEController {
 
 
                 // init element indices within correlations with same order as in correlation data input
-                int protonsCount = 0;
+                int heavyAtomsCount = elementCounts.entrySet().stream().filter(set -> !set.getKey().equals("H")).map(Map.Entry::getValue).reduce(0, Integer::sum);
+                int indexInPyLSDFile = 1;
+                int protonCounter = 0;
+                final Map<String, Integer> elemCountsWithCorrelation = new HashMap<>();
                 for (int i = 0; i < data.getCorrelations().getValues().size(); i++) {
                     correlation = data.getCorrelations().getValues().get(i);
-                    elementIndicesWithCorrelations.put(i, correlation.getAtomType());
+
+                    if (!elemCountsWithCorrelation.containsKey(correlation.getAtomType())) {
+                        elemCountsWithCorrelation.put(correlation.getAtomType(), 0);
+                    }
+                    elemCountsWithCorrelation.put(correlation.getAtomType(), elemCountsWithCorrelation.get(correlation.getAtomType()) + correlation.getCount());
 
                     if (correlation.getAtomType().equals("H")) {
-                        protonsCount++;
-                    }
-                }
-                // init element indices which do not have correlation (subtract protons count)
-                int indexInCorrelations = elementIndicesWithCorrelations.size();
-                int indexInPyLSDFile = elementIndicesWithCorrelations.size() - protonsCount + 1;
-                for (final Map.Entry<String, Integer> set : elementCounts.entrySet()) {
-                    if (elementIndicesWithCorrelations.containsValue(set.getKey())) {
+                        elementIndices.put(i, new Object[]{correlation.getAtomType(), heavyAtomsCount + 1 + protonCounter});
+                        protonCounter++;
                         continue;
                     }
-                    for (int i = 0; i < elementCounts.get(set.getKey()); i++) {
-                        elementIndicesWithoutCorrelations.put(indexInCorrelations, new Object[]{set.getKey(), indexInPyLSDFile});
-                        indexInCorrelations++;
+
+                    elementIndices.put(i, new Object[1 + correlation.getCount()]);
+                    elementIndices.get(i)[0] = correlation.getAtomType();
+                    for (int j = 0; j < correlation.getCount(); j++) {
+                        elementIndices.get(i)[1 + j] = indexInPyLSDFile;
+                        indexInPyLSDFile++;
+                    }
+                }
+                // set element indices which are not in correlation list
+                for (final Map.Entry<String, Integer> set : elementCounts.entrySet()) {
+                    if (elemCountsWithCorrelation.containsKey(set.getKey())) {
+                        for (int i = 0; i < set.getValue() - elemCountsWithCorrelation.get(set.getKey()); i++) {
+                            elementIndices.put(elementIndices.size(), new Object[]{set.getKey(), indexInPyLSDFile});
+                            indexInPyLSDFile++;
+                        }
+                        continue;
+                    }
+                    for (int i = 0; i < set.getValue(); i++) {
+                        elementIndices.put(elementIndices.size(), new Object[]{set.getKey(), indexInPyLSDFile});
                         indexInPyLSDFile++;
                     }
                 }
@@ -178,43 +194,33 @@ public class CASEController {
                             attachedHydrogenCount += link.getMatch().stream().reduce(0, (sum, index) -> sum + data.getCorrelations().getValues().get(index).getCount());
                         }
                     }
-                    for (int j = 0; j < correlation.getCount(); j++) {
-                        detectedHybridizations = this.detectHybridization(nucleiMap.get(correlation.getAtomType()), (int) correlation.getSignal().getDelta(), correlation.getSignal().getMultiplicity(), thrs);
-                        if (detectedHybridizations.isEmpty()) {
-                            hybridizationStringBuilder = new StringBuilder(defaultHybridization.get(correlation.getAtomType()));
-                        } else {
-                            hybridizationStringBuilder = new StringBuilder();
-                            if (detectedHybridizations.size() > 1) {
-                                hybridizationStringBuilder.append("(");
-                            }
-                            for (int k = 0; k < detectedHybridizations.size(); k++) {
-                                hybridizationStringBuilder.append(detectedHybridizations.get(k));
-                                if (k < detectedHybridizations.size() - 1) {
-                                    hybridizationStringBuilder.append(" ");
-                                }
-                            }
-                            if (detectedHybridizations.size() > 1) {
-                                hybridizationStringBuilder.append(")");
+                    detectedHybridizations = this.detectHybridization(nucleiMap.get(correlation.getAtomType()), (int) correlation.getSignal().getDelta(), correlation.getSignal().getMultiplicity(), thrs);
+                    if (detectedHybridizations.isEmpty()) {
+                        hybridizationStringBuilder = new StringBuilder(defaultHybridization.get(correlation.getAtomType()));
+                    } else {
+                        hybridizationStringBuilder = new StringBuilder();
+                        if (detectedHybridizations.size() > 1) {
+                            hybridizationStringBuilder.append("(");
+                        }
+                        for (int k = 0; k < detectedHybridizations.size(); k++) {
+                            hybridizationStringBuilder.append(detectedHybridizations.get(k));
+                            if (k < detectedHybridizations.size() - 1) {
+                                hybridizationStringBuilder.append(" ");
                             }
                         }
-                        stringBuilder.append("MULT ").append(i + 1).append(" ").append(correlation.getAtomType()).append(" ").append(hybridizationStringBuilder).append(" ").append(attachedHydrogenCount).append("\n");
+                        if (detectedHybridizations.size() > 1) {
+                            hybridizationStringBuilder.append(")");
+                        }
+                    }
+                    for (int j = 1; j < elementIndices.get(i).length; j++) {
+                        stringBuilder.append("MULT ").append(elementIndices.get(i)[j]).append(" ").append(correlation.getAtomType()).append(" ").append(hybridizationStringBuilder).append(" ").append(attachedHydrogenCount).append("\n");
                     }
                 }
-
-                for (final Map.Entry<Integer, Object[]> set : elementIndicesWithoutCorrelations.entrySet()) {
-                    stringBuilder.append("MULT ").append((int) set.getValue()[1]).append(" ").append(defaultAtomLabel.get(set.getValue()[0])).append(" ").append(defaultHybridization.get(set.getValue()[0])).append(" ").append(attachedHydrogensPerValency.get(defaultAtomLabel.get(set.getValue()[0]))).append("\n");
+                // append MULT for elements without correlations
+                for (int i = data.getCorrelations().getValues().size(); i < elementIndices.size(); i++) {
+                    stringBuilder.append("MULT ").append(elementIndices.get(i)[1]).append(" ").append(defaultAtomLabel.get(elementIndices.get(i)[0])).append(" ").append(defaultHybridization.get(elementIndices.get(i)[0])).append(" ").append(attachedHydrogensPerValency.get(defaultAtomLabel.get(elementIndices.get(i)[0]))).append("\n");
                 }
                 stringBuilder.append("\n");
-
-                final Map<Integer, Object[]> hydrogenIndicesMap = new HashMap<>();
-                int hydrogenIndexInPyLSDFile = indexInPyLSDFile;
-                for (final Map.Entry<Integer, String> set : elementIndicesWithCorrelations.entrySet()) {
-                    if (!set.getValue().equals("H")) {
-                        continue;
-                    }
-                    hydrogenIndicesMap.put(set.getKey(), new Object[]{set.getValue(), hydrogenIndexInPyLSDFile});
-                    hydrogenIndexInPyLSDFile++;
-                }
 
                 // HSQC
                 for (int i = 0; i < data.getCorrelations().getValues().size(); i++) {
@@ -222,10 +228,12 @@ public class CASEController {
                     if (correlation.getAtomType().equals("H"))
                         continue;
 
-                    for (final Link link : correlation.getLink()) {
-                        if (link.getExperimentType().equals("hsqc")) {
-                            for (final Integer matchIndex : link.getMatch()) {
-                                stringBuilder.append("HSQC ").append(i + 1).append(" ").append(hydrogenIndicesMap.get(matchIndex)[1]).append("\n");
+                    for (int k = 1; k < elementIndices.get(i).length; k++) {
+                        for (final Link link : correlation.getLink()) {
+                            if (link.getExperimentType().equals("hsqc")) {
+                                for (final Integer matchIndex : link.getMatch()) {
+                                    stringBuilder.append("HSQC ").append(elementIndices.get(i)[k]).append(" ").append(elementIndices.get(matchIndex)[1]).append("\n");
+                                }
                             }
                         }
                     }
@@ -239,10 +247,12 @@ public class CASEController {
                     if (correlation.getAtomType().equals("H"))
                         continue;
 
-                    for (final Link link : correlation.getLink()) {
-                        if (link.getExperimentType().equals("hmbc")) {
-                            for (final Integer matchIndex : link.getMatch()) {
-                                stringBuilder.append("HMBC ").append(i + 1).append(" ").append(hydrogenIndicesMap.get(matchIndex)[1]).append(" ").append(defaultBondDistance).append("\n");
+                    for (int k = 1; k < elementIndices.get(i).length; k++) {
+                        for (final Link link : correlation.getLink()) {
+                            if (link.getExperimentType().equals("hmbc")) {
+                                for (final Integer matchIndex : link.getMatch()) {
+                                    stringBuilder.append("HMBC ").append(elementIndices.get(i)[k]).append(" ").append(elementIndices.get(matchIndex)[1]).append(" ").append(defaultBondDistance).append("\n");
+                                }
                             }
                         }
                     }
@@ -258,7 +268,7 @@ public class CASEController {
                     for (final Link link : correlation.getLink()) {
                         if (link.getExperimentType().equals("cosy")) {
                             for (final Integer matchIndex : link.getMatch()) {
-                                stringBuilder.append("COSY ").append(i + 1).append(" ").append(hydrogenIndicesMap.get(matchIndex)[1]).append("\n"); //.append(" ").append(defaultBondDistance).append("\n");
+                                stringBuilder.append("COSY ").append(i + 1).append(" ").append(elementIndices.get(matchIndex)[1]).append("\n"); //.append(" ").append(defaultBondDistance).append("\n");
                             }
                         }
                     }
@@ -271,8 +281,11 @@ public class CASEController {
                 if (!heteroHeteroBonds) {
                     // create hetero atom list manually
                     final ArrayList<Integer> heteroAtomList = new ArrayList<>();
-                    elementIndicesWithCorrelations.entrySet().stream().filter(set -> !set.getValue().equals("H") && !set.getValue().equals("C")).forEach(set -> heteroAtomList.add(set.getKey() + 1));
-                    elementIndicesWithoutCorrelations.entrySet().stream().filter(set -> !set.getValue().equals("H") && !set.getValue().equals("C")).forEach(set -> heteroAtomList.add((int) elementIndicesWithoutCorrelations.get(set.getKey())[1]));
+                    elementIndices.entrySet().stream().filter(set -> !set.getValue()[0].equals("H") && !set.getValue()[0].equals("C")).forEach(set -> {
+                        for (int i = 1; i < set.getValue().length; i++) {
+                            heteroAtomList.add((int) set.getValue()[i]);
+                        }
+                    });
                     if (!heteroAtomList.isEmpty()) {
                         stringBuilder.append("LIST L1");
                         heteroAtomList.forEach(index -> stringBuilder.append(" ").append(index));
@@ -293,7 +306,9 @@ public class CASEController {
                     if (correlation.getAtomType().equals("H"))
                         continue;
 
-                    stringBuilder.append("SHIX ").append(i + 1).append(" ").append(correlation.getSignal().getDelta()).append("\n");
+                    for (int k = 1; k < elementIndices.get(i).length; k++) {
+                        stringBuilder.append("SHIX ").append(elementIndices.get(i)[k]).append(" ").append(correlation.getSignal().getDelta()).append("\n");
+                    }
                 }
                 stringBuilder.append("\n");
 
@@ -304,7 +319,7 @@ public class CASEController {
                     // only consider protons which are attached via HSQC/HMQC
                     for (final Link link : correlation.getLink()) {
                         if (link.getExperimentType().equals("hsqc") && !link.getMatch().isEmpty()) {
-                            stringBuilder.append("SHIH ").append(hydrogenIndicesMap.get(i)[1]).append(" ").append(correlation.getSignal().getDelta()).append("\n");
+                            stringBuilder.append("SHIH ").append(elementIndices.get(i)[1]).append(" ").append(correlation.getSignal().getDelta()).append("\n");
                         }
                     }
                 }
@@ -340,12 +355,20 @@ public class CASEController {
                     stringBuilder.append("\"\n");
                 }
 
-                //                System.out.println(stringBuilder.toString());
-
-                final FileWriter fileWriter = new FileWriter(new File(PATH_TO_PYLSD_FILE));
+                final FileWriter fileWriter = new FileWriter(new File(PATH_TO_PYLSD_FILE_FOLDER + "test.pyLSD"));
                 final BufferedWriter bufferedWriter = new BufferedWriter(fileWriter);
                 bufferedWriter.write(stringBuilder.toString());
                 bufferedWriter.close();
+
+                final ProcessBuilder builder = new ProcessBuilder();
+                builder.directory(new File(PATH_TO_PYLSD_FILE_FOLDER));
+                builder.redirectError(new File(PATH_TO_PYLSD_FILE_FOLDER + "error.txt"));
+                builder.redirectOutput(new File(PATH_TO_PYLSD_FILE_FOLDER + "log.txt"));
+
+                builder.command("python2.7", PATH_TO_PYLSD_FILE_FOLDER + "lsd.py", PATH_TO_PYLSD_FILE_FOLDER + "test.pyLSD");
+                final Process process = builder.start();
+                int exitCode = process.waitFor();
+                assert exitCode == 0;
             }
 
 
