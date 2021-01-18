@@ -40,4 +40,5 @@ public class Signal1D {
     private String kind;
     private String multiplicity;
     private double delta;
+    private int sign;
 }

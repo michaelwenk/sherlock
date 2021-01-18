@@ -43,4 +43,5 @@ public class Signal2D {
     private String multiplicity;
     private HashMap<String, Object> x;
     private HashMap<String, Object> y;
+    private Integer sign;
 }

@@ -36,6 +36,7 @@ import java.util.HashMap;
 @Getter
 @Setter
 @ToString
+
 public class Correlation {
     private String id;
     private String experimentType;
@@ -44,6 +45,10 @@ public class Correlation {
     private HashMap<String, String> label;
     private Signal1D signal;
     private ArrayList<Link> link;
-    private int count;
+    private int equivalence;
     private HashMap<String, ArrayList<Integer>> attachment;
+    private ArrayList<Integer> protonsCount;
+    private String hybridization;
+    private boolean pseudo;
+    private HashMap<String, Boolean> edited;
 }

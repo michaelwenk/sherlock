@@ -39,13 +39,10 @@ public class Link {
     private String experimentType;
     private String experimentID;
     private String[] atomType;
-    private String signalID;
+    private Signal2D signal;
     private String axis;
     private ArrayList<Integer> match;
-
-    public void addMatch(final int index) {
-        if (!this.match.contains(index)) {
-            this.match.add(index);
-        }
-    }
+    private String id;
+    private String experimentLabel;
+    private boolean pseudo;
 }
