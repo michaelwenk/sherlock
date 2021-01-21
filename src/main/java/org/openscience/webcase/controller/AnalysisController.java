@@ -24,17 +24,22 @@
 
 package org.openscience.webcase.controller;
 
-import casekit.nmr.Utils;
+import casekit.nmr.lsd.Constants;
 import casekit.nmr.model.DataSet;
+import casekit.nmr.utils.Utils;
 import org.openscience.cdk.interfaces.IAtomType;
 import org.openscience.webcase.nmrshiftdb.model.DataSetRecord;
 import org.openscience.webcase.nmrshiftdb.model.HybridizationRecord;
 import org.openscience.webcase.nmrshiftdb.service.HybridizationRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping(value = "/api/analysis")
@@ -84,5 +89,20 @@ public class AnalysisController {
                 }
             }
         }
+    }
+
+    @GetMapping(value = "/detectHybridization", produces = "application/json")
+    public List<Integer> detectHybridization(@RequestParam final String nucleus, @RequestParam final int minShift, @RequestParam final int maxShift, @RequestParam final String multiplicity, @RequestParam final double thrs) {
+        final List<String> hybridizations = this.hybridizationRepository.aggregateHybridizationsByNucleusAndShiftAndMultiplicity(nucleus, minShift, maxShift, multiplicity);
+        final Set<String> uniqueLabels = new HashSet<>(hybridizations);
+        final Set<Integer> uniqueValues = new HashSet<>();
+
+        uniqueLabels.forEach(label -> {
+            if (Constants.hybridizationConversionMap.containsKey(nucleus) && Constants.hybridizationConversionMap.get(nucleus).containsKey(label) && hybridizations.stream().filter(value -> value.equals(label)).count() / (double) hybridizations.size() >= thrs) {
+                uniqueValues.add(Constants.hybridizationConversionMap.get(nucleus).get(label));
+            }
+        });
+
+        return new ArrayList<>(uniqueValues);
     }
 }
