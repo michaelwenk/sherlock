@@ -24,9 +24,10 @@
 
 package org.openscience.webcase.controller;
 
-import casekit.io.FileOperations;
+import casekit.io.FileSystem;
 import casekit.nmr.core.Dereplication;
 import casekit.nmr.lsd.Constants;
+import casekit.nmr.lsd.PyLSDInputFileBuilder;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
@@ -34,19 +35,19 @@ import casekit.nmr.model.nmrdisplayer.Correlation;
 import casekit.nmr.model.nmrdisplayer.Data;
 import casekit.nmr.utils.Utils;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.openscience.webcase.model.Result;
 import org.openscience.webcase.nmrshiftdb.model.DataSetRecord;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.io.File;
+import java.util.*;
 import java.util.stream.Collectors;
-
-import static casekit.nmr.lsd.PyLSDInputFileBuilder.buildPyLSDFileContent;
 
 @RestController
 @RequestMapping(value = "/api/case")
+@CrossOrigin(origins = {"http://localhost:3000"}) //, methods = {RequestMethod.GET})
 public class CASEController {
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
@@ -61,8 +62,9 @@ public class CASEController {
         this.analysisController = analysisController;
     }
 
-    @GetMapping(value = "/elucidate", consumes = "application/json", produces = "application/json")
-    public List<DataSet> elucidate(@RequestBody final String json, @RequestParam final boolean dereplicate, @RequestParam final boolean allowHeteroHeteroBonds) {
+    @PostMapping(value = "/elucidate", consumes = "application/json", produces = "application/json")
+    public ResponseEntity<Result> elucidate(@RequestBody final String json, @RequestParam final boolean dereplicate, @RequestParam final boolean allowHeteroHeteroBonds) {
+        final Result result = new Result();
         final List<DataSet> solutions = new ArrayList<>();
         try {
             final Data data = OBJECT_MAPPER.readValue(json, Data.class);
@@ -72,6 +74,9 @@ public class CASEController {
             final Map<String, Double> shiftTols = (HashMap<String, Double>) data.getCorrelations().getOptions().get("tolerance");
             final double thrsHybridizations = 0.1; // threshold to take a hybridization into account
 
+            // NEW UUID CREATION
+            final UUID uuid = UUID.randomUUID();
+
             // DEREPLICATION
             if (dereplicate) {
                 final Spectrum querySpectrum = new Spectrum(new String[]{"13C"});
@@ -79,37 +84,41 @@ public class CASEController {
                 if (querySpectrum.getSignals().stream().noneMatch(signal -> signal.getMultiplicity() == null)) {
                     solutions.addAll(this.dereplication(querySpectrum, mf, shiftTols.get("C")));
                     if (!solutions.isEmpty()) {
-                        return solutions;
+                        result.setDataSets(solutions);
+                        return new ResponseEntity(result, HttpStatus.OK);
                     }
                 }
             }
 
             // @TODO check possible structural input (incl. assignment) by nmr-displayer
 
-            // @TODO SUBSTRUCTRUE SEARCH
+            // @TODO SUBSTRUCTURE SEARCH
 
-            // PyLSD FILE CONTENT CREATION
-            final String pyLSDFileContent = buildPyLSDFileContent(data, mf, getDetectedHybridizations(data, thrsHybridizations), allowHeteroHeteroBonds, PATH_TO_LSD_FILTER_LIST);
+            // PyLSD FILE CONTENT
+            final String pyLSDFileContent = PyLSDInputFileBuilder.buildPyLSDFileContent(data, mf, getDetectedHybridizations(data, thrsHybridizations), allowHeteroHeteroBonds, PATH_TO_LSD_FILTER_LIST, uuid.toString());
 
             // write PyLSD file
             // write content into PyLSD file and store it
-            FileOperations.writeFile(PATH_TO_PYLSD_FILE_FOLDER + "test.pyLSD", pyLSDFileContent);
+            if (FileSystem.writeFile(PATH_TO_PYLSD_FILE_FOLDER + "test.pyLSD", pyLSDFileContent)) {
+                // execute PyLSD
+                final ProcessBuilder builder = new ProcessBuilder();
+                builder.directory(new File(PATH_TO_PYLSD_FILE_FOLDER));
+                builder.redirectError(new File(PATH_TO_PYLSD_FILE_FOLDER + "error.txt"));
+                builder.redirectOutput(new File(PATH_TO_PYLSD_FILE_FOLDER + "log.txt"));
+                builder.command("python2.7", PATH_TO_PYLSD_FILE_FOLDER + "lsd.py", PATH_TO_PYLSD_FILE_FOLDER + "test.pyLSD");
+                final Process process = builder.start();
+                int exitCode = process.waitFor();
+                System.out.println(exitCode);
 
-            //            // execute PyLSD
-            //            final ProcessBuilder builder = new ProcessBuilder();
-            //            builder.directory(new File(PATH_TO_PYLSD_FILE_FOLDER));
-            //            builder.redirectError(new File(PATH_TO_PYLSD_FILE_FOLDER + "error.txt"));
-            //            builder.redirectOutput(new File(PATH_TO_PYLSD_FILE_FOLDER + "log.txt"));
-            //            builder.command("python2.7", PATH_TO_PYLSD_FILE_FOLDER + "lsd.py", PATH_TO_PYLSD_FILE_FOLDER + "test.pyLSD");
-            //            final Process process = builder.start();
-            //            int exitCode = process.waitFor();
-            //            assert exitCode == 0;
-
+                result.setDataSets(solutions);
+                return new ResponseEntity(result, HttpStatus.OK);
+            }
         } catch (final Exception e) {
             System.err.println("An error occurred: " + e.getMessage());
         }
 
-        return solutions;
+        result.setDataSets(solutions);
+        return new ResponseEntity(result, HttpStatus.NOT_ACCEPTABLE);
     }
 
     public List<DataSet> dereplication(final Spectrum querySpectrum, final String mf, final double shiftTol) {

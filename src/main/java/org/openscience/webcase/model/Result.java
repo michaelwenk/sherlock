@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2020 Michael Wenk (https://github.com/michaelwenk)
+ * Copyright (c) 2021 Michael Wenk (https://github.com/michaelwenk)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,19 +22,18 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.controller;
+package org.openscience.webcase.model;
 
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import casekit.nmr.model.DataSet;
+import lombok.*;
 
-@RestController
-@RequestMapping(value = "/")
-public class HomeController {
+import java.util.List;
 
-    @GetMapping()
-    public String getMessage() {
-        return "Welcome to WebCASE backend!!!";
-    }
-
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+@ToString
+public class Result {
+    List<DataSet> dataSets;
 }
