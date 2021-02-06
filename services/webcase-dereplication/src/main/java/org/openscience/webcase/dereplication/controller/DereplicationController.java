@@ -24,7 +24,6 @@
 
 package org.openscience.webcase.dereplication.controller;
 
-import org.openscience.webcase.dereplication.model.Assignment;
 import org.openscience.webcase.dereplication.model.DataSet;
 import org.openscience.webcase.dereplication.model.Signal;
 import org.openscience.webcase.dereplication.model.Spectrum;
