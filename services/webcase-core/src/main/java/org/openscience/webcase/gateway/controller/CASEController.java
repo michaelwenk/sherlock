@@ -28,7 +28,6 @@ import org.openscience.webcase.gateway.model.DataSet;
 import org.openscience.webcase.gateway.model.exchange.Transfer;
 import org.openscience.webcase.gateway.model.nmrdisplayer.Data;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
