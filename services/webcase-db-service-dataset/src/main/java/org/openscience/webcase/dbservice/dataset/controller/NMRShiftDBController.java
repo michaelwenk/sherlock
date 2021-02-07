@@ -32,7 +32,7 @@ import reactor.core.publisher.Mono;
 
 
 @RestController
-@RequestMapping(value = "/api/nmrshiftdb")
+@RequestMapping(value = "/nmrshiftdb")
 public class NMRShiftDBController {
 
     private final DataSetServiceImplementation nmrShiftDBRepository;

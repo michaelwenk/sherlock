@@ -33,7 +33,9 @@ import org.openscience.webcase.dereplication.model.nmrdisplayer.Data;
 import org.openscience.webcase.dereplication.nmrshiftdb.model.DataSetRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -44,14 +46,16 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping(value = "api/")
+@RequestMapping(value = "/")
 public class DereplicationController {
 
     @Autowired
     private WebClient.Builder webClientBuilder;
 
     @PostMapping(value = "dereplication", consumes = "application/json", produces = "application/json") //, produces = "application/stream+json")
-    public List<DataSet> dereplication(@RequestBody final Data data) {
+    public ResponseEntity<Transfer> dereplication(@RequestBody final Transfer requestTransfer) {
+        final Data data = requestTransfer.getData();
+        final Transfer resultTransfer = new Transfer();
         final Spectrum querySpectrum = new Spectrum();
         querySpectrum.setNuclei(new String[]{"13C"});
         querySpectrum.setSignals(data.getCorrelations().getValues().stream().filter(correlation -> correlation.getAtomType().equals("C")).map(correlation -> new Signal(querySpectrum.getNuclei(), new Double[]{correlation.getSignal().getDelta()}, this.getMultiplicityFromProtonsCount(correlation), null, correlation.getSignal().getKind(), correlation.getEquivalence(), correlation.getSignal().getSign())).collect(Collectors.toList()));
@@ -73,7 +77,7 @@ public class DereplicationController {
 
                 final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
                         .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 100000)).build();
-                final WebClient webClient = this.webClientBuilder.baseUrl("http://webcase-ranking-spectral-similarity").
+                final WebClient webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-ranking-spectral-similarity").
                         defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                         .exchangeStrategies(exchangeStrategies)
                         .build();
@@ -83,23 +87,26 @@ public class DereplicationController {
                 queryTransfer.setShiftTolerances(shiftTolerances);
                 results = webClient
                         .post()
-                        .uri("/api/rankBySpectralSimilarity")
+                        .uri("/rankBySpectralSimilarity")
                         .bodyValue(queryTransfer)
                         .retrieve()
                         .bodyToMono(Transfer.class).block().getDataSetList();
 
                 System.out.println(results);
-                return results;
+
+                resultTransfer.setDataSetList(results);
+                return new ResponseEntity<>(resultTransfer, HttpStatus.OK);
             }
         }
 
-        return new ArrayList<>();
+        resultTransfer.setDataSetList(new ArrayList<>());
+        return new ResponseEntity<>(resultTransfer, HttpStatus.OK);
     }
 
     public Flux<DataSetRecord> dereplicate1D(final Spectrum querySpectrum, final String mf, final double shiftTol) {
         final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 100000)).build();
-        final WebClient webClient = this.webClientBuilder.baseUrl("http://webcase-db-service-dataset").
+        final WebClient webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-db-service-dataset").
                     defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchangeStrategies(exchangeStrategies)
                 .build();
@@ -107,7 +114,7 @@ public class DereplicationController {
 
         if (mf != null) {
             uriComponentsBuilder //.scheme("http").host("webcase-db-service-dataset")
-                    .path("/api/nmrshiftdb/getByMf").queryParam("mf", mf);
+                    .path("/nmrshiftdb/getByMf").queryParam("mf", mf);
             System.out.println(uriComponentsBuilder.toUriString());
             return webClient
                             .get()
@@ -118,7 +125,7 @@ public class DereplicationController {
         // @TODO take the nuclei order into account when matching -> now it's just an exact array match
         final String nucleiString = Arrays.stream(querySpectrum.getNuclei()).reduce("", (concat, current) -> concat + current );
         uriComponentsBuilder //.scheme("http").host("webcase-db-service-dataset")
-                .path("/api/nmrshiftdb/getByNucleiAndSignalCount").queryParam("nuclei", nucleiString).queryParam("signalCount", querySpectrum.getSignalCount());
+                .path("/nmrshiftdb/getByNucleiAndSignalCount").queryParam("nuclei", nucleiString).queryParam("signalCount", querySpectrum.getSignalCount());
         System.out.println(uriComponentsBuilder.toUriString());
 
 

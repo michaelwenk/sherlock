@@ -15,7 +15,7 @@ import java.util.stream.Collectors;
 
 
 @RestController
-@RequestMapping(value = "/api/")
+@RequestMapping(value = "/")
 public class SpectralSimilarityRankingController {
 
     @PostMapping(value = "rankBySpectralSimilarity", consumes = "application/json", produces = "application/json")
