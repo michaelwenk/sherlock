@@ -40,7 +40,6 @@ import java.util.*;
 
 @RestController
 @RequestMapping(value = "/")
-@CrossOrigin(origins = {"http://localhost:3000"})
 public class CASEController {
 
     @Autowired
