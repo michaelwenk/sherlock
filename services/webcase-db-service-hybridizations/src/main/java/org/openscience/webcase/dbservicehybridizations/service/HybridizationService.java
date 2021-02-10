@@ -22,24 +22,24 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservice.dataset.nmrshiftdb.service;
+package org.openscience.webcase.dbservicehybridizations.service;
 
+import org.openscience.webcase.dbservicehybridizations.model.HybridizationRecord;
 
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.DataSetRecord;
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
-import org.springframework.stereotype.Repository;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import java.util.List;
+import java.util.Optional;
 
+public interface HybridizationService {
 
-@Repository
-public interface DataSetRepository extends ReactiveMongoRepository<DataSetRecord, String> {
+    long count();
 
-    Mono<DataSetRecord> findById(final String id);
+    void insert(final HybridizationRecord hybridizationRecord);
 
-    Flux<DataSetRecord> findByMf(final String mf);
+    List<HybridizationRecord> findAll();
 
-    Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
+    Optional<HybridizationRecord> findById(final String id);
 
-    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount);
+    List<String> aggregateHybridizationsByNucleusAndShiftAndMultiplicity(final String nucleus, final int minShift, final int maxShift, final String multiplicity);
+
+    void deleteAll();
 }

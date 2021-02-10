@@ -22,24 +22,23 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservice.dataset.nmrshiftdb.service;
+package org.openscience.webcase.core.model.nmrdisplayer;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.*;
 
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.DataSetRecord;
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
-import org.springframework.stereotype.Repository;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+@ToString
 
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Signal1D {
 
-@Repository
-public interface DataSetRepository extends ReactiveMongoRepository<DataSetRecord, String> {
-
-    Mono<DataSetRecord> findById(final String id);
-
-    Flux<DataSetRecord> findByMf(final String mf);
-
-    Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
-
-    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount);
+    private String id;
+    private String kind;
+    private String multiplicity;
+    private double delta;
+    private int sign;
 }

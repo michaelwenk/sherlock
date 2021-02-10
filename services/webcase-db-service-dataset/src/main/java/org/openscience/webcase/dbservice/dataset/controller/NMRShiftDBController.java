@@ -35,35 +35,35 @@ import reactor.core.publisher.Mono;
 @RequestMapping(value = "/nmrshiftdb")
 public class NMRShiftDBController {
 
-    private final DataSetServiceImplementation nmrShiftDBRepository;
+    private final DataSetServiceImplementation dataSetServiceImplementation;
 
-    public NMRShiftDBController(final DataSetServiceImplementation nmrShiftDBRepository) {
-        this.nmrShiftDBRepository = nmrShiftDBRepository;
+    public NMRShiftDBController(final DataSetServiceImplementation dataSetServiceImplementation) {
+        this.dataSetServiceImplementation = dataSetServiceImplementation;
     }
 
     @GetMapping(value = "/count")
     public Mono<Long> getCount() {
-        return this.nmrShiftDBRepository.count();
+        return this.dataSetServiceImplementation.count();
     }
 
     @GetMapping(value = "/getAll", produces = "application/stream+json")
     public Flux<DataSetRecord> getAll() {
-        return this.nmrShiftDBRepository.findAll();
+        return this.dataSetServiceImplementation.findAll();
     }
 
     @GetMapping(value = "/getByMf", produces = "application/stream+json")
     public Flux<DataSetRecord> getByMf(@RequestParam final String mf) {
-        return this.nmrShiftDBRepository.findByMf(mf);
+        return this.dataSetServiceImplementation.findByMf(mf);
     }
 
     @GetMapping(value = "/getByNuclei", produces = "application/stream+json")
     public Flux<DataSetRecord> getByDataSetSpectrumNuclei(@RequestParam final String[] nuclei) {
-        return this.nmrShiftDBRepository.findByDataSetSpectrumNuclei(nuclei);
+        return this.dataSetServiceImplementation.findByDataSetSpectrumNuclei(nuclei);
     }
 
     @GetMapping(value = "/getByNucleiAndSignalCount", produces = "application/stream+json")
     public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(@RequestParam final String[] nuclei, @RequestParam final int signalCount) {
-        return this.nmrShiftDBRepository.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(nuclei, signalCount);
+        return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(nuclei, signalCount);
     }
 
 //    @PostMapping(value = "/insert", consumes = "application/json")

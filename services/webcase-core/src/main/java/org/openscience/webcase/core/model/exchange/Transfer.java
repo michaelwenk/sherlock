@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2020 Michael Wenk (https://github.com/michaelwenk)
+ * Copyright (c) 2021 Michael Wenk (https://github.com/michaelwenk)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,24 +22,25 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservice.dataset.nmrshiftdb.service;
+package org.openscience.webcase.core.model.exchange;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import lombok.*;
+import org.openscience.webcase.core.model.DataSet;
+import org.openscience.webcase.core.model.nmrdisplayer.Data;
+
+import java.util.List;
+import java.util.Map;
 
 
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.DataSetRecord;
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
-import org.springframework.stereotype.Repository;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@ToString
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class Transfer {
 
-
-@Repository
-public interface DataSetRepository extends ReactiveMongoRepository<DataSetRecord, String> {
-
-    Mono<DataSetRecord> findById(final String id);
-
-    Flux<DataSetRecord> findByMf(final String mf);
-
-    Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
-
-    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount);
+    private List<DataSet> dataSetList;
+    private Data data;
 }

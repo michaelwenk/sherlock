@@ -22,24 +22,22 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservice.dataset.nmrshiftdb.service;
+package org.openscience.webcase.dbservicehybridizations.service;
 
-
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.DataSetRecord;
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+import org.openscience.webcase.dbservicehybridizations.model.HybridizationRecord;
+import org.springframework.data.mongodb.repository.Aggregation;
+import org.springframework.data.mongodb.repository.MongoRepository;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
+import java.util.List;
+import java.util.Optional;
 
 @Repository
-public interface DataSetRepository extends ReactiveMongoRepository<DataSetRecord, String> {
+public interface HybridizationRepository extends MongoRepository<HybridizationRecord, String> {
 
-    Mono<DataSetRecord> findById(final String id);
+    Optional<HybridizationRecord> findById(final String id);
 
-    Flux<DataSetRecord> findByMf(final String mf);
-
-    Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
-
-    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount);
+    @Aggregation({"{$match: {\"nucleus\": \"?0\", \"shift\": {$gte: ?1, $lte: ?2}, \"multiplicity\": \"?3\"}}", "{$group: {\"_id\": null, \"set\": {$push: \"$hybridization\"}}}", "{$unwind: \"$set\"}"})
+    List<String> aggregateHybridizationsByNucleusAndShiftAndMultiplicity(final String nucleus, final int minShift, final int maxShift, final String multiplicity);
 }

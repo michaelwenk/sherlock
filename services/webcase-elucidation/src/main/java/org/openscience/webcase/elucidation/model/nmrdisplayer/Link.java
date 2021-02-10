@@ -22,24 +22,27 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservice.dataset.nmrshiftdb.service;
+package org.openscience.webcase.elucidation.model.nmrdisplayer;
 
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.DataSetRecord;
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
-import org.springframework.stereotype.Repository;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import java.util.ArrayList;
 
-
-@Repository
-public interface DataSetRepository extends ReactiveMongoRepository<DataSetRecord, String> {
-
-    Mono<DataSetRecord> findById(final String id);
-
-    Flux<DataSetRecord> findByMf(final String mf);
-
-    Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
-
-    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount);
+@NoArgsConstructor
+@Getter
+@Setter
+@ToString
+public class Link {
+    private String experimentType;
+    private String experimentID;
+    private String[] atomType;
+    private Signal2D signal;
+    private String axis;
+    private ArrayList<Integer> match;
+    private String id;
+    private String experimentLabel;
+    private boolean pseudo;
 }

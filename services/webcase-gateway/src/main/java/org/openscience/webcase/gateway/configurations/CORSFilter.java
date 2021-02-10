@@ -23,6 +23,7 @@ public class CORSFilter implements WebFluxConfigurer {
         corsConfiguration.addAllowedOrigin("http://localhost:3000");
         final UrlBasedCorsConfigurationSource corsConfigurationSource = new UrlBasedCorsConfigurationSource();
         corsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
+
         return new CorsWebFilter(corsConfigurationSource);
     }
 }
