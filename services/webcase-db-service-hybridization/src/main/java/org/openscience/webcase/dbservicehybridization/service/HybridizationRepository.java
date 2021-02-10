@@ -22,12 +22,11 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservicehybridizations.service;
+package org.openscience.webcase.dbservicehybridization.service;
 
-import org.openscience.webcase.dbservicehybridizations.model.HybridizationRecord;
+import org.openscience.webcase.dbservicehybridization.model.HybridizationRecord;
 import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.MongoRepository;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;

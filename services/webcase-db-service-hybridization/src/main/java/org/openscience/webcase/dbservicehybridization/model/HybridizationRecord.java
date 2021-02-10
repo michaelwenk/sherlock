@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservicehybridizations.model;
+package org.openscience.webcase.dbservicehybridization.model;
 
 import lombok.*;
 import org.springframework.data.annotation.Id;

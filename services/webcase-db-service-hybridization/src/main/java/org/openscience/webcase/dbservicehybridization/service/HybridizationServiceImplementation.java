@@ -22,9 +22,9 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservicehybridizations.service;
+package org.openscience.webcase.dbservicehybridization.service;
 
-import org.openscience.webcase.dbservicehybridizations.model.HybridizationRecord;
+import org.openscience.webcase.dbservicehybridization.model.HybridizationRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
