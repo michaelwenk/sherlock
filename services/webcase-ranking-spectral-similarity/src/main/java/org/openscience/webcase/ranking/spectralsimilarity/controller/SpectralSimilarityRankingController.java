@@ -22,8 +22,6 @@ public class SpectralSimilarityRankingController {
     public ResponseEntity<Transfer> rankBySpectralSimilarity(@RequestBody final Transfer queryTransfer){
         List<DataSet> rankedDataSetList = queryTransfer.getDataSetList();
         if(queryTransfer.getQuerySpectrum().getNDim() == 1 && queryTransfer.getQuerySpectrum().getNuclei()[0].equals("13C")) {
-            System.out.println("HELLO");
-            System.out.println(queryTransfer.getShiftTolerances().get("C"));
             // @TODO get shift tolerance as arguments
             rankedDataSetList = rankedDataSetList.stream().filter(dataSet ->
                     Match.matchSpectra(dataSet.getSpectrum(), queryTransfer.getQuerySpectrum(), 0,0, queryTransfer.getShiftTolerances().get("C")).isFullyAssigned(0)
