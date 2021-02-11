@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021 Michael Wenk (https://github.com/michaelwenk)
+ * Copyright (c) 2020 Michael Wenk (https://github.com/michaelwenk)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,24 +22,33 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.elucidation.model.exchange;
+package org.openscience.webcase.pylsd.createinputfile.model.nmrdisplayer;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.*;
-import org.openscience.webcase.elucidation.model.DataSet;
-import org.openscience.webcase.elucidation.model.nmrdisplayer.Data;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+import lombok.ToString;
 
-import java.util.List;
+import java.util.ArrayList;
+import java.util.HashMap;
 
-
-@AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @ToString
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class Transfer {
 
-    private List<DataSet> dataSetList;
-    private Data data;
+public class Correlation {
+    private String id;
+    private String experimentType;
+    private String experimentID;
+    private String atomType;
+    private HashMap<String, String> label;
+    private Signal1D signal;
+    private ArrayList<Link> link;
+    private int equivalence;
+    private HashMap<String, ArrayList<Integer>> attachment;
+    private ArrayList<Integer> protonsCount;
+    private String hybridization;
+    private boolean pseudo;
+    private HashMap<String, Boolean> edited;
 }

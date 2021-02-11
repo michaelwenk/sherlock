@@ -23,8 +23,8 @@ public class ElucidationController {
     @Autowired
     private WebClient.Builder webClientBuilder;
 
-    private final String PATH_TO_LSD_FILTER_LIST = "/Users/mwenk/work/software/PyLSD-a4/LSD/Filters/list.txt";
-    private final String PATH_TO_PYLSD_FILE_FOLDER = "/Users/mwenk/work/software/PyLSD-a4/Variant/";
+    private final String pathToLSDFilterList = "/Users/mwenk/work/software/PyLSD-a4/LSD/Filters/list.txt";
+    private final String pathToPyLSDInputFileFolder = "/Users/mwenk/work/software/PyLSD-a4/Variant/";
 
     @PostMapping(value = "elucidation")
     public ResponseEntity<Transfer> elucidate(@RequestBody final Transfer requestTransfer, @RequestParam final boolean allowHeteroHeteroBonds, @RequestParam final String requestID){
@@ -34,27 +34,29 @@ public class ElucidationController {
         final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 100000)).build();
         final WebClient webClient = webClientBuilder.
-                baseUrl("http://localhost:8081/webcase-create-pylsd-input-file")
+                baseUrl("http://localhost:8081/webcase-pylsd-create-input-file")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                 .exchangeStrategies(exchangeStrategies)
                 .build();
         final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
         uriComponentsBuilder.path("/createPyLSDInputFile")
                 .queryParam("allowHeteroHeteroBonds", allowHeteroHeteroBonds)
-                .queryParam("PATH_TO_LSD_FILTER_LIST", PATH_TO_LSD_FILTER_LIST)
+                .queryParam("pathToPyLSDInputFile", pathToPyLSDInputFileFolder + "webcase_" + requestID + ".pylsd")
+                .queryParam("pathToLSDFilterList", pathToLSDFilterList)
                 .queryParam("requestID", requestID);
 
+        // create PyLSD input file
         final Transfer queryTransfer = new Transfer();
         queryTransfer.setData(data);
-        final Transfer queryResultTransfer = webClient
+        final HttpStatus queryResultHttpStatus = webClient
                 .post()
                 .uri(uriComponentsBuilder.toUriString())
                 .bodyValue(queryTransfer)
                 .retrieve()
-                .bodyToMono(Transfer.class).block();
-        final String pyLSDInputFile = queryResultTransfer.getPyLSDInputFile();
-
+                .bodyToMono(HttpStatus.class).block();
         // run PyLSD
+        if(queryResultHttpStatus == HttpStatus.OK){
+        }
 
 
         final Transfer resultTransfer = new Transfer();
