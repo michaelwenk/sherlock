@@ -42,4 +42,6 @@ public class Transfer {
 
     private List<DataSet> dataSetList;
     private Data data;
+    private Boolean pyLSDInputFileCreationWasSuccessful;
+    private Boolean pyLSDRunWasSuccessful;
 }

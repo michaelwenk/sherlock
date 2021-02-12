@@ -9,7 +9,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -23,39 +22,61 @@ public class ElucidationController {
     @Autowired
     private WebClient.Builder webClientBuilder;
 
+    private final String pathToPyLSDExecutableFolder = "/Users/mwenk/work/software/PyLSD-a4/Variant/";
     private final String pathToLSDFilterList = "/Users/mwenk/work/software/PyLSD-a4/LSD/Filters/list.txt";
-    private final String pathToPyLSDInputFileFolder = "/Users/mwenk/work/software/PyLSD-a4/Variant/";
+    private final String pathToPyLSDInputFileFolder = "/Users/mwenk/Downloads/temp_webCASE/";
+//    private final String pathToPyLSDOutputFileFolder = "/Users/mwenk/Downloads/temp_webCASE/";
+    private final String pathToPyLSDLogAndErrorFolder = "/Users/mwenk/Downloads/temp_webCASE/";
 
     @PostMapping(value = "elucidation")
     public ResponseEntity<Transfer> elucidate(@RequestBody final Transfer requestTransfer, @RequestParam final boolean allowHeteroHeteroBonds, @RequestParam final String requestID){
         final List<DataSet> dataSetList = new ArrayList<>();
         final Data data = requestTransfer.getData();
-        // set ExchangeSettings
-        final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
-                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 100000)).build();
-        final WebClient webClient = webClientBuilder.
+        final String pathToPyLSDInputFile = pathToPyLSDInputFileFolder + "webcase_" + requestID + ".pylsd";
+
+        WebClient webClient = webClientBuilder.
                 baseUrl("http://localhost:8081/webcase-pylsd-create-input-file")
                 .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .exchangeStrategies(exchangeStrategies)
                 .build();
-        final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
+        UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
         uriComponentsBuilder.path("/createPyLSDInputFile")
                 .queryParam("allowHeteroHeteroBonds", allowHeteroHeteroBonds)
-                .queryParam("pathToPyLSDInputFile", pathToPyLSDInputFileFolder + "webcase_" + requestID + ".pylsd")
+                .queryParam("pathToPyLSDInputFile", pathToPyLSDInputFile)
                 .queryParam("pathToLSDFilterList", pathToLSDFilterList)
                 .queryParam("requestID", requestID);
 
         // create PyLSD input file
-        final Transfer queryTransfer = new Transfer();
+        Transfer queryTransfer = new Transfer();
         queryTransfer.setData(data);
-        final HttpStatus queryResultHttpStatus = webClient
+        Transfer queryResultTransfer = webClient
                 .post()
                 .uri(uriComponentsBuilder.toUriString())
                 .bodyValue(queryTransfer)
                 .retrieve()
-                .bodyToMono(HttpStatus.class).block();
+                .bodyToMono(Transfer.class).block();
+
         // run PyLSD
-        if(queryResultHttpStatus == HttpStatus.OK){
+        if(queryResultTransfer.getPyLSDInputFileCreationWasSuccessful()){
+            System.out.println("--> has been written successfully: " + pathToPyLSDInputFile);
+            webClient = webClientBuilder.
+                    baseUrl("http://localhost:8081/webcase-pylsd-run")
+                    .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                    .build();
+            uriComponentsBuilder = UriComponentsBuilder.newInstance();
+            uriComponentsBuilder.path("/runPyLSD")
+                    .queryParam("pathToPyLSDExecutableFolder", pathToPyLSDExecutableFolder)
+                    .queryParam("pathToPyLSDLogAndErrorFolder", pathToPyLSDLogAndErrorFolder)
+                    .queryParam("pathToPyLSDInputFile", pathToPyLSDInputFile)
+                    .queryParam("requestID", requestID);
+
+            // create PyLSD input file
+            queryTransfer = new Transfer();
+            queryResultTransfer = webClient
+                    .get()
+                    .uri(uriComponentsBuilder.toUriString())
+                    .retrieve()
+                    .bodyToMono(Transfer.class).block();
+            System.out.println("--> has been executed successfully: " + queryResultTransfer.getPyLSDRunWasSuccessful());
         }
 
 

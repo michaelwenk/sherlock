@@ -3,6 +3,8 @@ package org.openscience.webcase.pylsd.run.model.exchange;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
+import java.util.List;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
@@ -11,6 +13,5 @@ import lombok.*;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Transfer {
 
-    private String pyLSDInputFileContent;
-    private String pyLSDOutputFileContent;
+    private Boolean pyLSDRunWasSuccessful;
 }

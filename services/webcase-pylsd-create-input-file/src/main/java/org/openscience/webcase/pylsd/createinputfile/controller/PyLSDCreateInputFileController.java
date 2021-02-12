@@ -24,16 +24,14 @@ public class PyLSDCreateInputFileController {
     final double thrsHybridizations = 0.1; // threshold to take a hybridization into account
 
     @PostMapping(value = "createPyLSDInputFile", consumes = "application/json")
-    public HttpStatus createPyLSDInputFile(@RequestBody final Transfer requestTransfer, @RequestParam final boolean allowHeteroHeteroBonds, @RequestParam final String pathToPyLSDInputFile, @RequestParam final String pathToLSDFilterList, @RequestParam final String requestID){
+    public ResponseEntity<Transfer> createPyLSDInputFile(@RequestBody final Transfer requestTransfer, @RequestParam final boolean allowHeteroHeteroBonds, @RequestParam final String pathToPyLSDInputFile, @RequestParam final String pathToLSDFilterList, @RequestParam final String requestID){
         final Data data = requestTransfer.getData();
         final String mf = (String) data.getCorrelations().getOptions().get("mf");
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.getDetectedHybridizations(webClientBuilder, data, thrsHybridizations);
         final String pyLSDInputFileContent = PyLSDInputFileBuilder.buildPyLSDInputFileContent(data, mf, detectedHybridizations, allowHeteroHeteroBonds, pathToLSDFilterList, requestID);
 
-        if(PyLSDInputFileBuilder.writePyLSDInputFileContentToFile(pathToPyLSDInputFile, pyLSDInputFileContent)){
-            return HttpStatus.OK;
-        }
-
-        return HttpStatus.CONFLICT;
+        final Transfer resultTransfer = new Transfer();
+        resultTransfer.setPyLSDInputFileCreationWasSuccessful(PyLSDInputFileBuilder.writePyLSDInputFileContentToFile(pathToPyLSDInputFile, pyLSDInputFileContent));
+        return new ResponseEntity<>(resultTransfer, HttpStatus.OK);
     }
 }

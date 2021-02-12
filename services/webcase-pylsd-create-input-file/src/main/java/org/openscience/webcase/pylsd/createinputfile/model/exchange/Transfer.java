@@ -38,5 +38,5 @@ import org.openscience.webcase.pylsd.createinputfile.model.nmrdisplayer.Data;
 public class Transfer {
 
     private Data data;
-    private String pathToPyLSDInputFile;
+    private Boolean pyLSDInputFileCreationWasSuccessful;
 }
