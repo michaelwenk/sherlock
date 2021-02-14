@@ -8,12 +8,13 @@
     "@testing-library/react": "^11.2.3",
     "@testing-library/user-event": "^12.6.2",
     "axios": "^0.21.1",
+    "nmr-displayer": "^0.6.3",
     "openchemlib": "^7.3.0",
     "react": "^17.0.1",
     "react-dom": "^17.0.1",
     "react-mf": "^2.0.1",
     "react-ocl-nmr": "^0.2.2",
-    "react-scripts": "4.0.1",
+    "react-scripts": "^4.0.2",
     "web-vitals": "^0.2.4"
   },
   "scripts": {
@@ -43,13 +44,11 @@
   "devDependencies": {
     "@babel/core": "^7.12.3",
     "@babel/preset-env": "^7.12.11",
-    "babel-loader": "^8.1.0",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-prettier": "^3.3.1",
     "eslint-plugin-react": "^7.22.0",
     "eslint-plugin-react-hooks": "^4.2.0",
     "prettier": "^2.2.1",
-    "webpack": "^4.44.2",
     "webpack-cli": "^4.4.0"
   }
 }
