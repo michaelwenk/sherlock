@@ -4,7 +4,7 @@ import axios from 'axios';
 import { useCallback, useState } from 'react';
 import CheckBox from '../elements/CheckBox';
 
-const QueryPanel = () => {
+const QueryPanel = ({ data }) => {
   const [queryFile, setQueryFile] = useState();
   const [dereplicate, setDereplicate] = useState(true);
   const [allowHeteroHeteroBonds, setAllowHeteroHeteroBonds] = useState(false);
@@ -18,8 +18,8 @@ const QueryPanel = () => {
     async (e) => {
       e.stopPropagation();
 
-      const blob = new Blob([queryFile]);
-      const json = await blob.text().then((res) => res);
+      // const blob = new Blob([queryFile]);
+      // const json = await blob.text().then((res) => res);
       const result = await axios({
         method: 'POST',
         url: 'http://localhost:8081/webcase-core/core',
@@ -27,14 +27,14 @@ const QueryPanel = () => {
           dereplicate,
           allowHeteroHeteroBonds,
         },
-        data: json,
+        data, //: json,
         headers: {
           'Content-Type': 'application/json',
         },
       });
       console.log(result);
     },
-    [allowHeteroHeteroBonds, dereplicate, queryFile],
+    [allowHeteroHeteroBonds, data, dereplicate],
   );
 
   const onChangeDereplicate = useCallback((e) => {
