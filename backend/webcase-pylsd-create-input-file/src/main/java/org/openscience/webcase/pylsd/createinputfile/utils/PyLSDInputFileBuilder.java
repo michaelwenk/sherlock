@@ -355,27 +355,20 @@ public class PyLSDInputFileBuilder {
     private static Map<String, Integer> getMolecularFormulaElementCounts(final String mf) {
         final LinkedHashMap<String, Integer> counts = new LinkedHashMap<>();
         final List<String> elements = new ArrayList<>();
-        Matcher matcher = Pattern.compile("([A-Z][a-z]*)").matcher(mf);
+        Matcher matcher = Pattern.compile("([A-Z][a-z]{0,1})").matcher(mf);
         while (matcher.find()) {
             elements.add(matcher.group(1));
         }
         int count;
-        String group;
-        String[] split;
         for (final String element : elements) {
-            matcher = Pattern.compile("(" + element + "(\\d*|[A-Z]|$))").matcher(mf);
+            matcher = Pattern.compile("(" + element + "\\d+)").matcher(mf);
+            count = 1;
             if (matcher.find()) {
-                group = matcher.group(1);
-                split = group.split(element);
-                if(split.length > 0){
-                    count = Integer.parseInt(split[1]);
-                } else {
-                    count = 1;
-                }
-                counts.put(element, count);
+                count = Integer.parseInt(matcher.group(1).split(element)[1]);
             }
+            counts.put(element, count);
         }
-        
+
         return counts;
     }
 }
