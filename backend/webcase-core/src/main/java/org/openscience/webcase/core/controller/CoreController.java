@@ -41,7 +41,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping(value = "/")
-public class CASEController {
+public class CoreController {
 
     @Autowired
     private WebClient.Builder webClientBuilder;
@@ -108,24 +108,6 @@ public class CASEController {
                     .retrieve()
                     .bodyToMono(Transfer.class).block();
             solutions = queryResultTransfer.getDataSetList();
-
-
-//            // write PyLSD file
-//            // write content into PyLSD file and store it
-//            if (FileSystem.writeFile(PATH_TO_PYLSD_FILE_FOLDER + "test.pyLSD", pyLSDFileContent)) {
-//                // execute PyLSD
-//                final ProcessBuilder builder = new ProcessBuilder();
-//                builder.directory(new File(PATH_TO_PYLSD_FILE_FOLDER));
-//                builder.redirectError(new File(PATH_TO_PYLSD_FILE_FOLDER + "error.txt"));
-//                builder.redirectOutput(new File(PATH_TO_PYLSD_FILE_FOLDER + "log.txt"));
-//                builder.command("python2.7", PATH_TO_PYLSD_FILE_FOLDER + "lsd.py", PATH_TO_PYLSD_FILE_FOLDER + "test.pyLSD");
-//                final Process process = builder.start();
-//                int exitCode = process.waitFor();
-//                System.out.println(exitCode);
-//
-//                transfer.setDataSets(solutions);
-//                return new ResponseEntity(transfer, HttpStatus.OK);
-//            }
         } catch (final Exception e) {
             System.err.println("An error occurred: " + e.getMessage());
         }

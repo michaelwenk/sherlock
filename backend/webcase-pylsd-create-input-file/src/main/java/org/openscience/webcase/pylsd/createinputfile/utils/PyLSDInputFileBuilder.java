@@ -50,7 +50,7 @@ public class PyLSDInputFileBuilder {
             correlation = data.getCorrelations().getValues().get(i);
             // set entry for each correlation with consideration of equivalences
             if (correlation.getAtomType().equals("H")) {
-                protonsToInsert = 1;
+                protonsToInsert = 0;
                 for (final Link link : correlation.getLink()) {
                     if (link.getExperimentType().equals("hsqc") || link.getExperimentType().equals("hmqc")) {
                         protonsToInsert += data.getCorrelations().getValues().get(link.getMatch().get(0)).getEquivalence();
@@ -63,9 +63,9 @@ public class PyLSDInputFileBuilder {
                     protonIndexInPyLSDFile++;
                 }
             } else {
-                indicesMap.put(i, new Object[1 + correlation.getEquivalence() + 1]);
+                indicesMap.put(i, new Object[1 + correlation.getEquivalence()]);
                 indicesMap.get(i)[0] = correlation.getAtomType();
-                for (int j = 1; j <= correlation.getEquivalence() + 1; j++) {
+                for (int j = 1; j <= correlation.getEquivalence(); j++) {
                     indicesMap.get(i)[j] = heavyAtomIndexInPyLSDFile;
                     heavyAtomIndexInPyLSDFile++;
                 }

@@ -1,4 +1,4 @@
-package org.openscience.webcase.dbservicehybridization.utils;
+package org.openscience.webcase.dbservicehybridization.constants;
 
 import java.util.Collections;
 import java.util.HashMap;

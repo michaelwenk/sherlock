@@ -1,17 +1,14 @@
 package org.openscience.webcase.dbservicehybridization.controller;
 
+import org.openscience.webcase.dbservicehybridization.constants.Constants;
 import org.openscience.webcase.dbservicehybridization.model.HybridizationRecord;
 import org.openscience.webcase.dbservicehybridization.service.HybridizationServiceImplementation;
-import org.openscience.webcase.dbservicehybridization.utils.Constants;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 @RestController
 @RequestMapping(value = "/nmrshiftdb")
