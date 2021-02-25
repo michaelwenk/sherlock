@@ -341,6 +341,8 @@ public class PyLSDInputFileBuilder {
             // DEFF and FEXP as default filters (bad lists)
             stringBuilder.append(buildFilters(pathToLSDFilterList)).append("\n");
 
+//            stringBuilder.append("\n").append("MAXT 30").append("\n");
+
             return stringBuilder.toString();
         }
 
