@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 @RestController
@@ -34,7 +35,7 @@ public class PyLSDRunController {
                                                     + requestID
                                                     + "_log.txt"))
                    .command("python2.7", pathToPyLSDExecutableFolder
-                           + "lsd.py", pathToPyLSDInputFile);
+                           + "lsd_modified.py", pathToPyLSDInputFile);
             final Process process = builder.start();
             final int exitCode = process.waitFor();
             pyLSDRunWasSuccessful = exitCode
@@ -66,13 +67,25 @@ public class PyLSDRunController {
                              || file.getFileName()
                                     .toString()
                                     .endsWith("_D.sdf")
+                             //                             || file.getFileName()
+                             //                                    .toString()
+                             //                                    .matches(requestID
+                             //                                                     + "_"
+                             //                                                     + "\\d+")
                              || file.getFileName()
                                     .toString()
-                                    .matches(requestID
-                                                     + "_"
-                                                     + "\\d+")))
+                                    .endsWith(".lsd")))
                      .forEach(file -> file.toFile()
                                           .delete());
+
+                final Path resultsFilePath = Paths.get(pathToPyLSDInputFileFolder
+                                                               + "/"
+                                                               + requestID
+                                                               + "_0.sdf");
+                Files.move(resultsFilePath, resultsFilePath.resolveSibling(pathToPyLSDInputFileFolder
+                                                                                   + "/"
+                                                                                   + requestID
+                                                                                   + ".smiles"));
             } else {
                 System.out.println("run was NOT successful");
             }
