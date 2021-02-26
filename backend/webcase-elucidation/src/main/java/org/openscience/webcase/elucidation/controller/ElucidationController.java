@@ -52,7 +52,7 @@ public class ElucidationController {
                 .queryParam("requestID", requestID);
 
         // create PyLSD input file
-        Transfer queryTransfer = new Transfer();
+        final Transfer queryTransfer = new Transfer();
         queryTransfer.setData(data);
         Transfer queryResultTransfer = webClient
                 .post()
@@ -76,13 +76,31 @@ public class ElucidationController {
                     .queryParam("requestID", requestID);
 
             // create PyLSD input file
-            queryTransfer = new Transfer();
             queryResultTransfer = webClient
                     .get()
                     .uri(uriComponentsBuilder.toUriString())
                     .retrieve()
                     .bodyToMono(Transfer.class).block();
-            System.out.println("--> has been executed successfully: " + queryResultTransfer.getPyLSDRunWasSuccessful());
+            System.out.println("--> has been executed successfully: " + queryResultTransfer.getPyLSDRunWasSuccessful() + " -> " + queryResultTransfer.getPathToResultsFile());
+
+            if(queryResultTransfer.getPyLSDRunWasSuccessful()){
+                webClient = webClientBuilder.baseUrl("http://localhost:8081/webcase-result-retrieval")
+                                            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                                            .build();
+                uriComponentsBuilder = UriComponentsBuilder.newInstance();
+                uriComponentsBuilder.path("/retrieveResultFromFile")
+                                    .queryParam("pathToResultsFile", queryResultTransfer.getPathToResultsFile());
+
+                // retrieve results
+                queryResultTransfer = webClient
+                        .get()
+                        .uri(uriComponentsBuilder.toUriString())
+                        .retrieve()
+                        .bodyToMono(Transfer.class).block();
+                System.out.println("--> list of results: " + queryResultTransfer.getDataSetList().size() + " -> " + queryResultTransfer.getDataSetList());
+                dataSetList.addAll(queryResultTransfer.getDataSetList());
+            }
+
         } else {
             System.out.println("--> file creation failed: " + pathToPyLSDInputFile);
         }

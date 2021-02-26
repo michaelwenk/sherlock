@@ -22,7 +22,7 @@ public class PyLSDRunController {
                                              @RequestParam final String pathToPyLSDInputFileFolder,
                                              @RequestParam final String pathToPyLSDInputFile,
                                              @RequestParam final String requestID) {
-        boolean pyLSDRunWasSuccessful;
+        final Transfer resultTransfer = new Transfer();
 
         try {
             // try to execute PyLSD
@@ -38,7 +38,7 @@ public class PyLSDRunController {
                            + "lsd_modified.py", pathToPyLSDInputFile);
             final Process process = builder.start();
             final int exitCode = process.waitFor();
-            pyLSDRunWasSuccessful = exitCode
+            final boolean pyLSDRunWasSuccessful = exitCode
                     == 0;
 
             if (pyLSDRunWasSuccessful) {
@@ -82,20 +82,21 @@ public class PyLSDRunController {
                                                                + "/"
                                                                + requestID
                                                                + "_0.sdf");
-                Files.move(resultsFilePath, resultsFilePath.resolveSibling(pathToPyLSDInputFileFolder
-                                                                                   + "/"
-                                                                                   + requestID
-                                                                                   + ".smiles"));
+                final String pathToResultsFile = pathToPyLSDInputFileFolder
+                        + "/"
+                        + requestID
+                        + ".smiles";
+                Files.move(resultsFilePath, resultsFilePath.resolveSibling(pathToResultsFile));
+                resultTransfer.setPathToResultsFile(pathToResultsFile);
             } else {
                 System.out.println("run was NOT successful");
             }
+            resultTransfer.setPyLSDRunWasSuccessful(pyLSDRunWasSuccessful);
 
         } catch (final Exception e) {
             System.out.println(e.getStackTrace());
-            pyLSDRunWasSuccessful = false;
+            resultTransfer.setPyLSDRunWasSuccessful(false);
         }
-        final Transfer resultTransfer = new Transfer();
-        resultTransfer.setPyLSDRunWasSuccessful(pyLSDRunWasSuccessful);
 
         return new ResponseEntity<>(resultTransfer, HttpStatus.OK);
     }

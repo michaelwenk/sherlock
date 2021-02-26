@@ -12,4 +12,5 @@ import lombok.*;
 public class Transfer {
 
     private Boolean pyLSDRunWasSuccessful;
+    private String pathToResultsFile;
 }

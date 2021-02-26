@@ -22,12 +22,11 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.elucidation.model.exchange;
+package org.openscience.webcase.resultretrieval.model.exchange;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
-import org.openscience.webcase.elucidation.model.DataSet;
-import org.openscience.webcase.elucidation.model.nmrdisplayer.Data;
+import org.openscience.webcase.resultretrieval.model.DataSet;
 
 import java.util.List;
 
@@ -41,8 +40,5 @@ import java.util.List;
 public class Transfer {
 
     private List<DataSet> dataSetList;
-    private Data data;
-    private Boolean pyLSDInputFileCreationWasSuccessful;
-    private Boolean pyLSDRunWasSuccessful;
     private String pathToResultsFile;
 }
