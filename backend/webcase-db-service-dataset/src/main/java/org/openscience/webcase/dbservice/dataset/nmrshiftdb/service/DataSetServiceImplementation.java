@@ -45,11 +45,6 @@ public class DataSetServiceImplementation implements DataSetService {
     }
 
     @Override
-    public void insert(final DataSetRecord dataSetRecord) {
-        this.dataSetRepository.insert(dataSetRecord);
-    }
-
-    @Override
     public Flux<DataSetRecord> findAll() {
         return this.dataSetRepository.findAll();
     }
@@ -73,9 +68,16 @@ public class DataSetServiceImplementation implements DataSetService {
     public Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount) {
         return this.dataSetRepository.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(nuclei, signalCount);
     }
+    
+    // insertions/deletions
 
     @Override
-    public void deleteAll() {
-        this.dataSetRepository.deleteAll();
+    public Mono<DataSetRecord> insert(final DataSetRecord dataSetRecord) {
+        return this.dataSetRepository.insert(dataSetRecord);
     }
+
+   @Override
+    public Mono<Void> deleteAll(){
+       return this.dataSetRepository.deleteAll();
+   }
 }

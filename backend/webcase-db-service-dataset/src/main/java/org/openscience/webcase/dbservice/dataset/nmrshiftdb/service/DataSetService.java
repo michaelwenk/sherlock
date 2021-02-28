@@ -32,8 +32,6 @@ public interface DataSetService {
 
     Mono<Long> count();
 
-    void insert(final DataSetRecord dataSetRecord);
-
     Flux<DataSetRecord> findAll();
 
     Mono<DataSetRecord> findById(final String id);
@@ -44,6 +42,9 @@ public interface DataSetService {
 
     Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount);
 
-    void deleteAll();
+    // insertions/deletions
 
+    Mono<DataSetRecord> insert(final DataSetRecord dataSetRecord);
+    
+    Mono<Void> deleteAll();
 }

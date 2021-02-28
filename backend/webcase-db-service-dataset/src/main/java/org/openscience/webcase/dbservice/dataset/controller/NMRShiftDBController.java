@@ -24,16 +24,30 @@
 
 package org.openscience.webcase.dbservice.dataset.controller;
 
+import org.openscience.webcase.dbservice.dataset.model.DataSet;
+import org.openscience.webcase.dbservice.dataset.model.exchange.Transfer;
 import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.DataSetRecord;
 import org.openscience.webcase.dbservice.dataset.nmrshiftdb.service.DataSetServiceImplementation;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
+import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
 
 
 @RestController
 @RequestMapping(value = "/nmrshiftdb")
 public class NMRShiftDBController {
+    
+    @Autowired
+    private WebClient.Builder webClientBuilder;
 
     private final DataSetServiceImplementation dataSetServiceImplementation;
 
@@ -66,26 +80,39 @@ public class NMRShiftDBController {
         return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(nuclei, signalCount);
     }
 
-//    @PostMapping(value = "/insert", consumes = "application/json")
-//    public void insert(@RequestBody final DataSetRecord dataSetRecord) {
-//        this.nmrShiftDBRepository.insert(dataSetRecord);
-//    }
+    @PostMapping(value = "/insert", consumes = "application/json")
+    public void insert(@RequestBody final DataSetRecord dataSetRecord) {
+        this.dataSetServiceImplementation.insert(dataSetRecord).block();
+    }
 
-//    @DeleteMapping(value = "/delete/all")
-//    public void deleteAll() {
-//        this.nmrShiftDBRepository.deleteAll();
-//    }
+    @DeleteMapping(value = "/delete/all")
+    public void deleteAll() {
+        this.dataSetServiceImplementation.deleteAll().block();
+    }
 
-//    @PostMapping(value = "/replace/all", consumes = "text/plain")
-//    public void replaceAll(@RequestParam final String filePath) {
-//        this.deleteAll();
-//
-//        //        try {
-//        final String[] nuclei = new String[]{"13C", "1H", "15N"};
-//        final ArrayList<DataSet> dataSets = new ArrayList<>(); //new ArrayList<>(NMRShiftDB.getDataSetsFromNMRShiftDB(filePath, nuclei));
-//        dataSets.forEach(dataSet -> this.nmrShiftDBRepository.insert(new DataSetRecord(null, dataSet.getMeta().get("mf"), dataSet)));
-//        //        } catch (FileNotFoundException e) {
-//        //            e.printStackTrace();
-//        //        }
-//    }
+    @PostMapping(value = "/replace/all", consumes = "text/plain")
+    public void replaceAll(@RequestParam final String filePath, @RequestParam final String[] nuclei) {
+        this.deleteAll();
+        
+        final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
+                                                                        .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1000000)).build();
+        final WebClient webClient = webClientBuilder.
+                                            baseUrl("http://localhost:8081/webcase-casekit/dbservice")
+                                    .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                                                    .exchangeStrategies(exchangeStrategies)
+                                    .build();
+        final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
+        uriComponentsBuilder.path("/getDataSetsFromNMRShiftDB")
+                            .queryParam("pathToNMRShiftDB", filePath)
+                            .queryParam("nuclei", String.join(",", nuclei));
+        System.out.println(uriComponentsBuilder.toUriString());
+        final Transfer queryResultTransfer = webClient
+                .get()
+                .uri(uriComponentsBuilder.toUriString())
+                .retrieve()
+                .bodyToMono(Transfer.class)
+                .block();
+
+        queryResultTransfer.getDataSetList().forEach(dataSet -> this.insert(new DataSetRecord(null, dataSet.getMeta().get("mf"), dataSet)));
+    }
 }
