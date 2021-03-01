@@ -77,11 +77,9 @@ public class CoreController {
 
                     if (solutions.size() > 0) {
                         System.out.println("DEREPLICATION WAS SUCCESSFUL: " + solutions.size());
-                        System.out.println(solutions);
                         transfer.setDataSetList(solutions);
                         return new ResponseEntity<>(transfer, HttpStatus.OK);
                     }
-
             }
 
             // @TODO check possible structural input (incl. assignment) by nmr-displayer

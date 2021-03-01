@@ -297,7 +297,7 @@ public class PyLSDInputFileBuilder {
 
     public static String buildPyLSDInputFileContent(final Data data, final String mf, final Map<Integer, List<Integer>> detectedHybridizations, final boolean allowHeteroHeteroBonds, final String pathToLSDFilterList, final String requestID) {
         final Map<String, Map<String, Object>> state = data.getCorrelations().getState();
-        boolean hasErrors = state.keySet().stream().anyMatch(s -> state.get(s).containsKey("error"));
+        boolean hasErrors = state.keySet().stream().anyMatch(atomType -> state.get(atomType).containsKey("error") && !((HashMap<String, Object>) state.get(atomType).get("error")).isEmpty());
         if (mf != null && !hasErrors) {
             final Map<String, Integer> elementCounts = new LinkedHashMap<>(getMolecularFormulaElementCounts(mf));
             final StringBuilder stringBuilder = new StringBuilder();

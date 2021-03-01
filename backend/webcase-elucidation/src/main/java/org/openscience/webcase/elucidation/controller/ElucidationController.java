@@ -98,7 +98,10 @@ public class ElucidationController {
                         .retrieve()
                         .bodyToMono(Transfer.class).block();
                 System.out.println("--> list of results: " + queryResultTransfer.getDataSetList().size() + " -> " + queryResultTransfer.getDataSetList());
-                dataSetList.addAll(queryResultTransfer.getDataSetList());
+                queryResultTransfer.getDataSetList().forEach(dataSet -> {
+                    dataSet.addMetaInfo("determination", "elucidation");
+                    dataSetList.add(dataSet) ;
+                });
             }
 
         } else {

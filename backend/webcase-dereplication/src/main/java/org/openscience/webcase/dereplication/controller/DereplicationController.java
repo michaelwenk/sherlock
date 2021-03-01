@@ -70,7 +70,11 @@ public class DereplicationController {
                         .collectList()
                         .block()
                         .stream()
-                        .map(DataSetRecord::getDataSet)
+                        .map(dataSetRecord -> {
+                            final DataSet dataSet = dataSetRecord.getDataSet();
+                            dataSet.addMetaInfo("determination", "dereplication");
+                            return dataSet;
+                        })
                         .collect(Collectors.toList());
 
                 final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
