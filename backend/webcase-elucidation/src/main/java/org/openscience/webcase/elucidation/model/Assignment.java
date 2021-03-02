@@ -36,36 +36,6 @@ import lombok.*;
 @ToString
 public class Assignment {
 
+    private String[] nuclei;
     private int[][] assignments;
-
-    private int getAssignmentsCount() {
-        if (this.assignments.length > 0) {
-            return this.assignments[0].length;
-        }
-        return 0;
-    }
-
-    private int getSetAssignmentsCount(final int dim) {
-        int setAssignmentsCounter = 0;
-        if (this.containsDim(dim)) {
-            for (int j = 0; j < this.assignments[dim].length; j++) {
-                if (this.assignments[dim][j] != -1) {
-                    setAssignmentsCounter++;
-                }
-            }
-        }
-        return setAssignmentsCounter;
-    }
-
-    public Boolean isFullyAssigned(final int dim) {
-        if (!this.containsDim(dim)) {
-            return null;
-        }
-
-        return this.getSetAssignmentsCount(dim) == this.getAssignmentsCount();
-    }
-
-    private boolean containsDim(final int dim) {
-        return dim >= 0 && dim < this.assignments.length;
-    }
 }

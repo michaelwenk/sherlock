@@ -41,7 +41,6 @@ import lombok.*;
 public class Signal {
 
     private String[] nuclei;
-
     private Double[] shifts;
     private String multiplicity;
     private Double intensity;

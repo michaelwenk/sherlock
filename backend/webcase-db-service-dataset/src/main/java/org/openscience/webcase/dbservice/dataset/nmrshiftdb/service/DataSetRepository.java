@@ -42,4 +42,6 @@ public interface DataSetRepository extends ReactiveMongoRepository<DataSetRecord
     Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
 
     Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount);
+
+    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(final String[] nuclei, final int signalCount, final String mf);
 }

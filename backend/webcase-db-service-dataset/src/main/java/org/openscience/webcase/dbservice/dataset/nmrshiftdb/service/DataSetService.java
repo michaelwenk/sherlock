@@ -42,6 +42,8 @@ public interface DataSetService {
 
     Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount);
 
+    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(final String[] nuclei, final int signalCount, final String mf);
+
     // insertions/deletions
 
     Mono<DataSetRecord> insert(final DataSetRecord dataSetRecord);

@@ -28,9 +28,9 @@ import org.openscience.webcase.dereplication.model.DataSet;
 import org.openscience.webcase.dereplication.model.Signal;
 import org.openscience.webcase.dereplication.model.Spectrum;
 import org.openscience.webcase.dereplication.model.exchange.Transfer;
-import org.openscience.webcase.dereplication.model.nmrdisplayer.Correlation;
 import org.openscience.webcase.dereplication.model.nmrdisplayer.Data;
 import org.openscience.webcase.dereplication.nmrshiftdb.model.DataSetRecord;
+import org.openscience.webcase.dereplication.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -53,20 +53,22 @@ public class DereplicationController {
     private WebClient.Builder webClientBuilder;
 
     @PostMapping(value = "dereplication", consumes = "application/json", produces = "application/json") //, produces = "application/stream+json")
-    public ResponseEntity<Transfer> dereplication(@RequestBody final Transfer requestTransfer, @RequestParam final String requestID) {
+    public ResponseEntity<Transfer> dereplication(@RequestBody final Transfer requestTransfer) {
         final Data data = requestTransfer.getData();
         final Transfer resultTransfer = new Transfer();
         final Spectrum querySpectrum = new Spectrum();
         querySpectrum.setNuclei(new String[]{"13C"});
-        querySpectrum.setSignals(data.getCorrelations().getValues().stream().filter(correlation -> correlation.getAtomType().equals("C")).map(correlation -> new Signal(querySpectrum.getNuclei(), new Double[]{correlation.getSignal().getDelta()}, this.getMultiplicityFromProtonsCount(correlation), null, correlation.getSignal().getKind(), correlation.getEquivalence(), correlation.getSignal().getSign())).collect(Collectors.toList()));
+        querySpectrum.setSignals(data.getCorrelations().getValues().stream().filter(correlation -> correlation.getAtomType().equals("C")).map(correlation -> new Signal(querySpectrum.getNuclei(), new Double[]{correlation.getSignal().getDelta()}, Utils.getMultiplicityFromProtonsCount(correlation), null, correlation.getSignal().getKind(), correlation.getEquivalence(), correlation.getSignal().getSign())).collect(Collectors.toList()));
         querySpectrum.setSignalCount(querySpectrum.getSignals().size());
         // check whether each signal has a multiplicity
         if (querySpectrum.getSignals().stream().noneMatch(signal -> signal.getMultiplicity() == null)) {
             final String mf = (String) data.getCorrelations().getOptions().get("mf");
-            final Map<String, Double> shiftTolerances = (HashMap<String, Double>) data.getCorrelations().getOptions().get("tolerance");
+            final Map<String, Double> shiftTolerances = new HashMap<>();
+            final HashMap<String, Object> _shiftTolerance = ((HashMap<String, Object>) data.getCorrelations().getOptions().get("tolerance"));
+            _shiftTolerance.keySet().forEach(atomType -> shiftTolerances.put(atomType, Double.parseDouble(String.valueOf(_shiftTolerance.get(atomType)))));
 
             if (querySpectrum.getNuclei().length == 1) {
-                List<DataSet> results = dereplicate1D(querySpectrum, mf, shiftTolerances.get("C"))
+                List<DataSet> results = getDataSetRecords(querySpectrum, mf)
                         .collectList()
                         .block()
                         .stream()
@@ -79,7 +81,7 @@ public class DereplicationController {
 
                 final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
                         .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 100000)).build();
-                final WebClient webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-ranking-spectral-similarity").
+                final WebClient webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-casekit/ranking").
                         defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                         .exchangeStrategies(exchangeStrategies)
                         .build();
@@ -103,7 +105,7 @@ public class DereplicationController {
         return new ResponseEntity<>(resultTransfer, HttpStatus.OK);
     }
 
-    public Flux<DataSetRecord> dereplicate1D(final Spectrum querySpectrum, final String mf, final double shiftTol) {
+    public Flux<DataSetRecord> getDataSetRecords(final Spectrum querySpectrum, final String mf) {
         final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 100000)).build();
         final WebClient webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-db-service-dataset/nmrshiftdb").
@@ -112,45 +114,26 @@ public class DereplicationController {
                 .build();
         final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
 
+        // @TODO take the nuclei order into account when matching -> now it's just an exact array match
+        final String nucleiString = Arrays.stream(querySpectrum.getNuclei()).reduce("", (concat, current) -> concat + current );
         if (mf != null) {
-            uriComponentsBuilder //.scheme("http").host("webcase-db-service-dataset")
-                    .path("/getByMf").queryParam("mf", mf);
+            uriComponentsBuilder
+                    .path("/getByNucleiAndSignalCountAndMf")
+                    .queryParam("nuclei", nucleiString)
+                    .queryParam("signalCount", querySpectrum.getSignalCount())
+                    .queryParam("mf", mf);
             return webClient
                             .get()
                             .uri(uriComponentsBuilder.toUriString())
                             .retrieve()
                             .bodyToFlux(DataSetRecord.class);
         }
-        // @TODO take the nuclei order into account when matching -> now it's just an exact array match
-        final String nucleiString = Arrays.stream(querySpectrum.getNuclei()).reduce("", (concat, current) -> concat + current );
-        uriComponentsBuilder //.scheme("http").host("webcase-db-service-dataset")
+        uriComponentsBuilder
                 .path("/getByNucleiAndSignalCount").queryParam("nuclei", nucleiString).queryParam("signalCount", querySpectrum.getSignalCount());
-
         return webClient
                 .get()
                 .uri(uriComponentsBuilder.toUriString())
                 .retrieve()
                 .bodyToFlux(DataSetRecord.class);
-    }
-
-    /**
-     * Specified for carbons only -> not generic!!!
-     */
-    public String getMultiplicityFromProtonsCount(final Correlation correlation) {
-        if (correlation.getAtomType().equals("C") && correlation.getProtonsCount().size() == 1) {
-            switch (correlation.getProtonsCount().get(0)) {
-                case 0:
-                    return "s";
-                case 1:
-                    return "d";
-                case 2:
-                    return "t";
-                case 3:
-                    return "q";
-                default:
-                    return null;
-            }
-        }
-        return null;
     }
 }

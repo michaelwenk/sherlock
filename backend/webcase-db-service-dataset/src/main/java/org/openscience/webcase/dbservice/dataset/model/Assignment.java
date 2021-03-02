@@ -31,5 +31,6 @@ import lombok.Data;
 @Data
 public class Assignment {
 
+    private String[] nuclei;
     private int[][] assignments;
 }

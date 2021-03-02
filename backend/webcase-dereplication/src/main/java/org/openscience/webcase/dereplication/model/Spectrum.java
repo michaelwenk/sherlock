@@ -44,7 +44,6 @@ import java.util.List;
 public class Spectrum {
 
     private String[] nuclei;
-
     private String description;
     private String specType;
     private Double spectrometerFrequency;

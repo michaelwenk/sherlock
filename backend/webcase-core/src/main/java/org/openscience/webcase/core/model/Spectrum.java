@@ -44,7 +44,6 @@ import java.util.List;
 public class Spectrum {
 
     private String[] nuclei;
-
     private String description;
     private String specType;
     private Double spectrometerFrequency;
@@ -52,8 +51,4 @@ public class Spectrum {
     private String standard;
     private List<Signal> signals;
     private int signalCount;
-
-    public boolean addSignal(final Signal signal){
-        return this.signals.add(signal);
-    }
 }

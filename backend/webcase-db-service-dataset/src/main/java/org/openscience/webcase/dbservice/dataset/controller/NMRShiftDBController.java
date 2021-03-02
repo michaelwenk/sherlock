@@ -80,6 +80,11 @@ public class NMRShiftDBController {
         return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(nuclei, signalCount);
     }
 
+    @GetMapping(value = "/getByNucleiAndSignalCountAndMf", produces = "application/stream+json")
+    public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(@RequestParam final String[] nuclei, @RequestParam final int signalCount, @RequestParam final String mf) {
+        return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(nuclei, signalCount, mf);
+    }
+
     @PostMapping(value = "/insert", consumes = "application/json")
     public void insert(@RequestBody final DataSetRecord dataSetRecord) {
         this.dataSetServiceImplementation.insert(dataSetRecord).block();

@@ -59,27 +59,24 @@ public class CoreController {
             // DEREPLICATION
             if (dereplicate) {
                     final WebClient webClient = webClientBuilder.
-                        baseUrl("http://localhost:8081/webcase-dereplication")
+                        baseUrl("http://localhost:8081/webcase-dereplication/dereplication")
                             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                             .exchangeStrategies(exchangeStrategies)
                         .build();
-                final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-                uriComponentsBuilder.path("/dereplication").queryParam("requestID", requestID);
                     final Transfer queryTransfer = new Transfer();
                     queryTransfer.setData(data);
                     final Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
                             .post()
-                            .uri(uriComponentsBuilder.toUriString())
                             .bodyValue(queryTransfer)
                             .retrieve()
                             .bodyToMono(Transfer.class).block();
                 solutions = queryResultTransfer.getDataSetList();
 
-                    if (solutions.size() > 0) {
+//                    if (solutions.size() > 0) {
                         System.out.println("DEREPLICATION WAS SUCCESSFUL: " + solutions.size());
                         transfer.setDataSetList(solutions);
                         return new ResponseEntity<>(transfer, HttpStatus.OK);
-                    }
+//                    }
             }
 
             // @TODO check possible structural input (incl. assignment) by nmr-displayer
