@@ -24,20 +24,22 @@
 
 package org.openscience.webcase.core.controller;
 
-import org.openscience.webcase.core.model.DataSet;
 import org.openscience.webcase.core.model.exchange.Transfer;
-import org.openscience.webcase.core.model.nmrdisplayer.Data;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.UUID;
 
 @RestController
 @RequestMapping(value = "/")
@@ -47,67 +49,83 @@ public class CoreController {
     private WebClient.Builder webClientBuilder;
 
     @PostMapping(value = "/core", consumes = "application/json", produces = "application/json")
-    public ResponseEntity<Transfer> core(@RequestBody final Data data, @RequestParam final boolean dereplicate, @RequestParam final boolean allowHeteroHeteroBonds) {
+    public ResponseEntity<Transfer> core(@RequestBody final Transfer requestTransfer) {
         final Transfer transfer = new Transfer();
-        List<DataSet> solutions = new ArrayList<>();
         try {
-            // NEW UUID CREATION
-            final String requestID = UUID.randomUUID().toString();
             // set ExchangeSettings
             final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
-                    .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 100000)).build();
+                                                                            .codecs(configurer -> configurer.defaultCodecs()
+                                                                                                            .maxInMemorySize(
+                                                                                                                    1024
+                                                                                                                            * 100000))
+                                                                            .build();
             // DEREPLICATION
-            if (dereplicate) {
-                    final WebClient webClient = webClientBuilder.
-                        baseUrl("http://localhost:8081/webcase-dereplication/dereplication")
-                            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                            .exchangeStrategies(exchangeStrategies)
-                        .build();
-                    final Transfer queryTransfer = new Transfer();
-                    queryTransfer.setData(data);
-                    final Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
-                            .post()
-                            .bodyValue(queryTransfer)
-                            .retrieve()
-                            .bodyToMono(Transfer.class).block();
-                solutions = queryResultTransfer.getDataSetList();
+            if (requestTransfer.getQueryType()
+                               .equals("Dereplication")) {
+                final WebClient webClient = this.webClientBuilder.
+                                                                         baseUrl("http://localhost:8081/webcase-dereplication/dereplication")
+                                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                                MediaType.APPLICATION_JSON_VALUE)
+                                                                 .exchangeStrategies(exchangeStrategies)
+                                                                 .build();
+                final Transfer queryTransfer = new Transfer();
+                queryTransfer.setData(requestTransfer.getData());
+                final Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
+                                                               .post()
+                                                               .bodyValue(queryTransfer)
+                                                               .retrieve()
+                                                               .bodyToMono(Transfer.class)
+                                                               .block();
+                transfer.setDataSetList(queryResultTransfer.getDataSetList());
+                return new ResponseEntity<>(transfer, HttpStatus.OK);
 
-//                    if (solutions.size() > 0) {
-                        System.out.println("DEREPLICATION WAS SUCCESSFUL: " + solutions.size());
-                        transfer.setDataSetList(solutions);
-                        return new ResponseEntity<>(transfer, HttpStatus.OK);
-//                    }
             }
 
             // @TODO check possible structural input (incl. assignment) by nmr-displayer
 
             // @TODO SUBSTRUCTURE SEARCH
 
-            // PyLSD FILE CONTENT CREATION
-//            final String pyLSDFileContent = PyLSDInputFileBuilder.buildPyLSDFileContent(data, mf, getDetectedHybridizations(data, thrsHybridizations), allowHeteroHeteroBonds, PATH_TO_LSD_FILTER_LIST, uuid.toString());
-            final WebClient webClient = webClientBuilder.
-                    baseUrl("http://localhost:8081/webcase-elucidation")
-                    .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                    .exchangeStrategies(exchangeStrategies)
-                    .build();
-            final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-            uriComponentsBuilder.path("/elucidation")
-                    .queryParam("allowHeteroHeteroBonds", allowHeteroHeteroBonds)
-                    .queryParam("requestID", requestID);
-            final Transfer queryTransfer = new Transfer();
-            queryTransfer.setData(data);
-            final Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
-                    .post()
-                    .uri(uriComponentsBuilder.toUriString())
-                    .bodyValue(queryTransfer)
-                    .retrieve()
-                    .bodyToMono(Transfer.class).block();
-            solutions = queryResultTransfer.getDataSetList();
+            if (requestTransfer.getQueryType()
+                               .equals("Elucidation")) {
+                // NEW UUID CREATION
+                final String requestID = UUID.randomUUID()
+                                             .toString();
+                // PyLSD FILE CONTENT CREATION
+                final WebClient webClient = this.webClientBuilder.
+                                                                         baseUrl("http://localhost:8081/webcase-elucidation")
+                                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                                MediaType.APPLICATION_JSON_VALUE)
+                                                                 .exchangeStrategies(exchangeStrategies)
+                                                                 .build();
+                final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
+                uriComponentsBuilder.path("/elucidation")
+                                    .queryParam("allowHeteroHeteroBonds", requestTransfer.isAllowHeteroHeteroBonds())
+                                    .queryParam("requestID", requestID);
+                final Transfer queryTransfer = new Transfer();
+                queryTransfer.setData(requestTransfer.getData());
+                final Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
+                                                               .post()
+                                                               .uri(uriComponentsBuilder.toUriString())
+                                                               .bodyValue(queryTransfer)
+                                                               .retrieve()
+                                                               .bodyToMono(Transfer.class)
+                                                               .block();
+                transfer.setDataSetList(queryResultTransfer.getDataSetList());
+                transfer.setRequestID(requestID);
+                return new ResponseEntity<>(transfer, HttpStatus.OK);
+            }
+
+            if (requestTransfer.getQueryType()
+                               .equals("Retrieval")) {
+                System.out.println("RETRIEVAL: "
+                                           + requestTransfer.getRetrievalID());
+            }
         } catch (final Exception e) {
-            System.err.println("An error occurred: " + e.getMessage());
+            System.err.println("An error occurred: "
+                                       + e.getMessage());
         }
 
-        transfer.setDataSetList(solutions);
+        transfer.setDataSetList(new ArrayList<>());
         return new ResponseEntity<>(transfer, HttpStatus.OK);
     }
 }

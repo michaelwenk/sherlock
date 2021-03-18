@@ -42,4 +42,8 @@ public class Transfer {
 
     private List<DataSet> dataSetList;
     private Data data;
+    private String requestID;
+    private String queryType;
+    private boolean allowHeteroHeteroBonds;
+    private String retrievalID;
 }
