@@ -45,4 +45,9 @@ public class Transfer {
     private Boolean pyLSDInputFileCreationWasSuccessful;
     private Boolean pyLSDRunWasSuccessful;
     private String pathToResultsFile;
+    private String requestID;
+    private boolean allowHeteroHeteroBonds;
+    private String pathToPyLSDExecutableFolder;
+    private String pathToLSDFilterList;
+    private String pathToPyLSDInputFileFolder;
 }

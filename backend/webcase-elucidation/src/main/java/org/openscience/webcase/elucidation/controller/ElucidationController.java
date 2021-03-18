@@ -12,10 +12,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,18 +22,12 @@ public class ElucidationController {
     @Autowired
     private WebClient.Builder webClientBuilder;
 
-    private final String PATH_TO_PYLSD_EXECUTABLE_FOLDER = "/Users/mwenk/work/software/PyLSD-a4/Variant/";
-    private final String PATH_TO_LSD_FILTER_LIST = "/Users/mwenk/work/software/PyLSD-a4/LSD/Filters/list.txt";
-    private final String PATH_TO_PYLSD_INPUT_FILE_FOLDER = "/Users/mwenk/Downloads/temp_webCASE/";
-//    private final String pathToPyLSDOutputFileFolder = "/Users/mwenk/Downloads/temp_webCASE/";
-//    private final String pathToPyLSDLogAndErrorFolder = "/Users/mwenk/Downloads/temp_webCASE/";
-
     @PostMapping(value = "elucidation")
-    public ResponseEntity<Transfer> elucidate(@RequestBody final Transfer requestTransfer, @RequestParam final boolean allowHeteroHeteroBonds, @RequestParam final String requestID){
+    public ResponseEntity<Transfer> elucidate(@RequestBody final Transfer requestTransfer){
         final List<DataSet> dataSetList = new ArrayList<>();
         final Data data = requestTransfer.getData();
-        final String pathToPyLSDInputFileFolder = PATH_TO_PYLSD_INPUT_FILE_FOLDER + "/" + requestID + "/";
-        final String pathToPyLSDInputFile = pathToPyLSDInputFileFolder + requestID + ".pylsd";
+        final String pathToPyLSDInputFileFolder = requestTransfer.getPathToPyLSDInputFileFolder() + "/" + requestTransfer.getRequestID() + "/";
+        final String pathToPyLSDInputFile = pathToPyLSDInputFileFolder + requestTransfer.getRequestID() + ".pylsd";
 
         WebClient webClient = webClientBuilder.
                 baseUrl("http://localhost:8081/webcase-pylsd-create-input-file")
@@ -45,11 +35,11 @@ public class ElucidationController {
                 .build();
         UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
         uriComponentsBuilder.path("/createPyLSDInputFile")
-                .queryParam("allowHeteroHeteroBonds", allowHeteroHeteroBonds)
+                .queryParam("allowHeteroHeteroBonds", requestTransfer.isAllowHeteroHeteroBonds())
                 .queryParam("pathToPyLSDInputFileFolder", pathToPyLSDInputFileFolder)
                 .queryParam("pathToPyLSDInputFile", pathToPyLSDInputFile)
-                .queryParam("pathToLSDFilterList", PATH_TO_LSD_FILTER_LIST)
-                .queryParam("requestID", requestID);
+                .queryParam("pathToLSDFilterList", requestTransfer.getPathToLSDFilterList())
+                .queryParam("requestID", requestTransfer.getRequestID());
 
         // create PyLSD input file
         final Transfer queryTransfer = new Transfer();
@@ -70,10 +60,10 @@ public class ElucidationController {
                     .build();
             uriComponentsBuilder = UriComponentsBuilder.newInstance();
             uriComponentsBuilder.path("/runPyLSD")
-                    .queryParam("pathToPyLSDExecutableFolder", PATH_TO_PYLSD_EXECUTABLE_FOLDER)
+                    .queryParam("pathToPyLSDExecutableFolder", requestTransfer.getPathToPyLSDExecutableFolder())
                     .queryParam("pathToPyLSDInputFileFolder", pathToPyLSDInputFileFolder)
                     .queryParam("pathToPyLSDInputFile", pathToPyLSDInputFile)
-                    .queryParam("requestID", requestID);
+                    .queryParam("requestID", requestTransfer.getRequestID());
 
             // create PyLSD input file
             queryResultTransfer = webClient

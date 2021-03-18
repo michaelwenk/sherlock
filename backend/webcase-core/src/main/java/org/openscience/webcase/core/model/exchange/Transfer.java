@@ -46,4 +46,7 @@ public class Transfer {
     private String queryType;
     private boolean allowHeteroHeteroBonds;
     private String retrievalID;
+    private String pathToPyLSDExecutableFolder;
+    private String pathToLSDFilterList;
+    private String pathToPyLSDInputFileFolder;
 }

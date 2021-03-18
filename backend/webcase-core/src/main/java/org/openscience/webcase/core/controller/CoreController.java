@@ -45,6 +45,12 @@ import java.util.UUID;
 @RequestMapping(value = "/")
 public class CoreController {
 
+    private final String PATH_TO_PYLSD_EXECUTABLE_FOLDER = "/Users/mwenk/work/software/PyLSD-a4/Variant/";
+    private final String PATH_TO_LSD_FILTER_LIST = "/Users/mwenk/work/software/PyLSD-a4/LSD/Filters/list.txt";
+    private final String PATH_TO_PYLSD_INPUT_FILE_FOLDER = "/Users/mwenk/Downloads/temp_webCASE/";
+    //    private final String pathToPyLSDOutputFileFolder = "/Users/mwenk/Downloads/temp_webCASE/";
+    //    private final String pathToPyLSDLogAndErrorFolder = "/Users/mwenk/Downloads/temp_webCASE/";
+
     @Autowired
     private WebClient.Builder webClientBuilder;
 
@@ -92,20 +98,21 @@ public class CoreController {
                                              .toString();
                 // PyLSD FILE CONTENT CREATION
                 final WebClient webClient = this.webClientBuilder.
-                                                                         baseUrl("http://localhost:8081/webcase-elucidation")
+                                                                         baseUrl("http://localhost:8081/webcase-elucidation/elucidation")
                                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                                  .exchangeStrategies(exchangeStrategies)
                                                                  .build();
-                final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-                uriComponentsBuilder.path("/elucidation")
-                                    .queryParam("allowHeteroHeteroBonds", requestTransfer.isAllowHeteroHeteroBonds())
-                                    .queryParam("requestID", requestID);
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setData(requestTransfer.getData());
+                queryTransfer.setAllowHeteroHeteroBonds(requestTransfer.isAllowHeteroHeteroBonds());
+                queryTransfer.setRequestID(requestID);
+                queryTransfer.setPathToPyLSDExecutableFolder(this.PATH_TO_PYLSD_EXECUTABLE_FOLDER);
+                queryTransfer.setPathToLSDFilterList(this.PATH_TO_LSD_FILTER_LIST);
+                queryTransfer.setPathToPyLSDInputFileFolder(this.PATH_TO_PYLSD_INPUT_FILE_FOLDER);
+
                 final Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
                                                                .post()
-                                                               .uri(uriComponentsBuilder.toUriString())
                                                                .bodyValue(queryTransfer)
                                                                .retrieve()
                                                                .bodyToMono(Transfer.class)
@@ -119,6 +126,36 @@ public class CoreController {
                                .equals("Retrieval")) {
                 System.out.println("RETRIEVAL: "
                                            + requestTransfer.getRetrievalID());
+                final String pathToResultsFile = this.PATH_TO_PYLSD_INPUT_FILE_FOLDER
+                        + "/"
+                        + requestTransfer.getRetrievalID()
+                        + "/"
+                        + requestTransfer.getRetrievalID()
+                        + ".smiles";
+                final WebClient webClient = this.webClientBuilder.baseUrl(
+                        "http://localhost:8081/webcase-result-retrieval")
+                                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                                MediaType.APPLICATION_JSON_VALUE)
+                                                                 .build();
+                final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
+                uriComponentsBuilder.path("/retrieveResultFromFile")
+                                    .queryParam("pathToResultsFile", pathToResultsFile);
+
+                // retrieve results
+                final Transfer queryResultTransfer = webClient.get()
+                                                              .uri(uriComponentsBuilder.toUriString())
+                                                              .retrieve()
+                                                              .bodyToMono(Transfer.class)
+                                                              .block();
+                System.out.println("--> list of results: "
+                                           + queryResultTransfer.getDataSetList()
+                                                                .size()
+                                           + " -> "
+                                           + queryResultTransfer.getDataSetList());
+                transfer.setDataSetList(queryResultTransfer.getDataSetList());
+                transfer.setRequestID(requestTransfer.getRetrievalID());
+                return new ResponseEntity<>(transfer, HttpStatus.OK);
+
             }
         } catch (final Exception e) {
             System.err.println("An error occurred: "
