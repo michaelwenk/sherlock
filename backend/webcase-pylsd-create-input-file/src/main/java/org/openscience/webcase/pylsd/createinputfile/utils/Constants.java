@@ -13,23 +13,13 @@ public class Constants {
     public static final Map<String, String> defaultAtomLabelMap = createDefaultAtomLabelMap();
 
     private static Map<String, String> createNucleiMap() {
-        final Map<String, String> nuclei = new HashMap<>();
-        nuclei.put("C", "13C");
-        nuclei.put("N", "15N");
-        nuclei.put("H", "1H");
 
-        return Collections.unmodifiableMap(nuclei);
+        return Map.of("C", "13C", "N", "15N", "H", "1H");
     }
 
     private static Map<String, String> createDefaultHybridizationMap() {
-        final Map<String, String> defaultHybridization = new HashMap<>();
-        defaultHybridization.put("C", "(1 2 3)");
-        defaultHybridization.put("N", "(1 2 3)");
-        defaultHybridization.put("O", "(2 3)");
-        defaultHybridization.put("S", "(1 2 3)");
-        defaultHybridization.put("I", "3");
 
-        return Collections.unmodifiableMap(defaultHybridization);
+        return Map.of("C", "(1 2 3)", "N", "(1 2 3)", "O", "(2 3)", "S", "(1 2 3)", "I", "3");
     }
 
     private static Map<String, String> createDefaultProtonsCountPerValencyMap() {
@@ -49,13 +39,7 @@ public class Constants {
     }
 
     private static Map<String, String> createDefaultAtomLabelMap() {
-        final Map<String, String> defaultAtomLabel = new HashMap<>();
-        defaultAtomLabel.put("C", "C");
-        defaultAtomLabel.put("N", "N35");
-        defaultAtomLabel.put("O", "O");
-        defaultAtomLabel.put("S", "S246");
-        defaultAtomLabel.put("I", "I");
 
-        return Collections.unmodifiableMap(defaultAtomLabel);
+        return Map.of("C", "C", "N", "N35", "O", "O", "S", "S246", "I", "I");
     }
 }

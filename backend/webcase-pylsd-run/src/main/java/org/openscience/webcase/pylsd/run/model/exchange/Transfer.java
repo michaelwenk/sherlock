@@ -2,6 +2,7 @@ package org.openscience.webcase.pylsd.run.model.exchange;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
+import org.openscience.webcase.pylsd.run.model.ElucidationOptions;
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -12,5 +13,6 @@ import lombok.*;
 public class Transfer {
 
     private Boolean pyLSDRunWasSuccessful;
-    private String pathToResultsFile;
+    private ElucidationOptions elucidationOptions;
+    private String requestID;
 }

@@ -8,7 +8,10 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -23,79 +26,91 @@ public class ElucidationController {
     private WebClient.Builder webClientBuilder;
 
     @PostMapping(value = "elucidation")
-    public ResponseEntity<Transfer> elucidate(@RequestBody final Transfer requestTransfer){
+    public ResponseEntity<Transfer> elucidate(@RequestBody final Transfer requestTransfer) {
         final List<DataSet> dataSetList = new ArrayList<>();
         final Data data = requestTransfer.getData();
-        final String pathToPyLSDInputFileFolder = requestTransfer.getPathToPyLSDInputFileFolder() + "/" + requestTransfer.getRequestID() + "/";
-        final String pathToPyLSDInputFile = pathToPyLSDInputFileFolder + requestTransfer.getRequestID() + ".pylsd";
+        final String pathToPyLSDInputFileFolder = requestTransfer.getElucidationOptions()
+                                                                 .getPathToPyLSDInputFileFolder()
+                + "/"
+                + requestTransfer.getRequestID()
+                + "/";
+        final String pathToPyLSDInputFile = pathToPyLSDInputFileFolder
+                + requestTransfer.getRequestID()
+                + ".pylsd";
 
-        WebClient webClient = webClientBuilder.
-                baseUrl("http://localhost:8081/webcase-pylsd-create-input-file")
-                .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                .build();
-        UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-        uriComponentsBuilder.path("/createPyLSDInputFile")
-                .queryParam("allowHeteroHeteroBonds", requestTransfer.isAllowHeteroHeteroBonds())
-                .queryParam("pathToPyLSDInputFileFolder", pathToPyLSDInputFileFolder)
-                .queryParam("pathToPyLSDInputFile", pathToPyLSDInputFile)
-                .queryParam("pathToLSDFilterList", requestTransfer.getPathToLSDFilterList())
-                .queryParam("requestID", requestTransfer.getRequestID());
+        WebClient webClient = this.webClientBuilder.
+                                                           baseUrl("http://localhost:8081/webcase-pylsd-create-input-file/createPyLSDInputFile")
+                                                   .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                  MediaType.APPLICATION_JSON_VALUE)
+                                                   .build();
 
         // create PyLSD input file
         final Transfer queryTransfer = new Transfer();
         queryTransfer.setData(data);
-        Transfer queryResultTransfer = webClient
-                .post()
-                .uri(uriComponentsBuilder.toUriString())
-                .bodyValue(queryTransfer)
-                .retrieve()
-                .bodyToMono(Transfer.class).block();
+        requestTransfer.getElucidationOptions()
+                       .setPathToPyLSDInputFile(pathToPyLSDInputFile);
+        requestTransfer.getElucidationOptions()
+                       .setPathToPyLSDInputFileFolder(pathToPyLSDInputFileFolder);
+        queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
+        queryTransfer.setRequestID(requestTransfer.getRequestID());
+        Transfer queryResultTransfer = webClient.post()
+                                                //                                                .uri(uriComponentsBuilder.toUriString())
+                                                .bodyValue(queryTransfer)
+                                                .retrieve()
+                                                .bodyToMono(Transfer.class)
+                                                .block();
 
         // run PyLSD
-        if(queryResultTransfer.getPyLSDInputFileCreationWasSuccessful()){
-            System.out.println("--> has been written successfully: " + pathToPyLSDInputFile);
-            webClient = webClientBuilder.
-                    baseUrl("http://localhost:8081/webcase-pylsd-run")
-                    .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                    .build();
-            uriComponentsBuilder = UriComponentsBuilder.newInstance();
-            uriComponentsBuilder.path("/runPyLSD")
-                    .queryParam("pathToPyLSDExecutableFolder", requestTransfer.getPathToPyLSDExecutableFolder())
-                    .queryParam("pathToPyLSDInputFileFolder", pathToPyLSDInputFileFolder)
-                    .queryParam("pathToPyLSDInputFile", pathToPyLSDInputFile)
-                    .queryParam("requestID", requestTransfer.getRequestID());
+        if (queryResultTransfer.getPyLSDInputFileCreationWasSuccessful()) {
+            System.out.println("--> has been written successfully: "
+                                       + pathToPyLSDInputFile);
+            webClient = this.webClientBuilder.
+                                                     baseUrl("http://localhost:8081/webcase-pylsd-run/runPyLSD")
+                                             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                                             .build();
 
-            // create PyLSD input file
-            queryResultTransfer = webClient
-                    .get()
-                    .uri(uriComponentsBuilder.toUriString())
-                    .retrieve()
-                    .bodyToMono(Transfer.class).block();
-            System.out.println("--> has been executed successfully: " + queryResultTransfer.getPyLSDRunWasSuccessful() + " -> " + queryResultTransfer.getPathToResultsFile());
+            queryResultTransfer = webClient.post()
+                                           .bodyValue(queryTransfer)
+                                           .retrieve()
+                                           .bodyToMono(Transfer.class)
+                                           .block();
+            System.out.println("--> has been executed successfully: "
+                                       + queryResultTransfer.getPyLSDRunWasSuccessful()
+                                       + " -> "
+                                       + queryResultTransfer.getElucidationOptions()
+                                                            .getPathToResultsFile());
 
-            if(queryResultTransfer.getPyLSDRunWasSuccessful()){
-                webClient = webClientBuilder.baseUrl("http://localhost:8081/webcase-result-retrieval")
-                                            .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-                                            .build();
-                uriComponentsBuilder = UriComponentsBuilder.newInstance();
+            if (queryResultTransfer.getPyLSDRunWasSuccessful()) {
+                webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-result-retrieval")
+                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                MediaType.APPLICATION_JSON_VALUE)
+                                                 .build();
+                final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
                 uriComponentsBuilder.path("/retrieveResultFromFile")
-                                    .queryParam("pathToResultsFile", queryResultTransfer.getPathToResultsFile());
+                                    .queryParam("pathToResultsFile", queryResultTransfer.getElucidationOptions()
+                                                                                        .getPathToResultsFile());
 
                 // retrieve results
-                queryResultTransfer = webClient
-                        .get()
-                        .uri(uriComponentsBuilder.toUriString())
-                        .retrieve()
-                        .bodyToMono(Transfer.class).block();
-                System.out.println("--> list of results: " + queryResultTransfer.getDataSetList().size() + " -> " + queryResultTransfer.getDataSetList());
-                queryResultTransfer.getDataSetList().forEach(dataSet -> {
-                    dataSet.addMetaInfo("determination", "elucidation");
-                    dataSetList.add(dataSet) ;
-                });
+                queryResultTransfer = webClient.get()
+                                               .uri(uriComponentsBuilder.toUriString())
+                                               .retrieve()
+                                               .bodyToMono(Transfer.class)
+                                               .block();
+                System.out.println("--> list of results: "
+                                           + queryResultTransfer.getDataSetList()
+                                                                .size()
+                                           + " -> "
+                                           + queryResultTransfer.getDataSetList());
+                queryResultTransfer.getDataSetList()
+                                   .forEach(dataSet -> {
+                                       dataSet.addMetaInfo("determination", "elucidation");
+                                       dataSetList.add(dataSet);
+                                   });
             }
 
         } else {
-            System.out.println("--> file creation failed: " + pathToPyLSDInputFile);
+            System.out.println("--> file creation failed: "
+                                       + pathToPyLSDInputFile);
         }
 
 

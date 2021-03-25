@@ -76,6 +76,7 @@ public class CoreController {
                                                                  .build();
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setData(requestTransfer.getData());
+                queryTransfer.setDereplicationOptions(requestTransfer.getDereplicationOptions());
                 final Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
                                                                .post()
                                                                .bodyValue(queryTransfer)
@@ -105,11 +106,14 @@ public class CoreController {
                                                                  .build();
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setData(requestTransfer.getData());
-                queryTransfer.setAllowHeteroHeteroBonds(requestTransfer.isAllowHeteroHeteroBonds());
+                queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
                 queryTransfer.setRequestID(requestID);
-                queryTransfer.setPathToPyLSDExecutableFolder(this.PATH_TO_PYLSD_EXECUTABLE_FOLDER);
-                queryTransfer.setPathToLSDFilterList(this.PATH_TO_LSD_FILTER_LIST);
-                queryTransfer.setPathToPyLSDInputFileFolder(this.PATH_TO_PYLSD_INPUT_FILE_FOLDER);
+                queryTransfer.getElucidationOptions()
+                             .setPathToPyLSDExecutableFolder(this.PATH_TO_PYLSD_EXECUTABLE_FOLDER);
+                queryTransfer.getElucidationOptions()
+                             .setPathToLSDFilterList(this.PATH_TO_LSD_FILTER_LIST);
+                queryTransfer.getElucidationOptions()
+                             .setPathToPyLSDInputFileFolder(this.PATH_TO_PYLSD_INPUT_FILE_FOLDER);
 
                 final Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
                                                                .post()

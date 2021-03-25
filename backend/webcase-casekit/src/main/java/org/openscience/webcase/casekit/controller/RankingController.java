@@ -30,13 +30,15 @@ public class RankingController {
                                                  .filter(dataSet -> Match.matchSpectra(dataSet.getSpectrum(),
                                                                                        queryTransfer.getQuerySpectrum(),
                                                                                        0, 0,
-                                                                                       queryTransfer.getShiftTolerances()
+                                                                                       queryTransfer.getDereplicationOptions()
+                                                                                                    .getShiftTolerances()
                                                                                                     .get("C"))
                                                                          .isFullyAssigned(0))
                                                  .collect(Collectors.toList());
             rankedDataSetList.forEach(dataSet -> dataSet.addMetaInfo("avgDev", String.valueOf(
                     Match.calculateAverageDeviation(dataSet.getSpectrum(), queryTransfer.getQuerySpectrum(), 0, 0,
-                                                    queryTransfer.getShiftTolerances()
+                                                    queryTransfer.getDereplicationOptions()
+                                                                 .getShiftTolerances()
                                                                  .get("C")))));
             rankedDataSetList.sort((dataSet1, dataSet2) -> {
                 if (Double.parseDouble(dataSet1.getMeta()

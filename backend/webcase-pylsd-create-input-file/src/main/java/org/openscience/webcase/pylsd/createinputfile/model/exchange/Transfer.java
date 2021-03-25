@@ -26,6 +26,7 @@ package org.openscience.webcase.pylsd.createinputfile.model.exchange;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
+import org.openscience.webcase.pylsd.createinputfile.model.ElucidationOptions;
 import org.openscience.webcase.pylsd.createinputfile.model.nmrdisplayer.Data;
 
 
@@ -39,4 +40,6 @@ public class Transfer {
 
     private Data data;
     private Boolean pyLSDInputFileCreationWasSuccessful;
+    private ElucidationOptions elucidationOptions;
+    private String requestID;
 }

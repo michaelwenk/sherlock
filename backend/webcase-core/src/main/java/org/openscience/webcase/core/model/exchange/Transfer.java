@@ -27,6 +27,8 @@ package org.openscience.webcase.core.model.exchange;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 import org.openscience.webcase.core.model.DataSet;
+import org.openscience.webcase.core.model.DereplicationOptions;
+import org.openscience.webcase.core.model.ElucidationOptions;
 import org.openscience.webcase.core.model.nmrdisplayer.Data;
 
 import java.util.List;
@@ -39,14 +41,11 @@ import java.util.List;
 @ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Transfer {
-
     private List<DataSet> dataSetList;
     private Data data;
-    private String requestID;
     private String queryType;
-    private boolean allowHeteroHeteroBonds;
+    private DereplicationOptions dereplicationOptions;
+    private ElucidationOptions elucidationOptions;
+    private String requestID;
     private String retrievalID;
-    private String pathToPyLSDExecutableFolder;
-    private String pathToLSDFilterList;
-    private String pathToPyLSDInputFileFolder;
 }

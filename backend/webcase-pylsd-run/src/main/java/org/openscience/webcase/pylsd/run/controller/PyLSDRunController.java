@@ -3,9 +3,9 @@ package org.openscience.webcase.pylsd.run.controller;
 import org.openscience.webcase.pylsd.run.model.exchange.Transfer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.io.File;
@@ -17,25 +17,27 @@ import java.nio.file.Paths;
 @RequestMapping(value = "/")
 public class PyLSDRunController {
 
-    @GetMapping(value = "/runPyLSD")
-    public ResponseEntity<Transfer> runPyLSD(@RequestParam final String pathToPyLSDExecutableFolder,
-                                             @RequestParam final String pathToPyLSDInputFileFolder,
-                                             @RequestParam final String pathToPyLSDInputFile,
-                                             @RequestParam final String requestID) {
+    @PostMapping(value = "/runPyLSD")
+    public ResponseEntity<Transfer> runPyLSD(@RequestBody final Transfer requestTransfer) {
         final Transfer resultTransfer = new Transfer();
 
         try {
             // try to execute PyLSD
             final ProcessBuilder builder = new ProcessBuilder();
-            builder.directory(new File(pathToPyLSDExecutableFolder))
-                   .redirectError(new File(pathToPyLSDInputFileFolder
-                                                   + requestID
+            builder.directory(new File(requestTransfer.getElucidationOptions()
+                                                      .getPathToPyLSDExecutableFolder()))
+                   .redirectError(new File(requestTransfer.getElucidationOptions()
+                                                          .getPathToPyLSDInputFileFolder()
+                                                   + requestTransfer.getRequestID()
                                                    + "_error.txt"))
-                   .redirectOutput(new File(pathToPyLSDInputFileFolder
-                                                    + requestID
+                   .redirectOutput(new File(requestTransfer.getElucidationOptions()
+                                                           .getPathToPyLSDInputFileFolder()
+                                                    + requestTransfer.getRequestID()
                                                     + "_log.txt"))
-                   .command("python2.7", pathToPyLSDExecutableFolder
-                           + "lsd_modified.py", pathToPyLSDInputFile);
+                   .command("python2.7", requestTransfer.getElucidationOptions()
+                                                        .getPathToPyLSDExecutableFolder()
+                           + "lsd_modified.py", requestTransfer.getElucidationOptions()
+                                                               .getPathToPyLSDInputFile());
             final Process process = builder.start();
             final int exitCode = process.waitFor();
             final boolean pyLSDRunWasSuccessful = exitCode
@@ -43,8 +45,10 @@ public class PyLSDRunController {
 
             if (pyLSDRunWasSuccessful) {
                 System.out.println("run was successful");
-                System.out.println(pathToPyLSDInputFileFolder);
-                Files.list(Paths.get(pathToPyLSDInputFileFolder))
+                System.out.println(requestTransfer.getElucidationOptions()
+                                                  .getPathToPyLSDInputFileFolder());
+                Files.list(Paths.get(requestTransfer.getElucidationOptions()
+                                                    .getPathToPyLSDInputFileFolder()))
                      .filter(file -> Files.isRegularFile(file)
                              && (file.getFileName()
                                      .toString()
@@ -78,16 +82,20 @@ public class PyLSDRunController {
                      .forEach(file -> file.toFile()
                                           .delete());
 
-                final Path resultsFilePath = Paths.get(pathToPyLSDInputFileFolder
+                final Path resultsFilePath = Paths.get(requestTransfer.getElucidationOptions()
+                                                                      .getPathToPyLSDInputFileFolder()
                                                                + "/"
-                                                               + requestID
+                                                               + requestTransfer.getRequestID()
                                                                + "_0.sdf");
-                final String pathToResultsFile = pathToPyLSDInputFileFolder
+                final String pathToResultsFile = requestTransfer.getElucidationOptions()
+                                                                .getPathToPyLSDInputFileFolder()
                         + "/"
-                        + requestID
+                        + requestTransfer.getRequestID()
                         + ".smiles";
                 Files.move(resultsFilePath, resultsFilePath.resolveSibling(pathToResultsFile));
-                resultTransfer.setPathToResultsFile(pathToResultsFile);
+                resultTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
+                resultTransfer.getElucidationOptions()
+                              .setPathToResultsFile(pathToResultsFile);
             } else {
                 System.out.println("run was NOT successful");
             }
