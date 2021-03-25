@@ -57,6 +57,7 @@ public class CoreController {
     @PostMapping(value = "/core", consumes = "application/json", produces = "application/json")
     public ResponseEntity<Transfer> core(@RequestBody final Transfer requestTransfer) {
         final Transfer transfer = new Transfer();
+        transfer.setQueryType(requestTransfer.getQueryType());
         try {
             // set ExchangeSettings
             final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
