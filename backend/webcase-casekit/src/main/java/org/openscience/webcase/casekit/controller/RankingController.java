@@ -2,6 +2,7 @@ package org.openscience.webcase.casekit.controller;
 
 import casekit.nmr.model.DataSet;
 import casekit.nmr.utils.Match;
+import org.openscience.cdk.exception.CDKException;
 import org.openscience.webcase.casekit.model.exchange.Transfer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -35,21 +36,32 @@ public class RankingController {
                                                                                                     .get("C"))
                                                                          .isFullyAssigned(0))
                                                  .collect(Collectors.toList());
-            rankedDataSetList.forEach(dataSet -> dataSet.addMetaInfo("avgDev", String.valueOf(
-                    Match.calculateAverageDeviation(dataSet.getSpectrum(), queryTransfer.getQuerySpectrum(), 0, 0,
-                                                    queryTransfer.getDereplicationOptions()
-                                                                 .getShiftTolerances()
-                                                                 .get("C")))));
+
+            rankedDataSetList.forEach(dataSet -> {
+                Float tanimoto = null;
+                try {
+                    tanimoto = Match.calculateTanimotoCoefficient(dataSet.getSpectrum(),
+                                                                  queryTransfer.getQuerySpectrum(), 0, 0);
+                } catch (CDKException e) {
+                    e.printStackTrace();
+                }
+                final Double rmsd = Match.calculateRMSD(dataSet.getSpectrum(), queryTransfer.getQuerySpectrum(), 0, 0,
+                                                        queryTransfer.getDereplicationOptions()
+                                                                     .getShiftTolerances()
+                                                                     .get("C"));
+                dataSet.addMetaInfo("tanimoto", String.valueOf(tanimoto));
+                dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
+            });
             rankedDataSetList.sort((dataSet1, dataSet2) -> {
                 if (Double.parseDouble(dataSet1.getMeta()
-                                               .get("avgDev"))
+                                               .get("rmsd"))
                         < Double.parseDouble(dataSet2.getMeta()
-                                                     .get("avgDev"))) {
+                                                     .get("rmsd"))) {
                     return -1;
                 } else if (Double.parseDouble(dataSet1.getMeta()
-                                                      .get("avgDev"))
+                                                      .get("rmsd"))
                         > Double.parseDouble(dataSet2.getMeta()
-                                                     .get("avgDev"))) {
+                                                     .get("rmsd"))) {
                     return 1;
                 }
                 return 0;
