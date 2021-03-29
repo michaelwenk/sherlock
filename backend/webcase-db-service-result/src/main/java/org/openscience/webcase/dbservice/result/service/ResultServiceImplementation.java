@@ -49,8 +49,9 @@ public class ResultServiceImplementation
     }
 
     @Override
-    public void insert(final ResultRecord resultRecord) {
-        this.resultRepository.insert(resultRecord);
+    public String insert(final ResultRecord resultRecord) {
+        return this.resultRepository.insert(resultRecord)
+                                    .getId();
     }
 
     @Override

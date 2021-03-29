@@ -33,7 +33,7 @@ public interface ResultService {
 
     long count();
 
-    void insert(final ResultRecord resultRecord);
+    String insert(final ResultRecord resultRecord);
 
     List<ResultRecord> findAll();
 
