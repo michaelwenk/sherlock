@@ -24,10 +24,12 @@
 
 package org.openscience.webcase.dbservice.result.service;
 
-import org.openscience.webcase.dbservice.result.model.ResultRecord;
+import org.openscience.webcase.dbservice.result.model.DataSet;
+import org.openscience.webcase.dbservice.result.model.db.ResultRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -49,19 +51,24 @@ public class ResultServiceImplementation
     }
 
     @Override
-    public String insert(final ResultRecord resultRecord) {
+    public String insert(final List<DataSet> dataSetList) {
+        final ResultRecord resultRecord = new ResultRecord();
+        resultRecord.setDataSetList(dataSetList);
+
         return this.resultRepository.insert(resultRecord)
                                     .getId();
     }
 
     @Override
-    public List<ResultRecord> findAll() {
-        return this.resultRepository.findAll();
-    }
+    public List<DataSet> findById(final String id) {
+        List<DataSet> dataSetList = new ArrayList<>();
+        final Optional<ResultRecord> resultRecordOptional = this.resultRepository.findById(id);
+        if (resultRecordOptional.isPresent()) {
+            dataSetList = resultRecordOptional.get()
+                                              .getDataSetList();
+        }
 
-    @Override
-    public Optional<ResultRecord> findById(final String id) {
-        return this.resultRepository.findById(id);
+        return dataSetList;
     }
 
     @Override

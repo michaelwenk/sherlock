@@ -24,7 +24,7 @@
 
 package org.openscience.webcase.dbservice.result.service;
 
-import org.openscience.webcase.dbservice.result.model.ResultRecord;
+import org.openscience.webcase.dbservice.result.model.db.ResultRecord;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
 

@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021 Michael Wenk (https://github.com/michaelwenk)
+ * Copyright (c) 2020 Michael Wenk (https://github.com/michaelwenk)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,29 +22,25 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.elucidation.model.exchange;
+package org.openscience.webcase.dbservice.result.model.db;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
-import org.openscience.webcase.elucidation.model.DataSet;
-import org.openscience.webcase.elucidation.model.ElucidationOptions;
-import org.openscience.webcase.elucidation.model.nmrdisplayer.Data;
+import org.openscience.webcase.dbservice.result.model.DataSet;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.util.List;
 
-
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @Getter
 @Setter
 @ToString
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class Transfer {
+
+@Document(collection = "results")
+public class ResultRecord {
+
+    @Id
+    private String id;
     private List<DataSet> dataSetList;
-    private Data data;
-    private ElucidationOptions elucidationOptions;
-    private String requestID;
-    private String resultID;
-    private Boolean pyLSDInputFileCreationWasSuccessful;
-    private Boolean pyLSDRunWasSuccessful;
 }

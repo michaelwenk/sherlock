@@ -17,6 +17,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "/")
@@ -27,7 +28,9 @@ public class ElucidationController {
 
     @PostMapping(value = "elucidation")
     public ResponseEntity<Transfer> elucidate(@RequestBody final Transfer requestTransfer) {
+        final Transfer resultTransfer = new Transfer();
         final List<DataSet> dataSetList = new ArrayList<>();
+
         final Data data = requestTransfer.getData();
         final String pathToPyLSDInputFileFolder = requestTransfer.getElucidationOptions()
                                                                  .getPathToPyLSDInputFileFolder()
@@ -90,33 +93,52 @@ public class ElucidationController {
                                     .queryParam("pathToResultsFile", queryResultTransfer.getElucidationOptions()
                                                                                         .getPathToResultsFile());
 
-                // retrieve results
+                // retrieve results from PyLSD results file
                 queryResultTransfer = webClient.get()
                                                .uri(uriComponentsBuilder.toUriString())
                                                .retrieve()
                                                .bodyToMono(Transfer.class)
                                                .block();
-                System.out.println("--> list of results: "
+                System.out.println("--> list of results from SMILES file: "
                                            + queryResultTransfer.getDataSetList()
                                                                 .size()
                                            + " -> "
                                            + queryResultTransfer.getDataSetList());
-                queryResultTransfer.getDataSetList()
-                                   .forEach(dataSet -> {
-                                       dataSet.addMetaInfo("determination", "elucidation");
-                                       dataSetList.add(dataSet);
-                                   });
+                final List<DataSet> resultDataSets = queryResultTransfer.getDataSetList()
+                                                                        .stream()
+                                                                        .map(dataSet -> {
+                                                                            dataSet.addMetaInfo("determination",
+                                                                                                "elucidation");
+                                                                            dataSetList.add(dataSet);
+
+                                                                            return dataSet;
+                                                                        })
+                                                                        .collect(Collectors.toList());
+
+                if (!resultDataSets.isEmpty()) {
+                    webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-db-service-result/insert")
+                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                    MediaType.APPLICATION_JSON_VALUE)
+                                                     .build();
+                    // store results in results DB
+                    final String resultID = webClient.post()
+                                                     .bodyValue(resultDataSets)
+                                                     .retrieve()
+                                                     .bodyToMono(String.class)
+                                                     .block();
+                    if (resultID
+                            != null) {
+                        System.out.println(resultID);
+                        resultTransfer.setResultID(resultID);
+                        resultTransfer.setDataSetList(resultDataSets);
+                    }
+                }
             }
 
         } else {
-            System.out.println("--> file creation failed: "
+            System.out.println("--> file creation or execution failed: "
                                        + pathToPyLSDInputFile);
         }
-
-
-        final Transfer resultTransfer = new Transfer();
-        resultTransfer.setDataSetList(dataSetList);
-
         return new ResponseEntity<>(resultTransfer, HttpStatus.OK);
     }
 }

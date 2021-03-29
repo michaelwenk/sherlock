@@ -123,28 +123,22 @@ public class CoreController {
                                                                .bodyToMono(Transfer.class)
                                                                .block();
                 transfer.setDataSetList(queryResultTransfer.getDataSetList());
-                transfer.setRequestID(requestID);
+                transfer.setResultID(queryResultTransfer.getResultID());
                 return new ResponseEntity<>(transfer, HttpStatus.OK);
             }
 
             if (requestTransfer.getQueryType()
                                .equals("Retrieval")) {
                 System.out.println("RETRIEVAL: "
-                                           + requestTransfer.getRetrievalID());
-                final String pathToResultsFile = this.PATH_TO_PYLSD_INPUT_FILE_FOLDER
-                        + "/"
-                        + requestTransfer.getRetrievalID()
-                        + "/"
-                        + requestTransfer.getRetrievalID()
-                        + ".smiles";
+                                           + requestTransfer.getResultID());
                 final WebClient webClient = this.webClientBuilder.baseUrl(
                         "http://localhost:8081/webcase-result-retrieval")
                                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                                  .build();
                 final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-                uriComponentsBuilder.path("/retrieveResultFromFile")
-                                    .queryParam("pathToResultsFile", pathToResultsFile);
+                uriComponentsBuilder.path("/retrieveResultFromDatabase")
+                                    .queryParam("resultID", requestTransfer.getResultID());
 
                 // retrieve results
                 final Transfer queryResultTransfer = webClient.get()
@@ -158,7 +152,7 @@ public class CoreController {
                                            + " -> "
                                            + queryResultTransfer.getDataSetList());
                 transfer.setDataSetList(queryResultTransfer.getDataSetList());
-                transfer.setRequestID(requestTransfer.getRetrievalID());
+                transfer.setResultID(requestTransfer.getResultID());
                 return new ResponseEntity<>(transfer, HttpStatus.OK);
 
             }

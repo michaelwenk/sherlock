@@ -47,5 +47,5 @@ public class Transfer {
     private DereplicationOptions dereplicationOptions;
     private ElucidationOptions elucidationOptions;
     private String requestID;
-    private String retrievalID;
+    private String resultID;
 }
