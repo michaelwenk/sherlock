@@ -7,10 +7,7 @@ import org.openscience.webcase.pylsd.utils.PyLSDInputFileBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.File;
@@ -157,5 +154,25 @@ public class PyLSDController {
         }
 
         return new ResponseEntity<>(resultTransfer, HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/cleanup")
+    public ResponseEntity<Boolean> cleanup(@RequestParam final String pathToPyLSDInputFileFolder) {
+        boolean cleaned = false;
+        final Path path = Paths.get(pathToPyLSDInputFileFolder);
+        try {
+            Files.walk(path)
+                 .map(Path::toFile)
+                 .forEach(File::delete);
+            Files.delete(path);
+            if (!Files.exists(path)) {
+                System.out.println("Directory is deleted!");
+                cleaned = true;
+            }
+        } catch (final IOException e) {
+            System.out.println("Directory NOT deleted!");
+            e.printStackTrace();
+        }
+        return new ResponseEntity<>(cleaned, HttpStatus.OK);
     }
 }

@@ -57,7 +57,6 @@ public class ElucidationController {
         queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
         queryTransfer.setRequestID(requestTransfer.getRequestID());
         Transfer queryResultTransfer = webClient.post()
-                                                //                                                .uri(uriComponentsBuilder.toUriString())
                                                 .bodyValue(queryTransfer)
                                                 .retrieve()
                                                 .bodyToMono(Transfer.class)
@@ -115,12 +114,12 @@ public class ElucidationController {
                                                                         })
                                                                         .collect(Collectors.toList());
 
+                // store results in DB if not empty
                 if (!resultDataSets.isEmpty()) {
                     webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-db-service-result/insert")
                                                      .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                     MediaType.APPLICATION_JSON_VALUE)
                                                      .build();
-                    // store results in results DB
                     final String resultID = webClient.post()
                                                      .bodyValue(resultDataSets)
                                                      .retrieve()
@@ -135,6 +134,18 @@ public class ElucidationController {
                 }
             }
 
+            // cleanup of created files and folder
+            webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-pylsd")
+                                             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                                             .build();
+            final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
+            uriComponentsBuilder.path("/cleanup")
+                                .queryParam("pathToPyLSDInputFileFolder", pathToPyLSDInputFileFolder);
+            webClient.get()
+                     .uri(uriComponentsBuilder.toUriString())
+                     .retrieve()
+                     .bodyToMono(Boolean.class)
+                     .block();
         } else {
             System.out.println("--> file creation or execution failed: "
                                        + pathToPyLSDInputFile);
