@@ -42,7 +42,7 @@ public class ElucidationController {
                 + ".pylsd";
 
         WebClient webClient = this.webClientBuilder.
-                                                           baseUrl("http://localhost:8081/webcase-pylsd-create-input-file/createPyLSDInputFile")
+                                                           baseUrl("http://localhost:8081/webcase-pylsd/createPyLSDInputFile")
                                                    .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                   MediaType.APPLICATION_JSON_VALUE)
                                                    .build();
@@ -68,7 +68,7 @@ public class ElucidationController {
             System.out.println("--> has been written successfully: "
                                        + pathToPyLSDInputFile);
             webClient = this.webClientBuilder.
-                                                     baseUrl("http://localhost:8081/webcase-pylsd-run/runPyLSD")
+                                                     baseUrl("http://localhost:8081/webcase-pylsd/runPyLSD")
                                              .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
                                              .build();
 
