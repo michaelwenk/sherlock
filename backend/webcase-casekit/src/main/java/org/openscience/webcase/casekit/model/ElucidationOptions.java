@@ -1,4 +1,4 @@
-package org.openscience.webcase.pylsd.model;
+package org.openscience.webcase.casekit.model;
 
 import lombok.*;
 

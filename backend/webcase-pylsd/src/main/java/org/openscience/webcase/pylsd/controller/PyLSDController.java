@@ -2,10 +2,12 @@ package org.openscience.webcase.pylsd.controller;
 
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
 import org.openscience.webcase.pylsd.model.nmrdisplayer.Data;
+import org.openscience.webcase.pylsd.utils.FileSystem;
 import org.openscience.webcase.pylsd.utils.HybridizationDetection;
-import org.openscience.webcase.pylsd.utils.PyLSDInputFileBuilder;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -44,17 +46,26 @@ public class PyLSDController {
                                                        .getPathToPyLSDInputFileFolder());
             Files.createDirectory(path);
             System.out.println("Directory is created!");
-            final String pyLSDInputFileContent = PyLSDInputFileBuilder.buildPyLSDInputFileContent(data, mf,
-                                                                                                  detectedHybridizations,
-                                                                                                  requestTransfer.getElucidationOptions()
-                                                                                                                 .isAllowHeteroHeteroBonds(),
-                                                                                                  requestTransfer.getElucidationOptions()
-                                                                                                                 .getPathToLSDFilterList(),
-                                                                                                  requestTransfer.getRequestID());
-            resultTransfer.setPyLSDInputFileCreationWasSuccessful(
-                    PyLSDInputFileBuilder.writePyLSDInputFileContentToFile(requestTransfer.getElucidationOptions()
-                                                                                          .getPathToPyLSDInputFile(),
-                                                                           pyLSDInputFileContent));
+
+            final WebClient webClient = this.webClientBuilder.
+                                                                     baseUrl("http://localhost:8081/webcase-casekit/pylsd/createInputFile")
+                                                             .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                            MediaType.APPLICATION_JSON_VALUE)
+                                                             .build();
+            final Transfer queryTransfer = new Transfer();
+            queryTransfer.setData(requestTransfer.getData());
+            queryTransfer.setDetectedHybridizations(detectedHybridizations);
+            queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
+            queryTransfer.getElucidationOptions()
+                         .setMf(mf);
+            final String pyLSDInputFileContent = webClient.post()
+                                                          .bodyValue(queryTransfer)
+                                                          .retrieve()
+                                                          .bodyToMono(String.class)
+                                                          .block();
+            resultTransfer.setPyLSDInputFileCreationWasSuccessful(FileSystem.writeFile(
+                    requestTransfer.getElucidationOptions()
+                                   .getPathToPyLSDInputFile(), pyLSDInputFileContent));
         } catch (final IOException e) {
             System.err.println("Failed to create directory!"
                                        + e.getMessage());
@@ -94,41 +105,6 @@ public class PyLSDController {
                 System.out.println("run was successful");
                 System.out.println(requestTransfer.getElucidationOptions()
                                                   .getPathToPyLSDInputFileFolder());
-                Files.list(Paths.get(requestTransfer.getElucidationOptions()
-                                                    .getPathToPyLSDInputFileFolder()))
-                     .filter(file -> Files.isRegularFile(file)
-                             && (file.getFileName()
-                                     .toString()
-                                     .endsWith(".ps")
-                             || file.getFileName()
-                                    .toString()
-                                    .endsWith(".coo")
-                             || file.getFileName()
-                                    .toString()
-                                    .endsWith(".sol")
-                             || file.getFileName()
-                                    .toString()
-                                    .endsWith("_R.txt")
-                             || file.getFileName()
-                                    .toString()
-                                    .endsWith("_C.txt")
-                             || file.getFileName()
-                                    .toString()
-                                    .endsWith(".sol")
-                             || file.getFileName()
-                                    .toString()
-                                    .endsWith("_D.sdf")
-                             //                             || file.getFileName()
-                             //                                    .toString()
-                             //                                    .matches(requestID
-                             //                                                     + "_"
-                             //                                                     + "\\d+")
-                             || file.getFileName()
-                                    .toString()
-                                    .endsWith(".lsd")))
-                     .forEach(file -> file.toFile()
-                                          .delete());
-
                 final Path resultsFilePath = Paths.get(requestTransfer.getElucidationOptions()
                                                                       .getPathToPyLSDInputFileFolder()
                                                                + "/"

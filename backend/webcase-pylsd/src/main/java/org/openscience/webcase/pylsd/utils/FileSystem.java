@@ -19,7 +19,7 @@ public class FileSystem {
     public static BufferedReader readFile(final String pathToFile) {
         try {
             return new BufferedReader(new FileReader(pathToFile));
-        } catch (IOException e) {
+        } catch (final IOException e) {
             e.printStackTrace();
         }
 
@@ -34,7 +34,7 @@ public class FileSystem {
             bufferedWriter.close();
 
             return true;
-        } catch (IOException e) {
+        } catch (final IOException e) {
             e.printStackTrace();
         }
 

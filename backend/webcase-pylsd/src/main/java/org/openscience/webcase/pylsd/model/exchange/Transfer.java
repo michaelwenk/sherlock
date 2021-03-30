@@ -29,6 +29,9 @@ import lombok.*;
 import org.openscience.webcase.pylsd.model.ElucidationOptions;
 import org.openscience.webcase.pylsd.model.nmrdisplayer.Data;
 
+import java.util.List;
+import java.util.Map;
+
 
 @AllArgsConstructor
 @NoArgsConstructor
@@ -42,5 +45,6 @@ public class Transfer {
     private Boolean pyLSDInputFileCreationWasSuccessful;
     private Boolean pyLSDRunWasSuccessful;
     private ElucidationOptions elucidationOptions;
+    private Map<Integer, List<Integer>> detectedHybridizations;
     private String requestID;
 }
