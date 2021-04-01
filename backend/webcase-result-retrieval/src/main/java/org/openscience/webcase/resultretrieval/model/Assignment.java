@@ -37,5 +37,5 @@ import lombok.*;
 public class Assignment {
 
     private String[] nuclei;
-    private int[][] assignments;
+    private int[][][] assignments;
 }
