@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dereplication.nmrshiftdb.model;
+package org.openscience.webcase.dereplication.model.nmrshiftdb;
 
 
 import lombok.Data;

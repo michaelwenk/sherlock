@@ -21,8 +21,10 @@ public class Transfer {
 
     private List<DataSet> dataSetList;
     private Spectrum querySpectrum;
+    private String queryType;
     private DereplicationOptions dereplicationOptions;
     private ElucidationOptions elucidationOptions;
     private Data data;
+    private String mf;
     private Map<Integer, List<Integer>> detectedHybridizations;
 }

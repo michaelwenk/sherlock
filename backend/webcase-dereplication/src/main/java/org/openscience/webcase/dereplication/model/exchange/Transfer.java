@@ -5,7 +5,6 @@ import lombok.*;
 import org.openscience.webcase.dereplication.model.DataSet;
 import org.openscience.webcase.dereplication.model.DereplicationOptions;
 import org.openscience.webcase.dereplication.model.Spectrum;
-import org.openscience.webcase.dereplication.model.nmrdisplayer.Data;
 
 import java.util.List;
 
@@ -18,7 +17,9 @@ import java.util.List;
 public class Transfer {
 
     private List<DataSet> dataSetList;
-    private Data data;
     private Spectrum querySpectrum;
+    private String queryType;
+    private String mf;
+
     private DereplicationOptions dereplicationOptions;
 }

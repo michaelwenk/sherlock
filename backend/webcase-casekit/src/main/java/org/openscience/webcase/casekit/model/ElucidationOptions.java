@@ -1,5 +1,6 @@
 package org.openscience.webcase.casekit.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 
 @AllArgsConstructor
@@ -7,6 +8,7 @@ import lombok.*;
 @Getter
 @Setter
 @ToString
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class ElucidationOptions {
     private String pathToResultsFile;
     private String pathToPyLSDExecutableFolder;
@@ -14,6 +16,6 @@ public class ElucidationOptions {
     private String pathToPyLSDInputFile;
     private String pathToPyLSDInputFileFolder;
 
-    private String mf;
+    // PyLSD options
     private boolean allowHeteroHeteroBonds;
 }

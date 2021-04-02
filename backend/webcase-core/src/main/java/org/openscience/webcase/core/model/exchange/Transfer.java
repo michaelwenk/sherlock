@@ -29,6 +29,7 @@ import lombok.*;
 import org.openscience.webcase.core.model.DataSet;
 import org.openscience.webcase.core.model.DereplicationOptions;
 import org.openscience.webcase.core.model.ElucidationOptions;
+import org.openscience.webcase.core.model.Spectrum;
 import org.openscience.webcase.core.model.nmrdisplayer.Data;
 
 import java.util.List;
@@ -43,6 +44,8 @@ import java.util.List;
 public class Transfer {
     private List<DataSet> dataSetList;
     private Data data;
+    private Spectrum querySpectrum;
+    private String mf;
     private String queryType;
     private DereplicationOptions dereplicationOptions;
     private ElucidationOptions elucidationOptions;

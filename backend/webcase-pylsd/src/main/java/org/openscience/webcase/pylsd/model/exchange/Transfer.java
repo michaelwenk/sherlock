@@ -42,6 +42,7 @@ import java.util.Map;
 public class Transfer {
 
     private Data data;
+    private String mf;
     private Boolean pyLSDInputFileCreationWasSuccessful;
     private Boolean pyLSDRunWasSuccessful;
     private ElucidationOptions elucidationOptions;

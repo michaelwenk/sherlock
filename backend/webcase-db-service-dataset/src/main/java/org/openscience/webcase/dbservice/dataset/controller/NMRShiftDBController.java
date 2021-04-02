@@ -110,7 +110,6 @@ public class NMRShiftDBController {
         uriComponentsBuilder.path("/getDataSetsFromNMRShiftDB")
                             .queryParam("pathToNMRShiftDB", filePath)
                             .queryParam("nuclei", String.join(",", nuclei));
-        System.out.println(uriComponentsBuilder.toUriString());
         final Transfer queryResultTransfer = webClient
                 .get()
                 .uri(uriComponentsBuilder.toUriString())

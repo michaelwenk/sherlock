@@ -24,7 +24,10 @@
 
 package org.openscience.webcase.core.controller;
 
+import org.openscience.webcase.core.model.Signal;
+import org.openscience.webcase.core.model.Spectrum;
 import org.openscience.webcase.core.model.exchange.Transfer;
+import org.openscience.webcase.core.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -40,6 +43,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "/")
@@ -58,6 +62,41 @@ public class CoreController {
     public ResponseEntity<Transfer> core(@RequestBody final Transfer requestTransfer) {
         final Transfer transfer = new Transfer();
         transfer.setQueryType(requestTransfer.getQueryType());
+
+        final Spectrum querySpectrum = new Spectrum();
+        querySpectrum.setNuclei(new String[]{"13C"});
+        querySpectrum.setSignals(requestTransfer.getData()
+                                                .getCorrelations()
+                                                .getValues()
+                                                .stream()
+                                                .filter(correlation -> correlation.getAtomType()
+                                                                                  .equals("C"))
+                                                .map(correlation -> new Signal(querySpectrum.getNuclei(), new Double[]{
+                                                        correlation.getSignal().getDelta()},
+                                                                               Utils.getMultiplicityFromProtonsCount(
+                                                                                       correlation), null,
+                                                                               correlation.getSignal()
+                                                                                          .getKind(),
+                                                                               correlation.getEquivalence(),
+                                                                               correlation.getSignal()
+                                                                                          .getSign()))
+                                                .collect(Collectors.toList()));
+        querySpectrum.setSignalCount(querySpectrum.getSignals()
+                                                  .size());
+
+        // check whether each signal has a multiplicity; if not stop here
+        if (querySpectrum.getSignals()
+                         .stream()
+                         .anyMatch(signal -> signal.getMultiplicity()
+                                 == null)) {
+            transfer.setDataSetList(new ArrayList<>());
+            return new ResponseEntity<>(transfer, HttpStatus.OK);
+        }
+        final String mf = (String) requestTransfer.getData()
+                                                  .getCorrelations()
+                                                  .getOptions()
+                                                  .get("mf");
+
         try {
             // set ExchangeSettings
             final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
@@ -78,6 +117,9 @@ public class CoreController {
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setData(requestTransfer.getData());
                 queryTransfer.setDereplicationOptions(requestTransfer.getDereplicationOptions());
+                queryTransfer.setQueryType(requestTransfer.getQueryType());
+                queryTransfer.setQuerySpectrum(querySpectrum);
+                queryTransfer.setMf(mf);
                 final Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
                                                                .post()
                                                                .bodyValue(queryTransfer)
@@ -115,6 +157,9 @@ public class CoreController {
                              .setPathToLSDFilterList(this.PATH_TO_LSD_FILTER_LIST);
                 queryTransfer.getElucidationOptions()
                              .setPathToPyLSDInputFileFolder(this.PATH_TO_PYLSD_INPUT_FILE_FOLDER);
+                queryTransfer.setQueryType(requestTransfer.getQueryType());
+                queryTransfer.setQuerySpectrum(querySpectrum);
+                queryTransfer.setMf(mf);
 
                 final Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
                                                                .post()

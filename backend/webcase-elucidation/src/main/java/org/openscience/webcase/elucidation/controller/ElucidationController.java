@@ -1,6 +1,5 @@
 package org.openscience.webcase.elucidation.controller;
 
-import org.openscience.webcase.elucidation.model.DataSet;
 import org.openscience.webcase.elucidation.model.exchange.Transfer;
 import org.openscience.webcase.elucidation.model.nmrdisplayer.Data;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,24 +11,27 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "/")
 public class ElucidationController {
+
+    final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
+                                                                    .codecs(configurer -> configurer.defaultCodecs()
+                                                                                                    .maxInMemorySize(
+                                                                                                            1024
+                                                                                                                    * 1000000))
+                                                                    .build();
 
     @Autowired
     private WebClient.Builder webClientBuilder;
 
     @PostMapping(value = "elucidation")
     public ResponseEntity<Transfer> elucidate(@RequestBody final Transfer requestTransfer) {
-        final Transfer resultTransfer = new Transfer();
-        final List<DataSet> dataSetList = new ArrayList<>();
+        final Transfer responseTransfer = new Transfer();
 
         final Data data = requestTransfer.getData();
         final String pathToPyLSDInputFileFolder = requestTransfer.getElucidationOptions()
@@ -56,6 +58,7 @@ public class ElucidationController {
                        .setPathToPyLSDInputFileFolder(pathToPyLSDInputFileFolder);
         queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
         queryTransfer.setRequestID(requestTransfer.getRequestID());
+        queryTransfer.setMf(requestTransfer.getMf());
         Transfer queryResultTransfer = webClient.post()
                                                 .bodyValue(queryTransfer)
                                                 .retrieve()
@@ -86,50 +89,46 @@ public class ElucidationController {
                 webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-result-retrieval")
                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                 MediaType.APPLICATION_JSON_VALUE)
+                                                 .exchangeStrategies(this.exchangeStrategies)
                                                  .build();
                 final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-                uriComponentsBuilder.path("/retrieveResultFromFile")
-                                    .queryParam("pathToResultsFile", queryResultTransfer.getElucidationOptions()
-                                                                                        .getPathToResultsFile());
-
+                //                uriComponentsBuilder.path("/retrieveResultFromSmilesFile")
+                //                                    .queryParam("pathToResultsFile", queryResultTransfer.getElucidationOptions()
+                //                                                                                        .getPathToResultsFile());
+                System.out.println("pathToResultsFile: "
+                                           + queryResultTransfer.getElucidationOptions()
+                                                                .getPathToResultsFile());
+                uriComponentsBuilder.path("/retrieveResultFromRankedSDFile")
+                                    .queryParam("pathToRankedSDFile", queryResultTransfer.getElucidationOptions()
+                                                                                         .getPathToResultsFile());
                 // retrieve results from PyLSD results file
                 queryResultTransfer = webClient.get()
                                                .uri(uriComponentsBuilder.toUriString())
                                                .retrieve()
                                                .bodyToMono(Transfer.class)
                                                .block();
-                System.out.println("--> list of results from SMILES file: "
+                System.out.println("--> number of results: "
                                            + queryResultTransfer.getDataSetList()
-                                                                .size()
-                                           + " -> "
-                                           + queryResultTransfer.getDataSetList());
-                final List<DataSet> resultDataSets = queryResultTransfer.getDataSetList()
-                                                                        .stream()
-                                                                        .map(dataSet -> {
-                                                                            dataSet.addMetaInfo("determination",
-                                                                                                "elucidation");
-                                                                            dataSetList.add(dataSet);
-
-                                                                            return dataSet;
-                                                                        })
-                                                                        .collect(Collectors.toList());
+                                                                .size());
+                responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
 
                 // store results in DB if not empty
-                if (!resultDataSets.isEmpty()) {
+                if (!responseTransfer.getDataSetList()
+                                     .isEmpty()) {
                     webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-db-service-result/insert")
                                                      .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                     MediaType.APPLICATION_JSON_VALUE)
+                                                     .exchangeStrategies(this.exchangeStrategies)
                                                      .build();
                     final String resultID = webClient.post()
-                                                     .bodyValue(resultDataSets)
+                                                     .bodyValue(responseTransfer.getDataSetList())
                                                      .retrieve()
                                                      .bodyToMono(String.class)
                                                      .block();
                     if (resultID
                             != null) {
                         System.out.println(resultID);
-                        resultTransfer.setResultID(resultID);
-                        resultTransfer.setDataSetList(resultDataSets);
+                        responseTransfer.setResultID(resultID);
                     }
                 }
             }
@@ -150,6 +149,6 @@ public class ElucidationController {
             System.out.println("--> file creation or execution failed: "
                                        + pathToPyLSDInputFile);
         }
-        return new ResponseEntity<>(resultTransfer, HttpStatus.OK);
+        return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 }

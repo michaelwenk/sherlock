@@ -14,6 +14,6 @@ public class ElucidationOptions {
     private String pathToPyLSDInputFile;
     private String pathToPyLSDInputFileFolder;
 
-    private String mf;
+    // PyLSD options
     private boolean allowHeteroHeteroBonds;
 }

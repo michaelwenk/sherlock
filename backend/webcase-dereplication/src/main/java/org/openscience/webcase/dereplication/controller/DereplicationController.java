@@ -25,11 +25,9 @@
 package org.openscience.webcase.dereplication.controller;
 
 import org.openscience.webcase.dereplication.model.DataSet;
-import org.openscience.webcase.dereplication.model.Signal;
 import org.openscience.webcase.dereplication.model.Spectrum;
 import org.openscience.webcase.dereplication.model.exchange.Transfer;
-import org.openscience.webcase.dereplication.model.nmrdisplayer.Data;
-import org.openscience.webcase.dereplication.nmrshiftdb.model.DataSetRecord;
+import org.openscience.webcase.dereplication.model.nmrshiftdb.DataSetRecord;
 import org.openscience.webcase.dereplication.utils.Utils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -60,86 +58,63 @@ public class DereplicationController {
     @PostMapping(value = "dereplication", consumes = "application/json", produces = "application/json")
     //, produces = "application/stream+json")
     public ResponseEntity<Transfer> dereplication(@RequestBody final Transfer requestTransfer) {
-        final Data data = requestTransfer.getData();
         final Transfer resultTransfer = new Transfer();
-        final Spectrum querySpectrum = new Spectrum();
-        querySpectrum.setNuclei(new String[]{"13C"});
-        querySpectrum.setSignals(data.getCorrelations()
-                                     .getValues()
-                                     .stream()
-                                     .filter(correlation -> correlation.getAtomType()
-                                                                       .equals("C"))
-                                     .map(correlation -> new Signal(querySpectrum.getNuclei(),
-                                                                    new Double[]{correlation.getSignal().getDelta()},
-                                                                    Utils.getMultiplicityFromProtonsCount(correlation),
-                                                                    null, correlation.getSignal()
-                                                                                     .getKind(),
-                                                                    correlation.getEquivalence(),
-                                                                    correlation.getSignal()
-                                                                               .getSign()))
-                                     .collect(Collectors.toList()));
-        querySpectrum.setSignalCount(querySpectrum.getSignals()
-                                                  .size());
-        // check whether each signal has a multiplicity
-        if (querySpectrum.getSignals()
-                         .stream()
-                         .noneMatch(signal -> signal.getMultiplicity()
-                                 == null)) {
-            final String mf = (String) data.getCorrelations()
-                                           .getOptions()
-                                           .get("mf");
-            //            final Map<String, Double> shiftTolerances = new HashMap<>();
-            //            final HashMap<String, Object> _shiftTolerance = ((HashMap<String, Object>) data.getCorrelations().getOptions().get("tolerance"));
-            //            _shiftTolerance.keySet().forEach(atomType -> shiftTolerances.put(atomType, Double.parseDouble(String.valueOf(_shiftTolerance.get(atomType)))));
 
-            if (querySpectrum.getNuclei().length
-                    == 1) {
-                List<DataSet> results = this.getDataSetRecords(querySpectrum, mf)
-                                            .collectList()
-                                            .block()
-                                            .stream()
-                                            .map(dataSetRecord -> {
-                                                final DataSet dataSet = dataSetRecord.getDataSet();
-                                                dataSet.addMetaInfo("determination", "dereplication");
-                                                return dataSet;
-                                            })
-                                            .collect(Collectors.toList());
+        final Spectrum querySpectrum = requestTransfer.getQuerySpectrum();
+        //            final Map<String, Double> shiftTolerances = new HashMap<>();
+        //            final HashMap<String, Object> _shiftTolerance = ((HashMap<String, Object>) data.getCorrelations().getOptions().get("tolerance"));
+        //            _shiftTolerance.keySet().forEach(atomType -> shiftTolerances.put(atomType, Double.parseDouble(String.valueOf(_shiftTolerance.get(atomType)))));
 
-                final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
-                                                                                .codecs(configurer -> configurer.defaultCodecs()
-                                                                                                                .maxInMemorySize(
-                                                                                                                        1024
-                                                                                                                                * 100000))
-                                                                                .build();
-                final WebClient webClient = this.webClientBuilder.baseUrl(
-                        "http://localhost:8081/webcase-casekit/ranking")
-                                                                 .
-                                                                         defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                                       MediaType.APPLICATION_JSON_VALUE)
-                                                                 .exchangeStrategies(exchangeStrategies)
-                                                                 .build();
-                final Transfer queryTransfer = new Transfer();
-                queryTransfer.setDataSetList(results);
-                queryTransfer.setQuerySpectrum(querySpectrum);
-                queryTransfer.setDereplicationOptions(requestTransfer.getDereplicationOptions());
-                results = webClient.post()
-                                   .uri("/rankBySpectralSimilarity")
-                                   .bodyValue(queryTransfer)
-                                   .retrieve()
-                                   .bodyToMono(Transfer.class)
-                                   .block()
-                                   .getDataSetList();
+        if (querySpectrum.getNuclei().length
+                == 1) {
+            List<DataSet> results = this.getDataSetRecords(querySpectrum, requestTransfer.getMf(),
+                                                           requestTransfer.getDereplicationOptions()
+                                                                          .isUseMF())
+                                        .collectList()
+                                        .block()
+                                        .stream()
+                                        .map(dataSetRecord -> {
+                                            final DataSet dataSet = dataSetRecord.getDataSet();
+                                            dataSet.addMetaInfo("determination", "dereplication");
+                                            return dataSet;
+                                        })
+                                        .collect(Collectors.toList());
 
-                resultTransfer.setDataSetList(results);
-                return new ResponseEntity<>(resultTransfer, HttpStatus.OK);
-            }
+            final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
+                                                                            .codecs(configurer -> configurer.defaultCodecs()
+                                                                                                            .maxInMemorySize(
+                                                                                                                    1024
+                                                                                                                            * 100000))
+                                                                            .build();
+            final WebClient webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-casekit/ranking")
+                                                             .
+                                                                     defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                                   MediaType.APPLICATION_JSON_VALUE)
+                                                             .exchangeStrategies(exchangeStrategies)
+                                                             .build();
+            final Transfer queryTransfer = new Transfer();
+            queryTransfer.setDataSetList(results);
+            queryTransfer.setQuerySpectrum(querySpectrum);
+            queryTransfer.setDereplicationOptions(requestTransfer.getDereplicationOptions());
+            queryTransfer.setQueryType(requestTransfer.getQueryType());
+            results = webClient.post()
+                               .uri("/rankBySpectralSimilarity")
+                               .bodyValue(queryTransfer)
+                               .retrieve()
+                               .bodyToMono(Transfer.class)
+                               .block()
+                               .getDataSetList();
+
+            resultTransfer.setDataSetList(results);
+            return new ResponseEntity<>(resultTransfer, HttpStatus.OK);
         }
+
 
         resultTransfer.setDataSetList(new ArrayList<>());
         return new ResponseEntity<>(resultTransfer, HttpStatus.OK);
     }
 
-    public Flux<DataSetRecord> getDataSetRecords(final Spectrum querySpectrum, final String mf) {
+    public Flux<DataSetRecord> getDataSetRecords(final Spectrum querySpectrum, final String mf, final boolean useMF) {
         final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
                                                                         .codecs(configurer -> configurer.defaultCodecs()
                                                                                                         .maxInMemorySize(
@@ -159,12 +134,14 @@ public class DereplicationController {
         final String nucleiString = Arrays.stream(querySpectrum.getNuclei())
                                           .reduce("", (concat, current) -> concat
                                                   + current);
-        if (mf
+        if (useMF
+                && mf
                 != null) {
+
             uriComponentsBuilder.path("/getByNucleiAndSignalCountAndMf")
                                 .queryParam("nuclei", nucleiString)
                                 .queryParam("signalCount", querySpectrum.getSignalCount())
-                                .queryParam("mf", mf);
+                                .queryParam("mf", Utils.getAlphabeticMF(mf));
             return webClient.get()
                             .uri(uriComponentsBuilder.toUriString())
                             .retrieve()

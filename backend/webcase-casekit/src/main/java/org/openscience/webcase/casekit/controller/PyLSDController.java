@@ -13,9 +13,7 @@ public class PyLSDController {
 
     @PostMapping(value = "/createInputFile", consumes = "application/json")
     public String createInputFile(@RequestBody final Transfer requestTransfer) {
-        return PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getData(),
-                                                                requestTransfer.getElucidationOptions()
-                                                                               .getMf(),
+        return PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getData(), requestTransfer.getMf(),
                                                                 requestTransfer.getDetectedHybridizations(),
                                                                 requestTransfer.getElucidationOptions()
                                                                                .isAllowHeteroHeteroBonds(),

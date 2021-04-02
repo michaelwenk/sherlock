@@ -28,6 +28,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 import org.openscience.webcase.elucidation.model.DataSet;
 import org.openscience.webcase.elucidation.model.ElucidationOptions;
+import org.openscience.webcase.elucidation.model.Spectrum;
 import org.openscience.webcase.elucidation.model.nmrdisplayer.Data;
 
 import java.util.List;
@@ -42,6 +43,9 @@ import java.util.List;
 public class Transfer {
     private List<DataSet> dataSetList;
     private Data data;
+    private Spectrum querySpectrum;
+    private String queryType;
+    private String mf;
     private ElucidationOptions elucidationOptions;
     private String requestID;
     private String resultID;

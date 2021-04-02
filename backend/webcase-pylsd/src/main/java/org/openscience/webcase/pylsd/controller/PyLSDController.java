@@ -32,9 +32,7 @@ public class PyLSDController {
     @PostMapping(value = "createPyLSDInputFile", consumes = "application/json")
     public ResponseEntity<Transfer> createPyLSDInputFile(@RequestBody final Transfer requestTransfer) {
         final Data data = requestTransfer.getData();
-        final String mf = (String) data.getCorrelations()
-                                       .getOptions()
-                                       .get("mf");
+
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.getDetectedHybridizations(
                 this.webClientBuilder, data, this.thrsHybridizations);
 
@@ -56,8 +54,7 @@ public class PyLSDController {
             queryTransfer.setData(requestTransfer.getData());
             queryTransfer.setDetectedHybridizations(detectedHybridizations);
             queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
-            queryTransfer.getElucidationOptions()
-                         .setMf(mf);
+            queryTransfer.setMf(requestTransfer.getMf());
             final String pyLSDInputFileContent = webClient.post()
                                                           .bodyValue(queryTransfer)
                                                           .retrieve()
@@ -105,27 +102,21 @@ public class PyLSDController {
                 System.out.println("run was successful");
                 System.out.println(requestTransfer.getElucidationOptions()
                                                   .getPathToPyLSDInputFileFolder());
-                final Path resultsFilePath = Paths.get(requestTransfer.getElucidationOptions()
-                                                                      .getPathToPyLSDInputFileFolder()
-                                                               + "/"
-                                                               + requestTransfer.getRequestID()
-                                                               + "_0.sdf");
-                final String pathToResultsFile = requestTransfer.getElucidationOptions()
-                                                                .getPathToPyLSDInputFileFolder()
+                resultTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
+                final String pathToResultsFilePredictions = requestTransfer.getElucidationOptions()
+                                                                           .getPathToPyLSDInputFileFolder()
                         + "/"
                         + requestTransfer.getRequestID()
-                        + ".smiles";
-                Files.move(resultsFilePath, resultsFilePath.resolveSibling(pathToResultsFile));
-                resultTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
+                        + "_D.sdf";
                 resultTransfer.getElucidationOptions()
-                              .setPathToResultsFile(pathToResultsFile);
+                              .setPathToResultsFile(pathToResultsFilePredictions);
             } else {
                 System.out.println("run was NOT successful");
             }
             resultTransfer.setPyLSDRunWasSuccessful(pyLSDRunWasSuccessful);
 
         } catch (final Exception e) {
-            System.out.println(e.getStackTrace());
+            e.printStackTrace();
             resultTransfer.setPyLSDRunWasSuccessful(false);
         }
 

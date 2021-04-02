@@ -11,4 +11,7 @@ import java.util.Map;
 @ToString
 public class DereplicationOptions {
     private Map<String, Double> shiftTolerances;
+    private boolean checkMultiplicity;
+    private boolean checkEquivalencesCount;
+    private boolean useMF;
 }
