@@ -86,7 +86,7 @@ public class ElucidationController {
                                                             .getPathToResultsFile());
 
             if (queryResultTransfer.getPyLSDRunWasSuccessful()) {
-                webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-result-retrieval/retrieve")
+                webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-result/retrieve")
                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                  .exchangeStrategies(this.exchangeStrategies)
@@ -112,8 +112,7 @@ public class ElucidationController {
                 // store results in DB if not empty
                 if (!responseTransfer.getDataSetList()
                                      .isEmpty()) {
-                    webClient = this.webClientBuilder.baseUrl(
-                            "http://localhost:8081/webcase-result-retrieval/store/storeResult")
+                    webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-result/store/storeResult")
                                                      .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                     MediaType.APPLICATION_JSON_VALUE)
                                                      .exchangeStrategies(this.exchangeStrategies)

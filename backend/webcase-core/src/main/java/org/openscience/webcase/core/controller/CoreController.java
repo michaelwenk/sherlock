@@ -177,7 +177,7 @@ public class CoreController {
                 System.out.println("RETRIEVAL: "
                                            + requestTransfer.getResultID());
                 final WebClient webClient = this.webClientBuilder.baseUrl(
-                        "http://localhost:8081/webcase-result-retrieval/retrieve")
+                        "http://localhost:8081/webcase-result/retrieve")
                                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                                  .build();
