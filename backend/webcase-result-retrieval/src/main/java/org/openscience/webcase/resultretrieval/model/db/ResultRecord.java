@@ -22,13 +22,21 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservice.result.service;
+package org.openscience.webcase.resultretrieval.model.db;
 
-import org.openscience.webcase.dbservice.result.model.db.ResultRecord;
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
-import org.springframework.stereotype.Repository;
+import lombok.*;
+import org.openscience.webcase.resultretrieval.model.DataSet;
 
-@Repository
-public interface ResultRepository
-        extends ReactiveMongoRepository<ResultRecord, String> {
+import java.util.List;
+
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+@ToString
+
+public class ResultRecord {
+
+    private String id;
+    private List<DataSet> dataSetList;
 }

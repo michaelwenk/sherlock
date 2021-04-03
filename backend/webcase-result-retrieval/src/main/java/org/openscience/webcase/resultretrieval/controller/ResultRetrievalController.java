@@ -1,10 +1,10 @@
 package org.openscience.webcase.resultretrieval.controller;
 
 import org.openscience.webcase.resultretrieval.model.DataSet;
+import org.openscience.webcase.resultretrieval.model.db.ResultRecord;
 import org.openscience.webcase.resultretrieval.model.exchange.Transfer;
 import org.openscience.webcase.resultretrieval.utils.FileSystem;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -23,7 +23,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping(value = "/")
+@RequestMapping(value = "/retrieve")
 public class ResultRetrievalController {
 
     final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
@@ -36,7 +36,7 @@ public class ResultRetrievalController {
     @Autowired
     private WebClient.Builder webClientBuilder;
 
-    @GetMapping(value = "retrieveResultFromDatabase")
+    @GetMapping(value = "/retrieveResultFromDatabase")
     public ResponseEntity<Transfer> retrieveResultFromDatabase(@RequestParam final String resultID) {
         final Transfer responseTransfer = new Transfer();
 
@@ -48,18 +48,22 @@ public class ResultRetrievalController {
         uriComponentsBuilder.path("/getById")
                             .queryParam("id", resultID);
 
-        final List<DataSet> dataSetList = webClient.get()
+        final ResultRecord resultRecord = webClient.get()
                                                    .uri(uriComponentsBuilder.toUriString())
                                                    .retrieve()
-                                                   .bodyToMono(new ParameterizedTypeReference<List<DataSet>>() {
-                                                   })
+                                                   .bodyToMono(ResultRecord.class)
                                                    .block();
+        System.out.println("\nresultRecord: ");
+        System.out.println(resultRecord);
 
-        responseTransfer.setDataSetList(dataSetList);
+        responseTransfer.setDataSetList(resultRecord.getDataSetList()
+                                                != null
+                                        ? resultRecord.getDataSetList()
+                                        : new ArrayList<>());
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
-    @GetMapping(value = "retrieveResultFromSmilesFile")
+    @GetMapping(value = "/retrieveResultFromSmilesFile")
     public ResponseEntity<Transfer> retrieveResultFromSmilesFile(@RequestParam final String pathToResultsFile) {
         final Transfer responseTransfer = new Transfer();
         final List<DataSet> dataSetList = new ArrayList<>();
@@ -80,7 +84,7 @@ public class ResultRetrievalController {
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
-    @GetMapping(value = "retrieveResultFromRankedSDFile")
+    @GetMapping(value = "/retrieveResultFromRankedSDFile")
     public ResponseEntity<Transfer> retrieveResultFromRankedSDFile(@RequestParam final String pathToRankedSDFile) {
         final Transfer responseTransfer = new Transfer();
         final WebClient webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-casekit/fileParser")

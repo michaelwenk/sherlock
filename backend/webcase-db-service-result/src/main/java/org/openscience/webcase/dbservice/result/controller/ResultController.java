@@ -1,10 +1,9 @@
 package org.openscience.webcase.dbservice.result.controller;
 
-import org.openscience.webcase.dbservice.result.model.DataSet;
+import org.openscience.webcase.dbservice.result.model.db.ResultRecord;
 import org.openscience.webcase.dbservice.result.service.ResultServiceImplementation;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
+import reactor.core.publisher.Mono;
 
 @RestController
 @RequestMapping(value = "/")
@@ -17,12 +16,12 @@ public class ResultController {
     }
 
     @GetMapping(value = "/getById", produces = "application/json")
-    public List<DataSet> getById(@RequestParam final String id) {
+    public Mono<ResultRecord> getById(@RequestParam final String id) {
         return this.resultServiceImplementation.findById(id);
     }
 
-    @PostMapping(value = "/insert", consumes = "application/json")
-    public String insert(@RequestBody final List<DataSet> dataSetList) {
-        return this.resultServiceImplementation.insert(dataSetList);
+    @PostMapping(value = "/insert", consumes = "application/json", produces = "application/json")
+    public Mono<ResultRecord> insert(@RequestBody final ResultRecord resultRecord) {
+        return this.resultServiceImplementation.insert(resultRecord);
     }
 }

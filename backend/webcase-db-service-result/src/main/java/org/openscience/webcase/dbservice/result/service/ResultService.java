@@ -24,17 +24,16 @@
 
 package org.openscience.webcase.dbservice.result.service;
 
-import org.openscience.webcase.dbservice.result.model.DataSet;
-
-import java.util.List;
+import org.openscience.webcase.dbservice.result.model.db.ResultRecord;
+import reactor.core.publisher.Mono;
 
 public interface ResultService {
 
-    long count();
+    Mono<Long> count();
 
-    String insert(final List<DataSet> dataSetList);
+    Mono<ResultRecord> insert(final ResultRecord resultRecord);
 
-    List<DataSet> findById(final String id);
+    Mono<ResultRecord> findById(final String id);
 
-    void deleteAll();
+    Mono<Void> deleteAll();
 }

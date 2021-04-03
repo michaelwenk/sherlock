@@ -24,14 +24,10 @@
 
 package org.openscience.webcase.dbservice.result.service;
 
-import org.openscience.webcase.dbservice.result.model.DataSet;
 import org.openscience.webcase.dbservice.result.model.db.ResultRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import reactor.core.publisher.Mono;
 
 
 @Service
@@ -46,33 +42,22 @@ public class ResultServiceImplementation
     }
 
     @Override
-    public long count() {
+    public Mono<Long> count() {
         return this.resultRepository.count();
     }
 
     @Override
-    public String insert(final List<DataSet> dataSetList) {
-        final ResultRecord resultRecord = new ResultRecord();
-        resultRecord.setDataSetList(dataSetList);
-
-        return this.resultRepository.insert(resultRecord)
-                                    .getId();
+    public Mono<ResultRecord> insert(final ResultRecord resultRecord) {
+        return this.resultRepository.insert(resultRecord);
     }
 
     @Override
-    public List<DataSet> findById(final String id) {
-        List<DataSet> dataSetList = new ArrayList<>();
-        final Optional<ResultRecord> resultRecordOptional = this.resultRepository.findById(id);
-        if (resultRecordOptional.isPresent()) {
-            dataSetList = resultRecordOptional.get()
-                                              .getDataSetList();
-        }
-
-        return dataSetList;
+    public Mono<ResultRecord> findById(final String id) {
+        return this.resultRepository.findById(id);
     }
 
     @Override
-    public void deleteAll() {
-        this.resultRepository.deleteAll();
+    public Mono<Void> deleteAll() {
+        return this.resultRepository.deleteAll();
     }
 }

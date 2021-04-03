@@ -60,8 +60,8 @@ public class CoreController {
 
     @PostMapping(value = "/core", consumes = "application/json", produces = "application/json")
     public ResponseEntity<Transfer> core(@RequestBody final Transfer requestTransfer) {
-        final Transfer transfer = new Transfer();
-        transfer.setQueryType(requestTransfer.getQueryType());
+        final Transfer responseTransfer = new Transfer();
+        responseTransfer.setQueryType(requestTransfer.getQueryType());
 
         final Spectrum querySpectrum = new Spectrum();
         querySpectrum.setNuclei(new String[]{"13C"});
@@ -89,8 +89,8 @@ public class CoreController {
                          .stream()
                          .anyMatch(signal -> signal.getMultiplicity()
                                  == null)) {
-            transfer.setDataSetList(new ArrayList<>());
-            return new ResponseEntity<>(transfer, HttpStatus.OK);
+            responseTransfer.setDataSetList(new ArrayList<>());
+            return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
         }
         final String mf = (String) requestTransfer.getData()
                                                   .getCorrelations()
@@ -126,8 +126,8 @@ public class CoreController {
                                                                .retrieve()
                                                                .bodyToMono(Transfer.class)
                                                                .block();
-                transfer.setDataSetList(queryResultTransfer.getDataSetList());
-                return new ResponseEntity<>(transfer, HttpStatus.OK);
+                responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
+                return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
 
             }
 
@@ -167,9 +167,9 @@ public class CoreController {
                                                                .retrieve()
                                                                .bodyToMono(Transfer.class)
                                                                .block();
-                transfer.setDataSetList(queryResultTransfer.getDataSetList());
-                transfer.setResultID(queryResultTransfer.getResultID());
-                return new ResponseEntity<>(transfer, HttpStatus.OK);
+                responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
+                responseTransfer.setResultID(queryResultTransfer.getResultID());
+                return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
 
             if (requestTransfer.getQueryType()
@@ -177,7 +177,7 @@ public class CoreController {
                 System.out.println("RETRIEVAL: "
                                            + requestTransfer.getResultID());
                 final WebClient webClient = this.webClientBuilder.baseUrl(
-                        "http://localhost:8081/webcase-result-retrieval")
+                        "http://localhost:8081/webcase-result-retrieval/retrieve")
                                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                                  .build();
@@ -191,22 +191,20 @@ public class CoreController {
                                                               .retrieve()
                                                               .bodyToMono(Transfer.class)
                                                               .block();
-                System.out.println("--> list of results: "
+                System.out.println("--> results: "
                                            + queryResultTransfer.getDataSetList()
-                                                                .size()
-                                           + " -> "
-                                           + queryResultTransfer.getDataSetList());
-                transfer.setDataSetList(queryResultTransfer.getDataSetList());
-                transfer.setResultID(requestTransfer.getResultID());
-                return new ResponseEntity<>(transfer, HttpStatus.OK);
+                                                                .size());
+                responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
+                responseTransfer.setResultID(requestTransfer.getResultID());
+                return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
 
             }
         } catch (final Exception e) {
-            System.err.println("An error occurred: "
-                                       + e.getMessage());
+            System.err.println("An error occurred: ");
+            e.printStackTrace();
         }
 
-        transfer.setDataSetList(new ArrayList<>());
-        return new ResponseEntity<>(transfer, HttpStatus.OK);
+        responseTransfer.setDataSetList(new ArrayList<>());
+        return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 }

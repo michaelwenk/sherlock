@@ -41,4 +41,5 @@ public class Transfer {
 
     private List<DataSet> dataSetList;
     private String pathToResultsFile;
+    private String resultID;
 }

@@ -86,15 +86,12 @@ public class ElucidationController {
                                                             .getPathToResultsFile());
 
             if (queryResultTransfer.getPyLSDRunWasSuccessful()) {
-                webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-result-retrieval")
+                webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-result-retrieval/retrieve")
                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                  .exchangeStrategies(this.exchangeStrategies)
                                                  .build();
                 final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-                //                uriComponentsBuilder.path("/retrieveResultFromSmilesFile")
-                //                                    .queryParam("pathToResultsFile", queryResultTransfer.getElucidationOptions()
-                //                                                                                        .getPathToResultsFile());
                 System.out.println("pathToResultsFile: "
                                            + queryResultTransfer.getElucidationOptions()
                                                                 .getPathToResultsFile());
@@ -115,20 +112,21 @@ public class ElucidationController {
                 // store results in DB if not empty
                 if (!responseTransfer.getDataSetList()
                                      .isEmpty()) {
-                    webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-db-service-result/insert")
+                    webClient = this.webClientBuilder.baseUrl(
+                            "http://localhost:8081/webcase-result-retrieval/store/storeResult")
                                                      .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                     MediaType.APPLICATION_JSON_VALUE)
                                                      .exchangeStrategies(this.exchangeStrategies)
                                                      .build();
-                    final String resultID = webClient.post()
-                                                     .bodyValue(responseTransfer.getDataSetList())
-                                                     .retrieve()
-                                                     .bodyToMono(String.class)
-                                                     .block();
-                    if (resultID
+                    queryResultTransfer = webClient.post()
+                                                   .bodyValue(responseTransfer)
+                                                   .retrieve()
+                                                   .bodyToMono(Transfer.class)
+                                                   .block();
+                    if (queryResultTransfer.getResultID()
                             != null) {
-                        System.out.println(resultID);
-                        responseTransfer.setResultID(resultID);
+                        System.out.println(queryResultTransfer.getResultID());
+                        responseTransfer.setResultID(queryResultTransfer.getResultID());
                     }
                 }
             }
