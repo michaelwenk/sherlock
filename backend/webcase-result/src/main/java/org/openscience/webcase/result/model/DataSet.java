@@ -1,4 +1,4 @@
-package org.openscience.webcase.resultretrieval.model;
+package org.openscience.webcase.result.model;
 
 
 import lombok.*;

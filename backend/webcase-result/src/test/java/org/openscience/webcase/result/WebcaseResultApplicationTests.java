@@ -1,10 +1,10 @@
-package org.openscience.webcase.resultretrieval;
+package org.openscience.webcase.result;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-class WebcaseResultRetrievalApplicationTests {
+class WebcaseResultApplicationTests {
 
     @Test
     void contextLoads() {

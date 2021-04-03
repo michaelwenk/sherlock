@@ -1,9 +1,9 @@
-package org.openscience.webcase.resultretrieval.controller;
+package org.openscience.webcase.result.controller;
 
-import org.openscience.webcase.resultretrieval.model.DataSet;
-import org.openscience.webcase.resultretrieval.model.db.ResultRecord;
-import org.openscience.webcase.resultretrieval.model.exchange.Transfer;
-import org.openscience.webcase.resultretrieval.utils.FileSystem;
+import org.openscience.webcase.result.model.DataSet;
+import org.openscience.webcase.result.model.db.ResultRecord;
+import org.openscience.webcase.result.model.exchange.Transfer;
+import org.openscience.webcase.result.utils.FileSystem;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;

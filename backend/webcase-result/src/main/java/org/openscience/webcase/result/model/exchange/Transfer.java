@@ -22,11 +22,11 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.resultretrieval.model.exchange;
+package org.openscience.webcase.result.model.exchange;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
-import org.openscience.webcase.resultretrieval.model.DataSet;
+import org.openscience.webcase.result.model.DataSet;
 
 import java.util.List;
 

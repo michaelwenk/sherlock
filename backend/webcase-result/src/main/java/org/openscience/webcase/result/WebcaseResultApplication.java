@@ -1,4 +1,4 @@
-package org.openscience.webcase.resultretrieval;
+package org.openscience.webcase.result;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -8,15 +8,15 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 @SpringBootApplication
 @EnableEurekaClient
-public class WebcaseResultRetrievalApplication {
+public class WebcaseResultApplication {
 
-    @Bean
-    public WebClient.Builder getWebClientBuilder(){
-        return WebClient.builder();
+    public static void main(final String[] args) {
+        SpringApplication.run(WebcaseResultApplication.class, args);
     }
 
-    public static void main(String[] args) {
-        SpringApplication.run(WebcaseResultRetrievalApplication.class, args);
+    @Bean
+    public WebClient.Builder getWebClientBuilder() {
+        return WebClient.builder();
     }
 
 }

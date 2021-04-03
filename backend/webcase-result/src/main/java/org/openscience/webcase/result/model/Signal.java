@@ -1,7 +1,11 @@
 /*
- * MIT License
+ * This class was adopted and modified from an earlier version by Christoph Steinbeck
+ */
+
+/*
+ * The MIT License
  *
- * Copyright (c) 2020 Michael Wenk (https://github.com/michaelwenk)
+ * Copyright 2018 Michael Wenk [https://github.com/michaelwenk].
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -10,33 +14,37 @@
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
  *
- * The above copyright notice and this permission notice shall be included in all
- * copies or substantial portions of the Software.
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
  *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
  * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
+package org.openscience.webcase.result.model;
 
-package org.openscience.webcase.resultretrieval.model.db;
 
 import lombok.*;
-import org.openscience.webcase.resultretrieval.model.DataSet;
 
-import java.util.List;
-
-@NoArgsConstructor
+/**
+ * @author Michael Wenk [https://github.com/michaelwenk]
+ */
 @AllArgsConstructor
+@NoArgsConstructor
 @Getter
 @Setter
 @ToString
+public class Signal {
 
-public class ResultRecord {
-
-    private String id;
-    private List<DataSet> dataSetList;
+    private String[] nuclei;
+    private Double[] shifts;
+    private String multiplicity;
+    private Double intensity;
+    private String kind;
+    private int equivalencesCount;
+    private int phase;
 }
