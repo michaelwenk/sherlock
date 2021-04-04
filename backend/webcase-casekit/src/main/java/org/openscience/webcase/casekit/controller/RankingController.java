@@ -3,7 +3,6 @@ package org.openscience.webcase.casekit.controller;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.utils.Match;
-import org.openscience.cdk.exception.CDKException;
 import org.openscience.webcase.casekit.model.exchange.Transfer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -56,17 +55,12 @@ public class RankingController {
                                      .collect(Collectors.toList());
 
             dataSetList.forEach(dataSet -> {
-                Float tanimoto = null;
-                try {
-                    tanimoto = Match.calculateTanimotoCoefficient(dataSet.getSpectrum(),
-                                                                  requestTransfer.getQuerySpectrum(), 0, 0);
-                } catch (CDKException e) {
-                    e.printStackTrace();
-                }
                 final Double rmsd = Match.calculateRMSD(dataSet.getSpectrum(), requestTransfer.getQuerySpectrum(), 0, 0,
                                                         shiftTolerance, checkMultiplicity, checkEquivalencesCount);
-                dataSet.addMetaInfo("tanimoto", String.valueOf(tanimoto));
+                final Float tanimoto = Match.calculateTanimotoCoefficient(dataSet.getSpectrum(),
+                                                                          requestTransfer.getQuerySpectrum(), 0, 0);
                 dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
+                dataSet.addMetaInfo("tanimoto", String.valueOf(tanimoto));
             });
             dataSetList.sort((dataSet1, dataSet2) -> {
                 if (Double.parseDouble(dataSet1.getMeta()
