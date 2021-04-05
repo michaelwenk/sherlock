@@ -24,6 +24,7 @@
 
 package org.openscience.webcase.core.controller;
 
+import org.openscience.webcase.core.model.DataSet;
 import org.openscience.webcase.core.model.Signal;
 import org.openscience.webcase.core.model.Spectrum;
 import org.openscience.webcase.core.model.exchange.Transfer;
@@ -40,6 +41,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.UUID;
@@ -128,7 +130,6 @@ public class CoreController {
                                                                .block();
                 responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
-
             }
 
             // @TODO check possible structural input (incl. assignment) by nmr-displayer
@@ -186,18 +187,21 @@ public class CoreController {
                                     .queryParam("resultID", requestTransfer.getResultID());
 
                 // retrieve results
-                final Transfer queryResultTransfer = webClient.get()
-                                                              .uri(uriComponentsBuilder.toUriString())
-                                                              .retrieve()
-                                                              .bodyToMono(Transfer.class)
-                                                              .block();
-                System.out.println("--> results: "
-                                           + queryResultTransfer.getDataSetList()
-                                                                .size());
-                responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
+                final Flux<DataSet> dataSetFlux = webClient.get()
+                                                           .uri(uriComponentsBuilder.toUriString())
+                                                           .retrieve()
+                                                           .bodyToFlux(DataSet.class);
+                //                final List<DataSet> dataSetList = new ArrayList<>();
+                //                dataSetFlux.subscribe(dataSet -> {
+                //                    System.out.println(dataSet.getMeta()
+                //                                              .get("smiles"));
+                //                    dataSetList.add(dataSet);
+                //                    System.out.println(dataSetList.size());
+                //                });
+                responseTransfer.setDataSetList(dataSetFlux.collectList()
+                                                           .block());
                 responseTransfer.setResultID(requestTransfer.getResultID());
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
-
             }
         } catch (final Exception e) {
             System.err.println("An error occurred: ");

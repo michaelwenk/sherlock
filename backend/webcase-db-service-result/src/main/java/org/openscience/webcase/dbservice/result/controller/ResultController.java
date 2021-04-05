@@ -1,8 +1,10 @@
 package org.openscience.webcase.dbservice.result.controller;
 
+import org.openscience.webcase.dbservice.result.model.DataSet;
 import org.openscience.webcase.dbservice.result.model.db.ResultRecord;
 import org.openscience.webcase.dbservice.result.service.ResultServiceImplementation;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -16,7 +18,7 @@ public class ResultController {
     }
 
     @GetMapping(value = "/getById", produces = "application/json")
-    public Mono<ResultRecord> getById(@RequestParam final String id) {
+    public Flux<DataSet> getById(@RequestParam final String id) {
         return this.resultServiceImplementation.findById(id);
     }
 

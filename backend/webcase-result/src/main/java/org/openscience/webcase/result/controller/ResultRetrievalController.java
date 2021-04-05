@@ -1,7 +1,6 @@
 package org.openscience.webcase.result.controller;
 
 import org.openscience.webcase.result.model.DataSet;
-import org.openscience.webcase.result.model.db.ResultRecord;
 import org.openscience.webcase.result.model.exchange.Transfer;
 import org.openscience.webcase.result.utils.FileSystem;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
+import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -37,9 +37,7 @@ public class ResultRetrievalController {
     private WebClient.Builder webClientBuilder;
 
     @GetMapping(value = "/retrieveResultFromDatabase")
-    public ResponseEntity<Transfer> retrieveResultFromDatabase(@RequestParam final String resultID) {
-        final Transfer responseTransfer = new Transfer();
-
+    public Flux<DataSet> retrieveResultFromDatabase(@RequestParam final String resultID) {
         final WebClient webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-db-service-result")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
@@ -48,19 +46,10 @@ public class ResultRetrievalController {
         uriComponentsBuilder.path("/getById")
                             .queryParam("id", resultID);
 
-        final ResultRecord resultRecord = webClient.get()
-                                                   .uri(uriComponentsBuilder.toUriString())
-                                                   .retrieve()
-                                                   .bodyToMono(ResultRecord.class)
-                                                   .block();
-        System.out.println("\nresultRecord: ");
-        System.out.println(resultRecord);
-
-        responseTransfer.setDataSetList(resultRecord.getDataSetList()
-                                                != null
-                                        ? resultRecord.getDataSetList()
-                                        : new ArrayList<>());
-        return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
+        return webClient.get()
+                        .uri(uriComponentsBuilder.toUriString())
+                        .retrieve()
+                        .bodyToFlux(DataSet.class);
     }
 
     @GetMapping(value = "/retrieveResultFromSmilesFile")
