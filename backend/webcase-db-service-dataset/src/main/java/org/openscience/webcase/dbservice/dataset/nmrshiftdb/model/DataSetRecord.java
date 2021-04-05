@@ -39,6 +39,5 @@ public class DataSetRecord {
 
     @Id
     private String id;
-    private String mf;
     private DataSet dataSet;
 }

@@ -39,13 +39,11 @@ import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
-
 
 @RestController
 @RequestMapping(value = "/nmrshiftdb")
 public class NMRShiftDBController {
-    
+
     @Autowired
     private WebClient.Builder webClientBuilder;
 
@@ -61,27 +59,27 @@ public class NMRShiftDBController {
     }
 
     @GetMapping(value = "/getAll", produces = "application/stream+json")
-    public Flux<DataSetRecord> getAll() {
+    public Flux<DataSet> getAll() {
         return this.dataSetServiceImplementation.findAll();
     }
 
     @GetMapping(value = "/getByMf", produces = "application/stream+json")
-    public Flux<DataSetRecord> getByMf(@RequestParam final String mf) {
+    public Flux<DataSet> getByMf(@RequestParam final String mf) {
         return this.dataSetServiceImplementation.findByMf(mf);
     }
 
     @GetMapping(value = "/getByNuclei", produces = "application/stream+json")
-    public Flux<DataSetRecord> getByDataSetSpectrumNuclei(@RequestParam final String[] nuclei) {
+    public Flux<DataSet> getByDataSetSpectrumNuclei(@RequestParam final String[] nuclei) {
         return this.dataSetServiceImplementation.findByDataSetSpectrumNuclei(nuclei);
     }
 
     @GetMapping(value = "/getByNucleiAndSignalCount", produces = "application/stream+json")
-    public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(@RequestParam final String[] nuclei, @RequestParam final int signalCount) {
+    public Flux<DataSet> getByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(@RequestParam final String[] nuclei, @RequestParam final int signalCount) {
         return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(nuclei, signalCount);
     }
 
     @GetMapping(value = "/getByNucleiAndSignalCountAndMf", produces = "application/stream+json")
-    public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(@RequestParam final String[] nuclei, @RequestParam final int signalCount, @RequestParam final String mf) {
+    public Flux<DataSet> getByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(@RequestParam final String[] nuclei, @RequestParam final int signalCount, @RequestParam final String mf) {
         return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(nuclei, signalCount, mf);
     }
 
@@ -98,7 +96,7 @@ public class NMRShiftDBController {
     @PostMapping(value = "/replace/all", consumes = "text/plain")
     public void replaceAll(@RequestParam final String filePath, @RequestParam final String[] nuclei) {
         this.deleteAll();
-        
+
         final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
                                                                         .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1000000)).build();
         final WebClient webClient = webClientBuilder.
@@ -117,6 +115,6 @@ public class NMRShiftDBController {
                 .bodyToMono(Transfer.class)
                 .block();
 
-        queryResultTransfer.getDataSetList().forEach(dataSet -> this.insert(new DataSetRecord(null, dataSet.getMeta().get("mf"), dataSet)));
+        queryResultTransfer.getDataSetList().forEach(dataSet -> this.insert(new DataSetRecord(null, dataSet)));
     }
 }

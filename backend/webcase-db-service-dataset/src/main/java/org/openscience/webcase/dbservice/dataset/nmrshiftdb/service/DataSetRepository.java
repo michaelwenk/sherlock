@@ -26,6 +26,7 @@ package org.openscience.webcase.dbservice.dataset.nmrshiftdb.service;
 
 
 import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.DataSetRecord;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
@@ -37,11 +38,13 @@ public interface DataSetRepository extends ReactiveMongoRepository<DataSetRecord
 
     Mono<DataSetRecord> findById(final String id);
 
+    @Query(value = "{\"dataSet.meta.mf\": \"?0\"}")
     Flux<DataSetRecord> findByMf(final String mf);
 
     Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
 
     Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount);
 
+    @Query(value = "{\"dataSet.spectrum.nuclei\": ?0, \"dataSet.spectrum.signalCount\": ?1, \"dataSet.meta.mf\": \"?2\"}")
     Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(final String[] nuclei, final int signalCount, final String mf);
 }

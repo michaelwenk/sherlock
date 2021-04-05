@@ -191,13 +191,6 @@ public class CoreController {
                                                            .uri(uriComponentsBuilder.toUriString())
                                                            .retrieve()
                                                            .bodyToFlux(DataSet.class);
-                //                final List<DataSet> dataSetList = new ArrayList<>();
-                //                dataSetFlux.subscribe(dataSet -> {
-                //                    System.out.println(dataSet.getMeta()
-                //                                              .get("smiles"));
-                //                    dataSetList.add(dataSet);
-                //                    System.out.println(dataSetList.size());
-                //                });
                 responseTransfer.setDataSetList(dataSetFlux.collectList()
                                                            .block());
                 responseTransfer.setResultID(requestTransfer.getResultID());

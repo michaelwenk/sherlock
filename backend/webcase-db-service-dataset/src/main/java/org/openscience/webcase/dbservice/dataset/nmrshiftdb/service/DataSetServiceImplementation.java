@@ -24,6 +24,7 @@
 
 package org.openscience.webcase.dbservice.dataset.nmrshiftdb.service;
 
+import org.openscience.webcase.dbservice.dataset.model.DataSet;
 import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.DataSetRecord;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -45,33 +46,33 @@ public class DataSetServiceImplementation implements DataSetService {
     }
 
     @Override
-    public Flux<DataSetRecord> findAll() {
-        return this.dataSetRepository.findAll();
+    public Flux<DataSet> findAll() {
+        return this.dataSetRepository.findAll().map(DataSetRecord::getDataSet);
     }
 
     @Override
-    public Mono<DataSetRecord> findById(final String id) {
-        return this.dataSetRepository.findById(id);
+    public Mono<DataSet> findById(final String id) {
+        return this.dataSetRepository.findById(id).map(DataSetRecord::getDataSet);
     }
 
     @Override
-    public Flux<DataSetRecord> findByMf(final String mf) {
-        return this.dataSetRepository.findByMf(mf);
+    public Flux<DataSet> findByMf(final String mf) {
+        return this.dataSetRepository.findByMf(mf).map(DataSetRecord::getDataSet);
     }
 
     @Override
-    public Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei) {
-        return this.dataSetRepository.findByDataSetSpectrumNuclei(nuclei);
+    public Flux<DataSet> findByDataSetSpectrumNuclei(final String[] nuclei) {
+        return this.dataSetRepository.findByDataSetSpectrumNuclei(nuclei).map(DataSetRecord::getDataSet);
     }
 
     @Override
-    public Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount) {
-        return this.dataSetRepository.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(nuclei, signalCount);
+    public Flux<DataSet> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount) {
+        return this.dataSetRepository.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(nuclei, signalCount).map(DataSetRecord::getDataSet);
     }
 
     @Override
-    public Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(final String[] nuclei, final int signalCount, final String mf) {
-        return this.dataSetRepository.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(nuclei, signalCount, mf);
+    public Flux<DataSet> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(final String[] nuclei, final int signalCount, final String mf) {
+        return this.dataSetRepository.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(nuclei, signalCount, mf).map(DataSetRecord::getDataSet);
     }
     
     // insertions/deletions
