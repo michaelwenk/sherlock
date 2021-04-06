@@ -19,11 +19,14 @@ import org.springframework.web.util.UriComponentsBuilder;
 @RequestMapping(value = "/")
 public class ElucidationController {
 
+    // set ExchangeSettings
+    final int maxInMemorySizeMB = 1000;
     final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
                                                                     .codecs(configurer -> configurer.defaultCodecs()
                                                                                                     .maxInMemorySize(
-                                                                                                            1024
-                                                                                                                    * 1000000))
+                                                                                                            this.maxInMemorySizeMB
+                                                                                                                    * 1024
+                                                                                                                    * 1024))
                                                                     .build();
 
     @Autowired

@@ -51,12 +51,20 @@ import java.util.stream.Collectors;
 @RequestMapping(value = "/")
 public class CoreController {
 
+    // set ExchangeSettings
+    final int maxInMemorySizeMB = 1000;
+    final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
+                                                                    .codecs(configurer -> configurer.defaultCodecs()
+                                                                                                    .maxInMemorySize(
+                                                                                                            this.maxInMemorySizeMB
+                                                                                                                    * 1024
+                                                                                                                    * 1024))
+                                                                    .build();
     private final String PATH_TO_PYLSD_EXECUTABLE_FOLDER = "/Users/mwenk/work/software/PyLSD-a4/Variant/";
-    private final String PATH_TO_LSD_FILTER_LIST = "/Users/mwenk/work/software/PyLSD-a4/LSD/Filters/list.txt";
-    private final String PATH_TO_PYLSD_INPUT_FILE_FOLDER = "/Users/mwenk/Downloads/temp_webCASE/";
     //    private final String pathToPyLSDOutputFileFolder = "/Users/mwenk/Downloads/temp_webCASE/";
     //    private final String pathToPyLSDLogAndErrorFolder = "/Users/mwenk/Downloads/temp_webCASE/";
-
+    private final String PATH_TO_LSD_FILTER_LIST = "/Users/mwenk/work/software/PyLSD-a4/LSD/Filters/list.txt";
+    private final String PATH_TO_PYLSD_INPUT_FILE_FOLDER = "/Users/mwenk/Downloads/temp_webCASE/";
     @Autowired
     private WebClient.Builder webClientBuilder;
 
@@ -100,13 +108,6 @@ public class CoreController {
                                                   .get("mf");
 
         try {
-            // set ExchangeSettings
-            final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
-                                                                            .codecs(configurer -> configurer.defaultCodecs()
-                                                                                                            .maxInMemorySize(
-                                                                                                                    1024
-                                                                                                                            * 100000))
-                                                                            .build();
             // DEREPLICATION
             if (requestTransfer.getQueryType()
                                .equals("Dereplication")) {
@@ -114,7 +115,7 @@ public class CoreController {
                                                                          baseUrl("http://localhost:8081/webcase-dereplication/dereplication")
                                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                                 MediaType.APPLICATION_JSON_VALUE)
-                                                                 .exchangeStrategies(exchangeStrategies)
+                                                                 .exchangeStrategies(this.exchangeStrategies)
                                                                  .build();
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setData(requestTransfer.getData());
@@ -146,7 +147,7 @@ public class CoreController {
                                                                          baseUrl("http://localhost:8081/webcase-elucidation/elucidation")
                                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                                 MediaType.APPLICATION_JSON_VALUE)
-                                                                 .exchangeStrategies(exchangeStrategies)
+                                                                 .exchangeStrategies(this.exchangeStrategies)
                                                                  .build();
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setData(requestTransfer.getData());
