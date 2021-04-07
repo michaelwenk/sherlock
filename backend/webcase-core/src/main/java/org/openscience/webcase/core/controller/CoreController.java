@@ -63,7 +63,8 @@ public class CoreController {
     private final String PATH_TO_PYLSD_EXECUTABLE_FOLDER = "/Users/mwenk/work/software/PyLSD-a4/Variant/";
     //    private final String pathToPyLSDOutputFileFolder = "/Users/mwenk/Downloads/temp_webCASE/";
     //    private final String pathToPyLSDLogAndErrorFolder = "/Users/mwenk/Downloads/temp_webCASE/";
-    private final String PATH_TO_LSD_FILTER_LIST = "/Users/mwenk/work/software/PyLSD-a4/LSD/Filters/list.txt";
+    private final String PATH_TO_FILTER_LIST_LSD_RING3 = "/Users/mwenk/work/software/PyLSD-a4/LSD/Filters/listRing3.txt";
+    private final String PATH_TO_FILTER_LIST_LSD_RING4 = "/Users/mwenk/work/software/PyLSD-a4/LSD/Filters/listRing4.txt";
     private final String PATH_TO_PYLSD_INPUT_FILE_FOLDER = "/Users/mwenk/Downloads/temp_webCASE/";
     @Autowired
     private WebClient.Builder webClientBuilder;
@@ -156,7 +157,8 @@ public class CoreController {
                 queryTransfer.getElucidationOptions()
                              .setPathToPyLSDExecutableFolder(this.PATH_TO_PYLSD_EXECUTABLE_FOLDER);
                 queryTransfer.getElucidationOptions()
-                             .setPathToLSDFilterList(this.PATH_TO_LSD_FILTER_LIST);
+                             .setFilterPaths(new String[]{this.PATH_TO_FILTER_LIST_LSD_RING3,
+                                                          this.PATH_TO_FILTER_LIST_LSD_RING4});
                 queryTransfer.getElucidationOptions()
                              .setPathToPyLSDInputFileFolder(this.PATH_TO_PYLSD_INPUT_FILE_FOLDER);
                 queryTransfer.setQueryType(requestTransfer.getQueryType());

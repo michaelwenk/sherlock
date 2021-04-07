@@ -15,10 +15,12 @@ public class PyLSDController {
     @PostMapping(value = "/createInputFile", consumes = "application/json")
     public String createInputFile(@RequestBody final Transfer requestTransfer) {
         final ElucidationOptions elucidationOptions = new ElucidationOptions();
-        elucidationOptions.setPathToLSDFilterList(requestTransfer.getElucidationOptions()
-                                                                 .getPathToLSDFilterList());
+        elucidationOptions.setFilterPaths(requestTransfer.getElucidationOptions()
+                                                         .getFilterPaths());
         elucidationOptions.setAllowHeteroHeteroBonds(requestTransfer.getElucidationOptions()
                                                                     .isAllowHeteroHeteroBonds());
+        elucidationOptions.setUseElim(requestTransfer.getElucidationOptions()
+                                                     .isUseElim());
         elucidationOptions.setElimP1(requestTransfer.getElucidationOptions()
                                                     .getElimP1());
         elucidationOptions.setElimP2(requestTransfer.getElucidationOptions()

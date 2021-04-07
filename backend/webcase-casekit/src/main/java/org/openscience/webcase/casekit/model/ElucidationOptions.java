@@ -16,8 +16,9 @@ public class ElucidationOptions {
     private String pathToPyLSDInputFileFolder;
 
     // PyLSD options
-    private String pathToLSDFilterList;
+    private String[] filterPaths;
     private boolean allowHeteroHeteroBonds;
+    private boolean useElim;
     private int elimP1;
     private int elimP2;
 }
