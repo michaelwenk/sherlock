@@ -156,9 +156,21 @@ public class CoreController {
                 queryTransfer.setRequestID(requestID);
                 queryTransfer.getElucidationOptions()
                              .setPathToPyLSDExecutableFolder(this.PATH_TO_PYLSD_EXECUTABLE_FOLDER);
+                String[] filterPaths = new String[]{};
+                if (requestTransfer.getElucidationOptions()
+                                   .isUseFilterLsdRing3()
+                        && requestTransfer.getElucidationOptions()
+                                          .isUseFilterLsdRing4()) {
+                    filterPaths = new String[]{this.PATH_TO_FILTER_LIST_LSD_RING3, this.PATH_TO_FILTER_LIST_LSD_RING4};
+                } else if (requestTransfer.getElucidationOptions()
+                                          .isUseFilterLsdRing3()) {
+                    filterPaths = new String[]{this.PATH_TO_FILTER_LIST_LSD_RING3};
+                } else if (requestTransfer.getElucidationOptions()
+                                          .isUseFilterLsdRing4()) {
+                    filterPaths = new String[]{this.PATH_TO_FILTER_LIST_LSD_RING4};
+                }
                 queryTransfer.getElucidationOptions()
-                             .setFilterPaths(new String[]{this.PATH_TO_FILTER_LIST_LSD_RING3,
-                                                          this.PATH_TO_FILTER_LIST_LSD_RING4});
+                             .setFilterPaths(filterPaths);
                 queryTransfer.getElucidationOptions()
                              .setPathToPyLSDInputFileFolder(this.PATH_TO_PYLSD_INPUT_FILE_FOLDER);
                 queryTransfer.setQueryType(requestTransfer.getQueryType());

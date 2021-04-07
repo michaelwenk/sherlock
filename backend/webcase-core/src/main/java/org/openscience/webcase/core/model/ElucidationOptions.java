@@ -13,6 +13,8 @@ public class ElucidationOptions {
     private String pathToPyLSDInputFileFolder;
 
     // PyLSD options
+    private boolean useFilterLsdRing3;
+    private boolean useFilterLsdRing4;
     private String[] filterPaths;
     private boolean allowHeteroHeteroBonds;
     private boolean useElim;
