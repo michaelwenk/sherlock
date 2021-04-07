@@ -10,9 +10,11 @@ import lombok.*;
 public class ElucidationOptions {
     private String pathToResultsFile;
     private String pathToPyLSDExecutableFolder;
-    private String pathToLSDFilterList;
     private String pathToPyLSDInputFileFolder;
 
     // PyLSD options
+    private String pathToLSDFilterList;
     private boolean allowHeteroHeteroBonds;
+    private int elimP1;
+    private int elimP2;
 }

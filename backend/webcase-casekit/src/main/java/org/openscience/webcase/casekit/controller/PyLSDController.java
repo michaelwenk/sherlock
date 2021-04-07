@@ -1,6 +1,7 @@
 package org.openscience.webcase.casekit.controller;
 
 import casekit.nmr.lsd.PyLSDInputFileBuilder;
+import casekit.nmr.lsd.model.ElucidationOptions;
 import org.openscience.webcase.casekit.model.exchange.Transfer;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -13,11 +14,18 @@ public class PyLSDController {
 
     @PostMapping(value = "/createInputFile", consumes = "application/json")
     public String createInputFile(@RequestBody final Transfer requestTransfer) {
+        final ElucidationOptions elucidationOptions = new ElucidationOptions();
+        elucidationOptions.setPathToLSDFilterList(requestTransfer.getElucidationOptions()
+                                                                 .getPathToLSDFilterList());
+        elucidationOptions.setAllowHeteroHeteroBonds(requestTransfer.getElucidationOptions()
+                                                                    .isAllowHeteroHeteroBonds());
+        elucidationOptions.setElimP1(requestTransfer.getElucidationOptions()
+                                                    .getElimP1());
+        elucidationOptions.setElimP2(requestTransfer.getElucidationOptions()
+                                                    .getElimP2());
+
         return PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getData(), requestTransfer.getMf(),
                                                                 requestTransfer.getDetectedHybridizations(),
-                                                                requestTransfer.getElucidationOptions()
-                                                                               .isAllowHeteroHeteroBonds(),
-                                                                requestTransfer.getElucidationOptions()
-                                                                               .getPathToLSDFilterList());
+                                                                elucidationOptions);
     }
 }
