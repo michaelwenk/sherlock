@@ -20,4 +20,5 @@ public class ElucidationOptions {
     private boolean useElim;
     private int elimP1;
     private int elimP2;
+    private float hybridizationDetectionThreshold;
 }

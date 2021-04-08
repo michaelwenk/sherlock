@@ -27,13 +27,13 @@ public class HybridizationController {
     }
 
     @GetMapping(value = "/detectHybridizations", produces = "application/json")
-    public List<Integer> detectHybridization(@RequestParam final String nucleus, @RequestParam final int minShift, @RequestParam final int maxShift, @RequestParam final String multiplicity, @RequestParam final double thrs) {
+    public List<Integer> detectHybridization(@RequestParam final String nucleus, @RequestParam final int minShift, @RequestParam final int maxShift, @RequestParam final String multiplicity, @RequestParam final float thrs) {
         final List<String> hybridizations = this.hybridizationServiceImplementation.aggregateHybridizationsByNucleusAndShiftAndMultiplicity(nucleus, minShift, maxShift, multiplicity);
         final Set<String> uniqueLabels = new HashSet<>(hybridizations);
         final Set<Integer> uniqueValues = new HashSet<>();
 
         uniqueLabels.forEach(label -> {
-            if (Constants.hybridizationConversionMap.containsKey(nucleus) && Constants.hybridizationConversionMap.get(nucleus).containsKey(label) && hybridizations.stream().filter(value -> value.equals(label)).count() / (double) hybridizations.size() >= thrs) {
+            if (Constants.hybridizationConversionMap.containsKey(nucleus) && Constants.hybridizationConversionMap.get(nucleus).containsKey(label) && hybridizations.stream().filter(value -> value.equals(label)).count() / (float) hybridizations.size() >= thrs) {
                 uniqueValues.add(Constants.hybridizationConversionMap.get(nucleus).get(label));
             }
         });

@@ -24,8 +24,6 @@ import java.util.Map;
 @RequestMapping(value = "/")
 public class PyLSDController {
 
-    // @TODO get as parameter from somewhere
-    final double thrsHybridizations = 0.1; // threshold to take a hybridization into account
     @Autowired
     private WebClient.Builder webClientBuilder;
 
@@ -34,7 +32,8 @@ public class PyLSDController {
         final Data data = requestTransfer.getData();
 
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.getDetectedHybridizations(
-                this.webClientBuilder, data, this.thrsHybridizations);
+                this.webClientBuilder, data, requestTransfer.getElucidationOptions()
+                                                            .getHybridizationDetectionThreshold());
 
         final Transfer resultTransfer = new Transfer();
         try {

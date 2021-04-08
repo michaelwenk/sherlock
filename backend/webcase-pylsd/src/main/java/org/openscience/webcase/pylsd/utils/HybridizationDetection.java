@@ -15,7 +15,7 @@ import java.util.Map;
 public class HybridizationDetection {
 
     public static Map<Integer, List<Integer>> getDetectedHybridizations(final WebClient.Builder webClientBuilder,
-                                                                        final Data data, final double thrs) {
+                                                                        final Data data, final float thrs) {
         final Map<Integer, List<Integer>> detectedHybridizations = new HashMap<>();
 
         final WebClient webClient = webClientBuilder.
