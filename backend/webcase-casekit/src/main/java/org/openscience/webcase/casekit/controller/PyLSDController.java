@@ -25,6 +25,14 @@ public class PyLSDController {
                                                     .getElimP1());
         elucidationOptions.setElimP2(requestTransfer.getElucidationOptions()
                                                     .getElimP2());
+        elucidationOptions.setHmbcP3(requestTransfer.getElucidationOptions()
+                                                    .getHmbcP3());
+        elucidationOptions.setHmbcP4(requestTransfer.getElucidationOptions()
+                                                    .getHmbcP4());
+        elucidationOptions.setCosyP3(requestTransfer.getElucidationOptions()
+                                                    .getCosyP3());
+        elucidationOptions.setCosyP4(requestTransfer.getElucidationOptions()
+                                                    .getCosyP4());
 
         return PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getData(), requestTransfer.getMf(),
                                                                 requestTransfer.getDetectedHybridizations(),
