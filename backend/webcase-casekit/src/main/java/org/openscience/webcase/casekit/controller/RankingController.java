@@ -43,7 +43,8 @@ public class RankingController {
                                                                                                requestTransfer.getQuerySpectrum(),
                                                                                                0, 0, shiftTolerance,
                                                                                                checkMultiplicity,
-                                                                                               checkEquivalencesCount);
+                                                                                               checkEquivalencesCount,
+                                                                                               false);
                                          return checkEquivalencesCount
                                                 ? matchAssignment.getSetAssignmentsCountWithEquivalences(0)
                                                         == requestTransfer.getQuerySpectrum()
@@ -56,7 +57,8 @@ public class RankingController {
 
             dataSetList.forEach(dataSet -> {
                 final Double rmsd = Match.calculateRMSD(dataSet.getSpectrum(), requestTransfer.getQuerySpectrum(), 0, 0,
-                                                        shiftTolerance, checkMultiplicity, checkEquivalencesCount);
+                                                        shiftTolerance, checkMultiplicity, checkEquivalencesCount,
+                                                        false);
                 final Float tanimoto = Match.calculateTanimotoCoefficient(dataSet.getSpectrum(),
                                                                           requestTransfer.getQuerySpectrum(), 0, 0);
                 dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
