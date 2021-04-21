@@ -1,0 +1,121 @@
+version: "3"
+
+services:
+  webcase-discovery-server:
+    image: webcase-discovery-server
+    container_name: webcase-discovery-server
+    build:
+      context: ./backend/webcase-discovery-server
+      dockerfile: Dockerfile
+    ports:
+      - "8761:8761"
+
+  webcase-gateway:
+    image: webcase-gateway
+    container_name: webcase-gateway
+    build:
+      context: ./backend/webcase-gateway
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    depends_on:
+      - webcase-discovery-server
+
+  webcase-core:
+    image: webcase-core
+    container_name: webcase-core
+    build:
+      context: ./backend/webcase-core
+      dockerfile: Dockerfile
+    ports:
+      - "8082:8082"
+    depends_on:
+      - webcase-discovery-server
+
+  webcase-dereplication:
+    image: webcase-dereplication
+    container_name: webcase-dereplication
+    build:
+      context: ./backend/webcase-dereplication
+      dockerfile: Dockerfile
+    ports:
+      - "8083:8083"
+    depends_on:
+      - webcase-discovery-server
+
+  webcase-elucidation:
+    image: webcase-elucidation
+    container_name: webcase-elucidation
+    build:
+      context: ./backend/webcase-elucidation
+      dockerfile: Dockerfile
+    ports:
+      - "8084:8084"
+    depends_on:
+      - webcase-discovery-server
+
+  webcase-pylsd:
+    image: webcase-pylsd
+    container_name: webcase-pylsd
+    build:
+      context: ./backend/webcase-pylsd
+      dockerfile: Dockerfile
+    ports:
+      - "8085:8085"
+    depends_on:
+      - webcase-discovery-server
+
+  webcase-result:
+    image: webcase-result
+    container_name: webcase-result
+    build:
+      context: ./backend/webcase-result
+      dockerfile: Dockerfile
+    ports:
+      - "8086:8086"
+    depends_on:
+      - webcase-discovery-server
+
+  webcase-db-service-dataset:
+    image: webcase-db-service-dataset
+    container_name: webcase-db-service-dataset
+    build:
+      context: ./backend/webcase-db-service-dataset
+      dockerfile: Dockerfile
+    ports:
+      - "8087:8087"
+    depends_on:
+      - webcase-discovery-server
+
+  webcase-db-service-hybridization:
+    image: webcase-db-service-hybridization
+    container_name: webcase-db-service-hybridization
+    build:
+      context: ./backend/webcase-db-service-hybridization
+      dockerfile: Dockerfile
+    ports:
+      - "8088:8088"
+    depends_on:
+      - webcase-discovery-server
+
+  webcase-db-service-result:
+    image: webcase-db-service-result
+    container_name: webcase-db-service-result
+    build:
+      context: ./backend/webcase-db-service-result
+      dockerfile: Dockerfile
+    ports:
+      - "8089:8089"
+    depends_on:
+      - webcase-discovery-server
+
+  webcase-casekit:
+    image: webcase-casekit
+    container_name: webcase-casekit
+    build:
+      context: ./backend/webcase-casekit
+      dockerfile: Dockerfile
+    ports:
+      - "8090:8090"
+    depends_on:
+      - webcase-discovery-server
