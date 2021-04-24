@@ -116,7 +116,7 @@ services:
     ports:
       - 27020:27017
     volumes:
-      - "/Users/mwenk/Downloads/mongoDataTest/nmrshiftdb-dataset:/data/db"
+      - "./db-storage/nmrshiftdb-dataset:/data/db"
     environment:
       - MONGO_INITDB_DATABASE=nmrshiftdb-dataset
       - MONGO_INITDB_ROOT_USERNAME=admin
@@ -129,7 +129,7 @@ services:
     ports:
       - 27021:27017
     volumes:
-      - "/Users/mwenk/Downloads/mongoDataTest/nmrshiftdb-hybridization:/data/db"
+      - "./db-storage/nmrshiftdb-hybridization:/data/db"
     environment:
       - MONGO_INITDB_DATABASE=nmrshiftdb-hybridization
       - MONGO_INITDB_ROOT_USERNAME=admin
@@ -142,7 +142,7 @@ services:
     ports:
       - 27022:27017
     volumes:
-      - "/Users/mwenk/Downloads/mongoDataTest/result:/data/db"
+      - "./db-storage/result:/data/db"
     environment:
       - MONGO_INITDB_DATABASE=result
       - MONGO_INITDB_ROOT_USERNAME=admin
