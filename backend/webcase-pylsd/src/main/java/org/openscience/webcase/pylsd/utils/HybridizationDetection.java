@@ -19,7 +19,7 @@ public class HybridizationDetection {
         final Map<Integer, List<Integer>> detectedHybridizations = new HashMap<>();
 
         final WebClient webClient = webClientBuilder.
-                                                            baseUrl("http://localhost:8081/webcase-db-service-hybridization/nmrshiftdb")
+                                                            baseUrl("http://webcase-gateway:8081/webcase-db-service-hybridization/nmrshiftdb")
                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .build();

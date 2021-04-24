@@ -21,12 +21,11 @@ import java.util.List;
 public class DbServiceController {
 
     @GetMapping(value = "getDataSetsFromNMRShiftDB", produces = "application/json")
-    public ResponseEntity<Transfer> getDataSetsFromNMRShiftDB(@RequestParam final String pathToNMRShiftDB,
-                                                              @RequestParam final String[] nuclei) {
+    public ResponseEntity<Transfer> getDataSetsFromNMRShiftDB(@RequestParam final String[] nuclei) {
         final Transfer resultTransfer = new Transfer();
         List<DataSet> dataSetList = new ArrayList<>();
         try {
-            dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(pathToNMRShiftDB, nuclei);
+            dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB("/data/nmrshiftdb/nmrshiftdb2withsignals.sd", nuclei);
         } catch (final IOException | CDKException e) {
             e.printStackTrace();
         }

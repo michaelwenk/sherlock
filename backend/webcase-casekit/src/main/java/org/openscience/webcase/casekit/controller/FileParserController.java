@@ -26,9 +26,7 @@ public class FileParserController {
 
         try {
             dataSetList = RankedResultSDFParser.parseRankedResultSDF(pathToRankedSDFile, "13C");
-        } catch (CDKException e) {
-            e.printStackTrace();
-        } catch (FileNotFoundException e) {
+        } catch (final CDKException | FileNotFoundException e) {
             e.printStackTrace();
         }
 

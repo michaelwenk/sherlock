@@ -35,7 +35,7 @@ public class ResultStorageController {
     public ResponseEntity<Transfer> storeResult(@RequestBody final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://localhost:8081/webcase-db-service-result/insert")
+                "http://webcase-gateway:8081/webcase-db-service-result/insert")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)

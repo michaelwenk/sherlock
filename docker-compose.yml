@@ -2,7 +2,6 @@ version: "3"
 
 services:
   webcase-discovery-server:
-    image: webcase-discovery-server
     container_name: webcase-discovery-server
     build:
       context: ./backend/webcase-discovery-server
@@ -11,7 +10,6 @@ services:
       - "8761:8761"
 
   webcase-gateway:
-    image: webcase-gateway
     container_name: webcase-gateway
     build:
       context: ./backend/webcase-gateway
@@ -22,7 +20,6 @@ services:
       - webcase-discovery-server
 
   webcase-core:
-    image: webcase-core
     container_name: webcase-core
     build:
       context: ./backend/webcase-core
@@ -33,7 +30,6 @@ services:
       - webcase-discovery-server
 
   webcase-dereplication:
-    image: webcase-dereplication
     container_name: webcase-dereplication
     build:
       context: ./backend/webcase-dereplication
@@ -44,7 +40,6 @@ services:
       - webcase-discovery-server
 
   webcase-elucidation:
-    image: webcase-elucidation
     container_name: webcase-elucidation
     build:
       context: ./backend/webcase-elucidation
@@ -55,7 +50,6 @@ services:
       - webcase-discovery-server
 
   webcase-pylsd:
-    image: webcase-pylsd
     container_name: webcase-pylsd
     build:
       context: ./backend/webcase-pylsd
@@ -66,7 +60,6 @@ services:
       - webcase-discovery-server
 
   webcase-result:
-    image: webcase-result
     container_name: webcase-result
     build:
       context: ./backend/webcase-result
@@ -77,7 +70,6 @@ services:
       - webcase-discovery-server
 
   webcase-db-service-dataset:
-    image: webcase-db-service-dataset
     container_name: webcase-db-service-dataset
     build:
       context: ./backend/webcase-db-service-dataset
@@ -86,9 +78,9 @@ services:
       - "8087:8087"
     depends_on:
       - webcase-discovery-server
+      - db-instance-nmrshiftdb-dataset
 
   webcase-db-service-hybridization:
-    image: webcase-db-service-hybridization
     container_name: webcase-db-service-hybridization
     build:
       context: ./backend/webcase-db-service-hybridization
@@ -99,7 +91,6 @@ services:
       - webcase-discovery-server
 
   webcase-db-service-result:
-    image: webcase-db-service-result
     container_name: webcase-db-service-result
     build:
       context: ./backend/webcase-db-service-result
@@ -110,7 +101,6 @@ services:
       - webcase-discovery-server
 
   webcase-casekit:
-    image: webcase-casekit
     container_name: webcase-casekit
     build:
       context: ./backend/webcase-casekit
@@ -119,3 +109,42 @@ services:
       - "8090:8090"
     depends_on:
       - webcase-discovery-server
+
+  db-instance-nmrshiftdb-dataset:
+    image: mongo:4
+    container_name: db-instance-nmrshiftdb-dataset
+    ports:
+      - 27020:27017
+    volumes:
+      - "/Users/mwenk/Downloads/mongoDataTest/nmrshiftdb-dataset:/data/db"
+    environment:
+      - MONGO_INITDB_DATABASE=nmrshiftdb-dataset
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    restart: always
+
+  db-instance-nmrshiftdb-hybridization:
+    image: mongo:4
+    container_name: db-instance-nmrshiftdb-hybridization
+    ports:
+      - 27021:27017
+    volumes:
+      - "/Users/mwenk/Downloads/mongoDataTest/nmrshiftdb-hybridization:/data/db"
+    environment:
+      - MONGO_INITDB_DATABASE=nmrshiftdb-hybridization
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    restart: always
+
+  db-instance-result:
+    image: mongo:4
+    container_name: db-instance-result
+    ports:
+      - 27022:27017
+    volumes:
+      - "/Users/mwenk/Downloads/mongoDataTest/result:/data/db"
+    environment:
+      - MONGO_INITDB_DATABASE=result
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    restart: always

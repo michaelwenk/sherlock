@@ -108,19 +108,18 @@ public class NMRShiftDBController {
                                          .block();
     }
 
-    @PostMapping(value = "/replace/all", consumes = "text/plain")
-    public void replaceAll(@RequestParam final String filePath, @RequestParam final String[] nuclei) {
+    @PostMapping(value = "/replace/all")
+    public void replaceAll(@RequestParam final String[] nuclei) {
         this.deleteAll();
 
         final WebClient webClient = this.webClientBuilder.
-                                                                 baseUrl("http://localhost:8081/webcase-casekit/dbservice")
+                                                                 baseUrl("http://webcase-gateway:8081/webcase-casekit/dbservice")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)
                                                          .build();
         final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
         uriComponentsBuilder.path("/getDataSetsFromNMRShiftDB")
-                            .queryParam("pathToNMRShiftDB", filePath)
                             .queryParam("nuclei", String.join(",", nuclei));
         final Transfer queryResultTransfer = webClient.get()
                                                       .uri(uriComponentsBuilder.toUriString())

@@ -77,7 +77,8 @@ public class DereplicationController {
                                                                                  .isUseMF());
             List<DataSet> dataSetList = dataSetFlux.collectList()
                                                    .block();
-            final WebClient webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-casekit/ranking")
+            final WebClient webClient = this.webClientBuilder.baseUrl(
+                    "http://webcase-gateway:8081/webcase-casekit/ranking")
                                                              .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                             MediaType.APPLICATION_JSON_VALUE)
                                                              .exchangeStrategies(this.exchangeStrategies)
@@ -106,7 +107,7 @@ public class DereplicationController {
 
     public Flux<DataSet> getDataSetFlux(final Spectrum querySpectrum, final String mf, final boolean useMF) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://localhost:8081/webcase-db-service-dataset/nmrshiftdb")
+                "http://webcase-gateway:8081/webcase-db-service-dataset/nmrshiftdb")
                                                          .
                                                                  defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                                MediaType.APPLICATION_JSON_VALUE)

@@ -60,12 +60,7 @@ public class CoreController {
                                                                                                                     * 1024
                                                                                                                     * 1024))
                                                                     .build();
-    private final String PATH_TO_PYLSD_EXECUTABLE_FOLDER = "/Users/mwenk/work/software/PyLSD-a4/Variant/";
-    //    private final String pathToPyLSDOutputFileFolder = "/Users/mwenk/Downloads/temp_webCASE/";
-    //    private final String pathToPyLSDLogAndErrorFolder = "/Users/mwenk/Downloads/temp_webCASE/";
-    private final String PATH_TO_FILTER_LIST_LSD_RING3 = "/Users/mwenk/work/software/PyLSD-a4/LSD/Filters/listRing3.txt";
-    private final String PATH_TO_FILTER_LIST_LSD_RING4 = "/Users/mwenk/work/software/PyLSD-a4/LSD/Filters/listRing4.txt";
-    private final String PATH_TO_PYLSD_INPUT_FILE_FOLDER = "/Users/mwenk/Downloads/temp_webCASE/";
+
     @Autowired
     private WebClient.Builder webClientBuilder;
 
@@ -113,7 +108,7 @@ public class CoreController {
             if (requestTransfer.getQueryType()
                                .equals("Dereplication")) {
                 final WebClient webClient = this.webClientBuilder.
-                                                                         baseUrl("http://localhost:8081/webcase-dereplication/dereplication")
+                                                                         baseUrl("http://webcase-gateway:8081/webcase-dereplication/dereplication")
                                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                                  .exchangeStrategies(this.exchangeStrategies)
@@ -145,7 +140,7 @@ public class CoreController {
                                              .toString();
                 // PyLSD FILE CONTENT CREATION
                 final WebClient webClient = this.webClientBuilder.
-                                                                         baseUrl("http://localhost:8081/webcase-elucidation/elucidation")
+                                                                         baseUrl("http://webcase-gateway:8081/webcase-elucidation/elucidation")
                                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                                  .exchangeStrategies(this.exchangeStrategies)
@@ -154,25 +149,6 @@ public class CoreController {
                 queryTransfer.setData(requestTransfer.getData());
                 queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
                 queryTransfer.setRequestID(requestID);
-                queryTransfer.getElucidationOptions()
-                             .setPathToPyLSDExecutableFolder(this.PATH_TO_PYLSD_EXECUTABLE_FOLDER);
-                String[] filterPaths = new String[]{};
-                if (requestTransfer.getElucidationOptions()
-                                   .isUseFilterLsdRing3()
-                        && requestTransfer.getElucidationOptions()
-                                          .isUseFilterLsdRing4()) {
-                    filterPaths = new String[]{this.PATH_TO_FILTER_LIST_LSD_RING3, this.PATH_TO_FILTER_LIST_LSD_RING4};
-                } else if (requestTransfer.getElucidationOptions()
-                                          .isUseFilterLsdRing3()) {
-                    filterPaths = new String[]{this.PATH_TO_FILTER_LIST_LSD_RING3};
-                } else if (requestTransfer.getElucidationOptions()
-                                          .isUseFilterLsdRing4()) {
-                    filterPaths = new String[]{this.PATH_TO_FILTER_LIST_LSD_RING4};
-                }
-                queryTransfer.getElucidationOptions()
-                             .setFilterPaths(filterPaths);
-                queryTransfer.getElucidationOptions()
-                             .setPathToPyLSDInputFileFolder(this.PATH_TO_PYLSD_INPUT_FILE_FOLDER);
                 queryTransfer.setQueryType(requestTransfer.getQueryType());
                 queryTransfer.setQuerySpectrum(querySpectrum);
                 queryTransfer.setMf(mf);
@@ -193,7 +169,7 @@ public class CoreController {
                 System.out.println("RETRIEVAL: "
                                            + requestTransfer.getResultID());
                 final WebClient webClient = this.webClientBuilder.baseUrl(
-                        "http://localhost:8081/webcase-result/retrieve")
+                        "http://webcase-gateway:8081/webcase-result/retrieve")
                                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                                  .build();

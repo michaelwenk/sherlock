@@ -41,7 +41,8 @@ public class ResultRetrievalController {
 
     @GetMapping(value = "/retrieveResultFromDatabase")
     public Flux<DataSet> retrieveResultFromDatabase(@RequestParam final String resultID) {
-        final WebClient webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-db-service-result")
+        final WebClient webClient = this.webClientBuilder.baseUrl(
+                "http://webcase-gateway:8081/webcase-db-service-result")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .build();
@@ -79,7 +80,8 @@ public class ResultRetrievalController {
     @GetMapping(value = "/retrieveResultFromRankedSDFile")
     public ResponseEntity<Transfer> retrieveResultFromRankedSDFile(@RequestParam final String pathToRankedSDFile) {
         final Transfer responseTransfer = new Transfer();
-        final WebClient webClient = this.webClientBuilder.baseUrl("http://localhost:8081/webcase-casekit/fileParser")
+        final WebClient webClient = this.webClientBuilder.baseUrl(
+                "http://webcase-gateway:8081/webcase-casekit/fileParser")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)
