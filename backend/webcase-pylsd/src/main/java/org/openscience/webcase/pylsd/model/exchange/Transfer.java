@@ -26,6 +26,7 @@ package org.openscience.webcase.pylsd.model.exchange;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
+import org.openscience.webcase.pylsd.model.DataSet;
 import org.openscience.webcase.pylsd.model.ElucidationOptions;
 import org.openscience.webcase.pylsd.model.nmrdisplayer.Data;
 
@@ -41,11 +42,17 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Transfer {
 
+    private List<DataSet> dataSetList;
+    private String requestID;
+    private String resultID;
+
     private Data data;
     private String mf;
-    private Boolean pyLSDInputFileCreationWasSuccessful;
     private Boolean pyLSDRunWasSuccessful;
     private ElucidationOptions elucidationOptions;
     private Map<Integer, List<Integer>> detectedHybridizations;
-    private String requestID;
+
+    // for ranked SDF parsing
+    private String fileContent;
+    private String nucleus;
 }

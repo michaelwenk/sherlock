@@ -52,8 +52,10 @@ public class ElucidationController {
                                                       .retrieve()
                                                       .bodyToMono(Transfer.class)
                                                       .block();
+        responseTransfer.setPyLSDRunWasSuccessful(queryResultTransfer.getPyLSDRunWasSuccessful());
         responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
         responseTransfer.setResultID(queryResultTransfer.getResultID());
+
 
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }

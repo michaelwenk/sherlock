@@ -6,12 +6,11 @@ import org.openscience.cdk.exception.CDKException;
 import org.openscience.webcase.casekit.model.exchange.Transfer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,14 +18,15 @@ import java.util.List;
 @RequestMapping(value = "/fileParser")
 public class FileParserController {
 
-    @GetMapping(value = "/parseRankedSdf")
-    public ResponseEntity<Transfer> parseRankedSDF(@RequestParam final String pathToRankedSDFile) {
+    @PostMapping(value = "/parseRankedSdf")
+    public ResponseEntity<Transfer> parseRankedSDF(@RequestBody final Transfer requestTransfer) {
         final Transfer resultTransfer = new Transfer();
         List<DataSet> dataSetList = new ArrayList<>();
 
         try {
-            dataSetList = RankedResultSDFParser.parseRankedResultSDF(pathToRankedSDFile, "13C");
-        } catch (final CDKException | FileNotFoundException e) {
+            dataSetList = RankedResultSDFParser.parseRankedResultSDFileContent(requestTransfer.getFileContent(),
+                                                                               requestTransfer.getNucleus());
+        } catch (final CDKException e) {
             e.printStackTrace();
         }
 

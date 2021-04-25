@@ -138,7 +138,7 @@ public class CoreController {
                 // NEW UUID CREATION
                 final String requestID = UUID.randomUUID()
                                              .toString();
-                // PyLSD FILE CONTENT CREATION
+                // PyLSD RUN
                 final WebClient webClient = this.webClientBuilder.
                                                                          baseUrl("http://webcase-gateway:8081/webcase-elucidation/elucidation")
                                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
@@ -149,8 +149,6 @@ public class CoreController {
                 queryTransfer.setData(requestTransfer.getData());
                 queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
                 queryTransfer.setRequestID(requestID);
-                queryTransfer.setQueryType(requestTransfer.getQueryType());
-                queryTransfer.setQuerySpectrum(querySpectrum);
                 queryTransfer.setMf(mf);
 
                 final Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient

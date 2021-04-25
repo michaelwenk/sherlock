@@ -1,5 +1,6 @@
 package org.openscience.webcase.pylsd.controller;
 
+import org.openscience.webcase.pylsd.model.DataSet;
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
 import org.openscience.webcase.pylsd.utils.FileSystem;
 import org.openscience.webcase.pylsd.utils.HybridizationDetection;
@@ -8,16 +9,20 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -25,6 +30,19 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping(value = "/")
 public class PyLSDController {
+    final String pathToPyLSDExecutableFolder = "/data/lsd/PyLSD/Variant/";
+    final String pathToPyLSDInputFileFolder = "/data/lsd/PyLSD/Variant/";
+    final String pathToPyLSDResultFileFolder = "/data/lsd/PyLSD/Variant/"; //"/data/lsd/PyLSD/Predict/";
+
+    // set ExchangeSettings
+    final int maxInMemorySizeMB = 1000;
+    final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
+                                                                    .codecs(configurer -> configurer.defaultCodecs()
+                                                                                                    .maxInMemorySize(
+                                                                                                            this.maxInMemorySizeMB
+                                                                                                                    * 1024
+                                                                                                                    * 1024))
+                                                                    .build();
 
     @Autowired
     private WebClient.Builder webClientBuilder;
@@ -46,10 +64,12 @@ public class PyLSDController {
         queryTransfer.setMf(requestTransfer.getMf());
         queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
 
-        final Path pathToFilters = Paths.get("/data/lsd/filters/");
+        final String pathToFilterRing3 = "/data/lsd/PyLSD/LSD/Filters/ring3";
+        final String pathToFilterRing4 = "/data/lsd/PyLSD/LSD/Filters/ring4";
+        final Path pathToCustomFilters = Paths.get("/data/lsd/filters/");
         List<String> filterList = new ArrayList<>();
         try {
-            filterList = Files.walk(pathToFilters)
+            filterList = Files.walk(pathToCustomFilters)
                               .filter(path -> !Files.isDirectory(path))
                               .map(path -> path.toFile()
                                                .getAbsolutePath())
@@ -57,7 +77,14 @@ public class PyLSDController {
         } catch (final IOException e) {
             e.printStackTrace();
         }
-        System.out.println(Arrays.toString(filterList.toArray(String[]::new)));
+        if (requestTransfer.getElucidationOptions()
+                           .isUseFilterLsdRing3()) {
+            filterList.add(pathToFilterRing3);
+        }
+        if (requestTransfer.getElucidationOptions()
+                           .isUseFilterLsdRing4()) {
+            filterList.add(pathToFilterRing4);
+        }
         queryTransfer.getElucidationOptions()
                      .setFilterPaths(filterList.toArray(String[]::new));
 
@@ -70,172 +97,120 @@ public class PyLSDController {
 
     @PostMapping(value = "/runPyLSD")
     public ResponseEntity<Transfer> runPyLSD(@RequestBody final Transfer requestTransfer) {
-        final Transfer resultTransfer = new Transfer();
+        final Transfer responseTransfer = new Transfer();
 
         // build PyLSD input file
-        System.out.println(requestTransfer);
         final String pyLSDInputFileContent = this.createPyLSDInputFile(requestTransfer);
-        System.out.println(pyLSDInputFileContent);
-
-
-        final String pathToPyLSDInputFileFolder = "/data/temp/"
-                + requestTransfer.getRequestID()
-                + "/";
-        final String pathToPyLSDInputFile = pathToPyLSDInputFileFolder
+        final String pathToPyLSDInputFile = this.pathToPyLSDInputFileFolder
                 + requestTransfer.getRequestID()
                 + ".pylsd";
+        final String pathToRankedSDFile = this.pathToPyLSDResultFileFolder
+                + requestTransfer.getRequestID()
+                + "_D.sdf";
 
-        System.out.println(pathToPyLSDInputFileFolder);
-        System.out.println(pathToPyLSDInputFile);
-        final Path path = Paths.get(pathToPyLSDInputFileFolder);
-        boolean pyLSDInputFileCreationWasSuccessful = false;
-        try {
-            Files.createDirectory(path);
-            pyLSDInputFileCreationWasSuccessful = FileSystem.writeFile(pathToPyLSDInputFile, pyLSDInputFileContent);
-        } catch (final IOException e) {
-            e.printStackTrace();
-        }
-
-        // run PyLSD
-        if (pyLSDInputFileCreationWasSuccessful) {
+        // run PyLSD if file was written successfully
+        if (FileSystem.writeFile(pathToPyLSDInputFile, pyLSDInputFileContent)) {
             System.out.println("--> has been written successfully: "
                                        + pathToPyLSDInputFile);
+            try {
+                // try to execute PyLSD
+                final ProcessBuilder builder = new ProcessBuilder();
+                builder.directory(new File(this.pathToPyLSDExecutableFolder))
+                       .redirectError(new File(this.pathToPyLSDInputFileFolder
+                                                       + requestTransfer.getRequestID()
+                                                       + "_error.txt"))
+                       .redirectOutput(new File(this.pathToPyLSDInputFileFolder
+                                                        + requestTransfer.getRequestID()
+                                                        + "_log.txt"))
+                       .command("python2.7", this.pathToPyLSDExecutableFolder
+                               + "lsd.py", pathToPyLSDInputFile);
+                final Process process = builder.start();
+                final int exitCode = process.waitFor();
+                final boolean pyLSDRunWasSuccessful = exitCode
+                        == 0;
 
-            //            try {
-            //                // try to execute PyLSD
-            //                final ProcessBuilder builder = new ProcessBuilder();
-            //                builder.directory(new File(requestTransfer.getElucidationOptions()
-            //                                                          .getPathToPyLSDExecutableFolder()))
-            //                       .redirectError(new File(requestTransfer.getElucidationOptions()
-            //                                                              .getPathToPyLSDInputFileFolder()
-            //                                                       + requestTransfer.getRequestID()
-            //                                                       + "_error.txt"))
-            //                       .redirectOutput(new File(requestTransfer.getElucidationOptions()
-            //                                                               .getPathToPyLSDInputFileFolder()
-            //                                                        + requestTransfer.getRequestID()
-            //                                                        + "_log.txt"))
-            //                       .command("python2.7", requestTransfer.getElucidationOptions()
-            //                                                            .getPathToPyLSDExecutableFolder()
-            //                               + "lsd_modified.py", requestTransfer.getElucidationOptions()
-            //                                                                   .getPathToPyLSDInputFile());
-            //                final Process process = builder.start();
-            //                final int exitCode = process.waitFor();
-            //                final boolean pyLSDRunWasSuccessful = exitCode
-            //                        == 0;
-            //
-            //                if (pyLSDRunWasSuccessful) {
-            //                    System.out.println("run was successful");
-            //                    System.out.println(requestTransfer.getElucidationOptions()
-            //                                                      .getPathToPyLSDInputFileFolder());
-            //                    resultTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
-            //                    final String pathToResultsFilePredictions = requestTransfer.getElucidationOptions()
-            //                                                                               .getPathToPyLSDInputFileFolder()
-            //                            + "/"
-            //                            + requestTransfer.getRequestID()
-            //                            + "_D.sdf";
-            //                    resultTransfer.getElucidationOptions()
-            //                                  .setPathToResultsFile(pathToResultsFilePredictions);
-            //
-            //                    // clean up created files
-            //                    this.cleanup();
-            //
-            //                } else {
-            //                    System.out.println("run was NOT successful");
-            //                }
-            //                resultTransfer.setPyLSDRunWasSuccessful(pyLSDRunWasSuccessful);
-            //
-            //            } catch (final Exception e) {
-            //                e.printStackTrace();
-            //                resultTransfer.setPyLSDRunWasSuccessful(false);
-            //            }
+                if (pyLSDRunWasSuccessful) {
+                    System.out.println("-> run was successful");
+                    final String pathToResultsFilePredictions = this.pathToPyLSDResultFileFolder
+                            + requestTransfer.getRequestID()
+                            + "_D.sdf";
+                    System.out.println(pathToResultsFilePredictions);
+
+                    final List<DataSet> dataSetList = this.retrieveResultFromRankedSDFile(pathToRankedSDFile, "13C");
 
 
-            //            if (queryResultTransfer.getPyLSDRunWasSuccessful()
-            //                    != null
-            //                    && queryResultTransfer.getPyLSDRunWasSuccessful()) {
-            //                //                webClient = this.webClientBuilder.baseUrl("http://webcase-gateway:8081/webcase-result/retrieve")
-            //                //                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
-            //                //                                                                MediaType.APPLICATION_JSON_VALUE)
-            //                //                                                 .exchangeStrategies(this.exchangeStrategies)
-            //                //                                                 .build();
-            //                //                final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-            //                //                System.out.println("pathToResultsFile: "
-            //                //                                           + queryResultTransfer.getElucidationOptions()
-            //                //                                                                .getPathToResultsFile());
-            //                //                uriComponentsBuilder.path("/retrieveResultFromRankedSDFile")
-            //                //                                    .queryParam("pathToRankedSDFile", queryResultTransfer.getElucidationOptions()
-            //                //                                                                                         .getPathToResultsFile());
-            //                //                // retrieve results from PyLSD results file
-            //                //                queryResultTransfer = webClient.get()
-            //                //                                               .uri(uriComponentsBuilder.toUriString())
-            //                //                                               .retrieve()
-            //                //                                               .bodyToMono(Transfer.class)
-            //                //                                               .block();
-            //                System.out.println("--> number of results: "
-            //                                           + queryResultTransfer.getDataSetList()
-            //                                                                .size());
-            //                responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
-            //
-            //                // store results in DB if not empty
-            //                if (!responseTransfer.getDataSetList()
-            //                                     .isEmpty()) {
-            //                    webClient = this.webClientBuilder.baseUrl(
-            //                            "http://webcase-gateway:8081/webcase-result/store/storeResult")
-            //                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
-            //                                                                    MediaType.APPLICATION_JSON_VALUE)
-            //                                                     .exchangeStrategies(this.exchangeStrategies)
-            //                                                     .build();
-            //                    queryResultTransfer = webClient.post()
-            //                                                   .bodyValue(responseTransfer)
-            //                                                   .retrieve()
-            //                                                   .bodyToMono(Transfer.class)
-            //                                                   .block();
-            //                    if (queryResultTransfer.getResultID()
-            //                            != null) {
-            //                        System.out.println(queryResultTransfer.getResultID());
-            //                        responseTransfer.setResultID(queryResultTransfer.getResultID());
-            //                    }
-            //                }
-            //            }
-            //
-            //            // cleanup of created files and folder
-            //            webClient = this.webClientBuilder.baseUrl("http://webcase-gateway:8081/webcase-pylsd")
-            //                                             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-            //                                             .build();
-            //            final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-            //            uriComponentsBuilder.path("/cleanup")
-            //                                .queryParam("pathToPyLSDInputFileFolder", pathToPyLSDInputFileFolder);
-            //            webClient.get()
-            //                     .uri(uriComponentsBuilder.toUriString())
-            //                     .retrieve()
-            //                     .bodyToMono(Boolean.class)
-            //                     .block();
+                    System.out.println("--> number of results: "
+                                               + dataSetList.size());
+                    responseTransfer.setDataSetList(dataSetList);
+
+                    // store results in DB if not empty
+                    if (!responseTransfer.getDataSetList()
+                                         .isEmpty()) {
+                        final WebClient webClient = this.webClientBuilder.baseUrl(
+                                "http://webcase-gateway:8081/webcase-result/store/storeResult")
+                                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                                        MediaType.APPLICATION_JSON_VALUE)
+                                                                         .exchangeStrategies(this.exchangeStrategies)
+                                                                         .build();
+                        final Transfer queryResultTransfer = webClient.post()
+                                                                      .bodyValue(responseTransfer)
+                                                                      .retrieve()
+                                                                      .bodyToMono(Transfer.class)
+                                                                      .block();
+                        if (queryResultTransfer.getResultID()
+                                != null) {
+                            System.out.println("resultID: "
+                                                       + queryResultTransfer.getResultID());
+                            responseTransfer.setResultID(queryResultTransfer.getResultID());
+                        }
+                    }
+
+                    //                    // cleanup of created files and folder
+                    //                    final String[] directoriesToCheck = new String[]{this.pathToPyLSDInputFileFolder,
+                    //                                                                     this.pathToPyLSDResultFileFolder};
+                    //                    FileSystem.cleanup(directoriesToCheck, requestTransfer.getRequestID());
+                } else {
+                    System.out.println("run was NOT successful");
+                }
+            } catch (final Exception e) {
+                e.printStackTrace();
+                responseTransfer.setPyLSDRunWasSuccessful(false);
+            }
         } else {
             System.out.println("--> file creation failed: "
                                        + pathToPyLSDInputFile);
         }
 
-
-        return new ResponseEntity<>(resultTransfer, HttpStatus.OK);
+        return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
-    @GetMapping(value = "/cleanup")
-    public ResponseEntity<Boolean> cleanup(@RequestParam final String pathToPyLSDInputFileFolder) {
-        boolean cleaned = false;
-        final Path path = Paths.get(pathToPyLSDInputFileFolder);
-        try {
-            Files.walk(path)
-                 .map(Path::toFile)
-                 .forEach(File::delete);
-            Files.delete(path);
-            if (!Files.exists(path)) {
-                System.out.println("Directory is deleted!");
-                cleaned = true;
-            }
-        } catch (final IOException e) {
-            System.out.println("Directory NOT deleted!");
-            e.printStackTrace();
+    public List<DataSet> retrieveResultFromRankedSDFile(final String pathToRankedSDFile, final String nucleus) {
+        final WebClient webClient = this.webClientBuilder.baseUrl(
+                "http://webcase-gateway:8081/webcase-casekit/fileParser/parseRankedSdf")
+                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                        MediaType.APPLICATION_JSON_VALUE)
+                                                         .exchangeStrategies(this.exchangeStrategies)
+                                                         .build();
+
+        final BufferedReader bufferedReader = FileSystem.readFile(pathToRankedSDFile);
+        if (bufferedReader
+                == null) {
+            System.out.println("retrieveResultFromRankedSDFile: could not read file \""
+                                       + pathToRankedSDFile
+                                       + "\"");
+            return new ArrayList<>();
         }
-        return new ResponseEntity<>(cleaned, HttpStatus.OK);
+        final String fileContent = bufferedReader.lines()
+                                                 .collect(Collectors.joining("\n"));
+        final Transfer requestTransfer = new Transfer();
+        requestTransfer.setFileContent(fileContent);
+        requestTransfer.setNucleus(nucleus);
+        final Transfer resultTransfer = webClient.post()
+                                                 .bodyValue(requestTransfer)
+                                                 .retrieve()
+                                                 .bodyToMono(Transfer.class)
+                                                 .block();
+
+        return resultTransfer.getDataSetList();
     }
 }

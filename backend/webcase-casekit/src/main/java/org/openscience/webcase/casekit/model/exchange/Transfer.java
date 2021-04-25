@@ -27,4 +27,8 @@ public class Transfer {
     private Data data;
     private String mf;
     private Map<Integer, List<Integer>> detectedHybridizations;
+
+    // for ranked SDF parsing
+    private String fileContent;
+    private String nucleus;
 }

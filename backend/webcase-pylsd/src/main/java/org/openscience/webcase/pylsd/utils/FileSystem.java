@@ -12,7 +12,16 @@
 
 package org.openscience.webcase.pylsd.utils;
 
+import org.openscience.webcase.pylsd.model.DataSet;
+
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 public class FileSystem {
 
@@ -39,5 +48,63 @@ public class FileSystem {
         }
 
         return false;
+    }
+
+    public static List<String> getSmilesListFromFile(final String pathToSmilesFile) {
+        final List<String> smilesList = new ArrayList<>();
+        try {
+            final BufferedReader bufferedReader = FileSystem.readFile(pathToSmilesFile);
+            if (bufferedReader
+                    != null) {
+                String line;
+                while ((line = bufferedReader.readLine())
+                        != null) {
+                    smilesList.add(line);
+                }
+                bufferedReader.close();
+            }
+        } catch (final IOException e) {
+            e.printStackTrace();
+        }
+
+        return smilesList;
+    }
+
+    public static boolean cleanup(final String[] directoriesToCheck, final String requestID) {
+        boolean cleaned = false;
+
+        for (final String dir : directoriesToCheck) {
+            try {
+                cleaned = Files.walk(Paths.get(dir))
+                               .map(Path::toFile)
+                               .filter(file -> file.getAbsolutePath()
+                                                   .contains(requestID))
+                               .allMatch(File::delete);
+
+            } catch (final IOException e) {
+                System.out.println("Not all files could be deleted!");
+                e.printStackTrace();
+            }
+        }
+
+        return cleaned;
+    }
+
+    public static List<DataSet> retrieveResultFromSmilesFile(final String pathToResultsFile) {
+        final List<DataSet> dataSetList = new ArrayList<>();
+        final List<String> smilesList = FileSystem.getSmilesListFromFile(pathToResultsFile);
+
+        DataSet dataSet;
+        Map<String, String> meta;
+        for (final String smiles : smilesList) {
+            meta = new HashMap<>();
+            meta.put("smiles", smiles);
+            dataSet = new DataSet();
+            dataSet.setMeta(meta);
+
+            dataSetList.add(dataSet);
+        }
+
+        return dataSetList;
     }
 }

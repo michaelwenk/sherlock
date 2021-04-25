@@ -44,11 +44,9 @@ public class Transfer {
     private List<DataSet> dataSetList;
     private Data data;
     private Spectrum querySpectrum;
-    private String queryType;
     private String mf;
     private ElucidationOptions elucidationOptions;
     private String requestID;
     private String resultID;
-    private Boolean pyLSDInputFileCreationWasSuccessful;
     private Boolean pyLSDRunWasSuccessful;
 }
