@@ -9,6 +9,7 @@ import lombok.*;
 @ToString
 public class ElucidationOptions {
     // PyLSD options
+    private String[] filterPaths;
     private boolean useFilterLsdRing3;
     private boolean useFilterLsdRing4;
     private boolean allowHeteroHeteroBonds;

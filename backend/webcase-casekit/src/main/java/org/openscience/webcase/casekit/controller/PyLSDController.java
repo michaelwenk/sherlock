@@ -8,15 +8,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.stream.Collectors;
-
 @RestController
 @RequestMapping(value = "/pylsd")
 public class PyLSDController {
@@ -25,19 +16,8 @@ public class PyLSDController {
     public String createInputFile(@RequestBody final Transfer requestTransfer) {
         final ElucidationOptions elucidationOptions = new ElucidationOptions();
 
-        final Path pathToFilters = Paths.get("/data/lsd/filters/");
-        List<String> filterList = new ArrayList<>();
-        try {
-            filterList = Files.walk(pathToFilters)
-                              .filter(path -> !Files.isDirectory(path))
-                              .map(path -> path.toFile()
-                                               .getAbsolutePath())
-                              .collect(Collectors.toList());
-        } catch (final IOException e) {
-            e.printStackTrace();
-        }
-        System.out.println(Arrays.toString(filterList.toArray(String[]::new)));
-        elucidationOptions.setFilterPaths(filterList.toArray(String[]::new));
+        elucidationOptions.setFilterPaths(requestTransfer.getElucidationOptions()
+                                                         .getFilterPaths());
         elucidationOptions.setAllowHeteroHeteroBonds(requestTransfer.getElucidationOptions()
                                                                     .isAllowHeteroHeteroBonds());
         elucidationOptions.setUseElim(requestTransfer.getElucidationOptions()

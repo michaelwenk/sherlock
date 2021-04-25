@@ -1,6 +1,7 @@
 package org.openscience.webcase.pylsd.controller;
 
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
+import org.openscience.webcase.pylsd.utils.FileSystem;
 import org.openscience.webcase.pylsd.utils.HybridizationDetection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -15,8 +16,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "/")
@@ -35,11 +39,28 @@ public class PyLSDController {
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .build();
+
         final Transfer queryTransfer = new Transfer();
         queryTransfer.setData(requestTransfer.getData());
         queryTransfer.setDetectedHybridizations(detectedHybridizations);
-        queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
         queryTransfer.setMf(requestTransfer.getMf());
+        queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
+
+        final Path pathToFilters = Paths.get("/data/lsd/filters/");
+        List<String> filterList = new ArrayList<>();
+        try {
+            filterList = Files.walk(pathToFilters)
+                              .filter(path -> !Files.isDirectory(path))
+                              .map(path -> path.toFile()
+                                               .getAbsolutePath())
+                              .collect(Collectors.toList());
+        } catch (final IOException e) {
+            e.printStackTrace();
+        }
+        System.out.println(Arrays.toString(filterList.toArray(String[]::new)));
+        queryTransfer.getElucidationOptions()
+                     .setFilterPaths(filterList.toArray(String[]::new));
+
         return webClient.post()
                         .bodyValue(queryTransfer)
                         .retrieve()
@@ -51,151 +72,149 @@ public class PyLSDController {
     public ResponseEntity<Transfer> runPyLSD(@RequestBody final Transfer requestTransfer) {
         final Transfer resultTransfer = new Transfer();
 
-        //        System.out.println(requestTransfer.getElucidationOptions()
-        //                                          .getPathToPyLSDInputFileFolder());
-        //        final Path path = Paths.get(requestTransfer.getElucidationOptions()
-        //                                                   .getPathToPyLSDInputFileFolder());
-        //        Files.createDirectory(path);
-        //        System.out.println("Directory is created!");
-
+        // build PyLSD input file
         System.out.println(requestTransfer);
         final String pyLSDInputFileContent = this.createPyLSDInputFile(requestTransfer);
         System.out.println(pyLSDInputFileContent);
 
-        //        resultTransfer.setPyLSDInputFileCreationWasSuccessful(FileSystem.writeFile(
-        //                requestTransfer.getElucidationOptions()
-        //                               .getPathToPyLSDInputFile(), pyLSDInputFileContent));
-        //
-        //        // run PyLSD
-        //        if (queryResultTransfer.getPyLSDInputFileCreationWasSuccessful()
-        //                != null
-        //                && queryResultTransfer.getPyLSDInputFileCreationWasSuccessful()) {
-        //            System.out.println("--> has been written successfully: ");
-        //            //                                                   + pathToPyLSDInputFile);
-        //            //            webClient = this.webClientBuilder.
-        //            //                                                     baseUrl("http://webcase-gateway:8081/webcase-pylsd/runPyLSD")
-        //            //                                             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-        //            //                                             .build();
-        //            //
-        //            //            queryResultTransfer = webClient.post()
-        //            //                                           .bodyValue(queryTransfer)
-        //            //                                           .retrieve()
-        //            //                                           .bodyToMono(Transfer.class)
-        //            //                                           .block();
-        //            //            System.out.println("--> has been executed successfully: "
-        //            //                                       + queryResultTransfer.getPyLSDRunWasSuccessful());
-        //            //            //                                                   + " -> "
-        //            //            //                                                   + queryResultTransfer.getElucidationOptions()
-        //            //            //                                                                        .getPathToResultsFile());
-        //            //
-        //            //            if (queryResultTransfer.getPyLSDRunWasSuccessful()
-        //            //                    != null
-        //            //                    && queryResultTransfer.getPyLSDRunWasSuccessful()) {
-        //            //                //                webClient = this.webClientBuilder.baseUrl("http://webcase-gateway:8081/webcase-result/retrieve")
-        //            //                //                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
-        //            //                //                                                                MediaType.APPLICATION_JSON_VALUE)
-        //            //                //                                                 .exchangeStrategies(this.exchangeStrategies)
-        //            //                //                                                 .build();
-        //            //                //                final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-        //            //                //                System.out.println("pathToResultsFile: "
-        //            //                //                                           + queryResultTransfer.getElucidationOptions()
-        //            //                //                                                                .getPathToResultsFile());
-        //            //                //                uriComponentsBuilder.path("/retrieveResultFromRankedSDFile")
-        //            //                //                                    .queryParam("pathToRankedSDFile", queryResultTransfer.getElucidationOptions()
-        //            //                //                                                                                         .getPathToResultsFile());
-        //            //                //                // retrieve results from PyLSD results file
-        //            //                //                queryResultTransfer = webClient.get()
-        //            //                //                                               .uri(uriComponentsBuilder.toUriString())
-        //            //                //                                               .retrieve()
-        //            //                //                                               .bodyToMono(Transfer.class)
-        //            //                //                                               .block();
-        //            //                System.out.println("--> number of results: "
-        //            //                                           + queryResultTransfer.getDataSetList()
-        //            //                                                                .size());
-        //            //                responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
-        //            //
-        //            //                // store results in DB if not empty
-        //            //                if (!responseTransfer.getDataSetList()
-        //            //                                     .isEmpty()) {
-        //            //                    webClient = this.webClientBuilder.baseUrl(
-        //            //                            "http://webcase-gateway:8081/webcase-result/store/storeResult")
-        //            //                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
-        //            //                                                                    MediaType.APPLICATION_JSON_VALUE)
-        //            //                                                     .exchangeStrategies(this.exchangeStrategies)
-        //            //                                                     .build();
-        //            //                    queryResultTransfer = webClient.post()
-        //            //                                                   .bodyValue(responseTransfer)
-        //            //                                                   .retrieve()
-        //            //                                                   .bodyToMono(Transfer.class)
-        //            //                                                   .block();
-        //            //                    if (queryResultTransfer.getResultID()
-        //            //                            != null) {
-        //            //                        System.out.println(queryResultTransfer.getResultID());
-        //            //                        responseTransfer.setResultID(queryResultTransfer.getResultID());
-        //            //                    }
-        //            //                }
-        //            //            }
-        //            //
-        //            //            // cleanup of created files and folder
-        //            //            webClient = this.webClientBuilder.baseUrl("http://webcase-gateway:8081/webcase-pylsd")
-        //            //                                             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
-        //            //                                             .build();
-        //            //            final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-        //            //            uriComponentsBuilder.path("/cleanup")
-        //            //                                .queryParam("pathToPyLSDInputFileFolder", pathToPyLSDInputFileFolder);
-        //            //            webClient.get()
-        //            //                     .uri(uriComponentsBuilder.toUriString())
-        //            //                     .retrieve()
-        //            //                     .bodyToMono(Boolean.class)
-        //            //                     .block();
-        //        } else {
-        //            System.out.println("--> file creation failed: ");
-        //            //                                       + pathToPyLSDInputFile);
-        //        }
-        //
-        //        try {
-        //            // try to execute PyLSD
-        //            final ProcessBuilder builder = new ProcessBuilder();
-        //            builder.directory(new File(requestTransfer.getElucidationOptions()
-        //                                                      .getPathToPyLSDExecutableFolder()))
-        //                   .redirectError(new File(requestTransfer.getElucidationOptions()
-        //                                                          .getPathToPyLSDInputFileFolder()
-        //                                                   + requestTransfer.getRequestID()
-        //                                                   + "_error.txt"))
-        //                   .redirectOutput(new File(requestTransfer.getElucidationOptions()
-        //                                                           .getPathToPyLSDInputFileFolder()
-        //                                                    + requestTransfer.getRequestID()
-        //                                                    + "_log.txt"))
-        //                   .command("python2.7", requestTransfer.getElucidationOptions()
-        //                                                        .getPathToPyLSDExecutableFolder()
-        //                           + "lsd_modified.py", requestTransfer.getElucidationOptions()
-        //                                                               .getPathToPyLSDInputFile());
-        //            final Process process = builder.start();
-        //            final int exitCode = process.waitFor();
-        //            final boolean pyLSDRunWasSuccessful = exitCode
-        //                    == 0;
-        //
-        //            if (pyLSDRunWasSuccessful) {
-        //                System.out.println("run was successful");
-        //                System.out.println(requestTransfer.getElucidationOptions()
-        //                                                  .getPathToPyLSDInputFileFolder());
-        //                resultTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
-        //                final String pathToResultsFilePredictions = requestTransfer.getElucidationOptions()
-        //                                                                           .getPathToPyLSDInputFileFolder()
-        //                        + "/"
-        //                        + requestTransfer.getRequestID()
-        //                        + "_D.sdf";
-        //                resultTransfer.getElucidationOptions()
-        //                              .setPathToResultsFile(pathToResultsFilePredictions);
-        //            } else {
-        //                System.out.println("run was NOT successful");
-        //            }
-        //            resultTransfer.setPyLSDRunWasSuccessful(pyLSDRunWasSuccessful);
-        //
-        //        } catch (final Exception e) {
-        //            e.printStackTrace();
-        //            resultTransfer.setPyLSDRunWasSuccessful(false);
-        //        }
+
+        final String pathToPyLSDInputFileFolder = "/data/temp/"
+                + requestTransfer.getRequestID()
+                + "/";
+        final String pathToPyLSDInputFile = pathToPyLSDInputFileFolder
+                + requestTransfer.getRequestID()
+                + ".pylsd";
+
+        System.out.println(pathToPyLSDInputFileFolder);
+        System.out.println(pathToPyLSDInputFile);
+        final Path path = Paths.get(pathToPyLSDInputFileFolder);
+        boolean pyLSDInputFileCreationWasSuccessful = false;
+        try {
+            Files.createDirectory(path);
+            pyLSDInputFileCreationWasSuccessful = FileSystem.writeFile(pathToPyLSDInputFile, pyLSDInputFileContent);
+        } catch (final IOException e) {
+            e.printStackTrace();
+        }
+
+        // run PyLSD
+        if (pyLSDInputFileCreationWasSuccessful) {
+            System.out.println("--> has been written successfully: "
+                                       + pathToPyLSDInputFile);
+
+            //            try {
+            //                // try to execute PyLSD
+            //                final ProcessBuilder builder = new ProcessBuilder();
+            //                builder.directory(new File(requestTransfer.getElucidationOptions()
+            //                                                          .getPathToPyLSDExecutableFolder()))
+            //                       .redirectError(new File(requestTransfer.getElucidationOptions()
+            //                                                              .getPathToPyLSDInputFileFolder()
+            //                                                       + requestTransfer.getRequestID()
+            //                                                       + "_error.txt"))
+            //                       .redirectOutput(new File(requestTransfer.getElucidationOptions()
+            //                                                               .getPathToPyLSDInputFileFolder()
+            //                                                        + requestTransfer.getRequestID()
+            //                                                        + "_log.txt"))
+            //                       .command("python2.7", requestTransfer.getElucidationOptions()
+            //                                                            .getPathToPyLSDExecutableFolder()
+            //                               + "lsd_modified.py", requestTransfer.getElucidationOptions()
+            //                                                                   .getPathToPyLSDInputFile());
+            //                final Process process = builder.start();
+            //                final int exitCode = process.waitFor();
+            //                final boolean pyLSDRunWasSuccessful = exitCode
+            //                        == 0;
+            //
+            //                if (pyLSDRunWasSuccessful) {
+            //                    System.out.println("run was successful");
+            //                    System.out.println(requestTransfer.getElucidationOptions()
+            //                                                      .getPathToPyLSDInputFileFolder());
+            //                    resultTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
+            //                    final String pathToResultsFilePredictions = requestTransfer.getElucidationOptions()
+            //                                                                               .getPathToPyLSDInputFileFolder()
+            //                            + "/"
+            //                            + requestTransfer.getRequestID()
+            //                            + "_D.sdf";
+            //                    resultTransfer.getElucidationOptions()
+            //                                  .setPathToResultsFile(pathToResultsFilePredictions);
+            //
+            //                    // clean up created files
+            //                    this.cleanup();
+            //
+            //                } else {
+            //                    System.out.println("run was NOT successful");
+            //                }
+            //                resultTransfer.setPyLSDRunWasSuccessful(pyLSDRunWasSuccessful);
+            //
+            //            } catch (final Exception e) {
+            //                e.printStackTrace();
+            //                resultTransfer.setPyLSDRunWasSuccessful(false);
+            //            }
+
+
+            //            if (queryResultTransfer.getPyLSDRunWasSuccessful()
+            //                    != null
+            //                    && queryResultTransfer.getPyLSDRunWasSuccessful()) {
+            //                //                webClient = this.webClientBuilder.baseUrl("http://webcase-gateway:8081/webcase-result/retrieve")
+            //                //                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
+            //                //                                                                MediaType.APPLICATION_JSON_VALUE)
+            //                //                                                 .exchangeStrategies(this.exchangeStrategies)
+            //                //                                                 .build();
+            //                //                final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
+            //                //                System.out.println("pathToResultsFile: "
+            //                //                                           + queryResultTransfer.getElucidationOptions()
+            //                //                                                                .getPathToResultsFile());
+            //                //                uriComponentsBuilder.path("/retrieveResultFromRankedSDFile")
+            //                //                                    .queryParam("pathToRankedSDFile", queryResultTransfer.getElucidationOptions()
+            //                //                                                                                         .getPathToResultsFile());
+            //                //                // retrieve results from PyLSD results file
+            //                //                queryResultTransfer = webClient.get()
+            //                //                                               .uri(uriComponentsBuilder.toUriString())
+            //                //                                               .retrieve()
+            //                //                                               .bodyToMono(Transfer.class)
+            //                //                                               .block();
+            //                System.out.println("--> number of results: "
+            //                                           + queryResultTransfer.getDataSetList()
+            //                                                                .size());
+            //                responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
+            //
+            //                // store results in DB if not empty
+            //                if (!responseTransfer.getDataSetList()
+            //                                     .isEmpty()) {
+            //                    webClient = this.webClientBuilder.baseUrl(
+            //                            "http://webcase-gateway:8081/webcase-result/store/storeResult")
+            //                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
+            //                                                                    MediaType.APPLICATION_JSON_VALUE)
+            //                                                     .exchangeStrategies(this.exchangeStrategies)
+            //                                                     .build();
+            //                    queryResultTransfer = webClient.post()
+            //                                                   .bodyValue(responseTransfer)
+            //                                                   .retrieve()
+            //                                                   .bodyToMono(Transfer.class)
+            //                                                   .block();
+            //                    if (queryResultTransfer.getResultID()
+            //                            != null) {
+            //                        System.out.println(queryResultTransfer.getResultID());
+            //                        responseTransfer.setResultID(queryResultTransfer.getResultID());
+            //                    }
+            //                }
+            //            }
+            //
+            //            // cleanup of created files and folder
+            //            webClient = this.webClientBuilder.baseUrl("http://webcase-gateway:8081/webcase-pylsd")
+            //                                             .defaultHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+            //                                             .build();
+            //            final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
+            //            uriComponentsBuilder.path("/cleanup")
+            //                                .queryParam("pathToPyLSDInputFileFolder", pathToPyLSDInputFileFolder);
+            //            webClient.get()
+            //                     .uri(uriComponentsBuilder.toUriString())
+            //                     .retrieve()
+            //                     .bodyToMono(Boolean.class)
+            //                     .block();
+        } else {
+            System.out.println("--> file creation failed: "
+                                       + pathToPyLSDInputFile);
+        }
+
 
         return new ResponseEntity<>(resultTransfer, HttpStatus.OK);
     }
