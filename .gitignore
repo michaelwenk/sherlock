@@ -1,33 +1,45 @@
 ### STS ###
-.apt_generated
-.classpath
-.factorypath
-.project
-.settings
-.springBeans
-.sts4-cache
+**/.apt_generated
+**/.classpath
+**/.factorypath
+**/.project
+**/.settings
+**/.springBeans
+**/.sts4-cache
 
 ### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
+**/.idea
+**/*.iws
+**/*.iml
+**/*.ipr
 
 ### NetBeans ###
-/nbproject/private/
-/nbbuild/
-/dist/
-/nbdist/
-/.nb-gradle/
-build/
+**//nbproject/private/
+**/nbbuild/
+**/dist/
+**/nbdist/
+**/.nb-gradle/
+**/build/
+!**/.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/
 
 ### VS Code ###
-.vscode/
+**/.vscode/
 
 ### MacOS ###
-.DS_Store
+**/.DS_Store
 
-### local db-storage ###
+### misc ###
+**/target
+**/HELP.md
+
+### webcase ###
 db-storage
+# webcase-casekit: e.g. nmrshiftdb file
+backend/webcase-casekit/data/nmrshiftdb
+# webcase-pylsd: custom filters but allow default ones
+backend/webcase-pylsd/data/lsd/filters/*
+!backend/webcase-pylsd/data/lsd/filters/default/
+
+
