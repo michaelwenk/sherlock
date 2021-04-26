@@ -165,10 +165,12 @@ public class PyLSDController {
                         }
                     }
 
-                    //                    // cleanup of created files and folder
-                    //                    final String[] directoriesToCheck = new String[]{this.pathToPyLSDInputFileFolder,
-                    //                                                                     this.pathToPyLSDResultFileFolder};
-                    //                    FileSystem.cleanup(directoriesToCheck, requestTransfer.getRequestID());
+                    // cleanup of created files and folder
+                    final String[] directoriesToCheck = new String[]{this.pathToPyLSDInputFileFolder,
+                                                                     this.pathToPyLSDResultFileFolder};
+                    System.out.println("cleaned ? -> "
+                                               + FileSystem.cleanup(directoriesToCheck,
+                                                                    requestTransfer.getRequestID()));
                 } else {
                     System.out.println("run was NOT successful");
                 }
