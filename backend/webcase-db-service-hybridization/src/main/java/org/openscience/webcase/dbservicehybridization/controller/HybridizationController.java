@@ -76,16 +76,11 @@ public class HybridizationController {
     @PostMapping(value = "/buildHybridizationCollection")
     public void buildHybridizationCollection(@RequestParam final String[] nuclei) {
 
-        System.out.println(Arrays.toString(nuclei));
         this.hybridizationServiceImplementation.deleteAll();
 
-
         for (final String nucleus : nuclei) {
-            System.out.println(nucleus);
             final Flux<DataSet> dataSetFlux = this.getByDataSetSpectrumNuclei(new String[]{nucleus});
             dataSetFlux.subscribe(dataSet -> {
-                System.out.println(dataSet.getSpectrum()
-                                          .getSignalCount());
                 String hybridization;
                 String multiplicity;
                 Integer shift;
