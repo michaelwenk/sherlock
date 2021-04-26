@@ -24,7 +24,7 @@
 
 package org.openscience.webcase.dbservicehybridization.service;
 
-import org.openscience.webcase.dbservicehybridization.model.HybridizationRecord;
+import org.openscience.webcase.dbservicehybridization.service.model.HybridizationRecord;
 import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
@@ -33,10 +33,14 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface HybridizationRepository extends MongoRepository<HybridizationRecord, String> {
+public interface HybridizationRepository
+        extends MongoRepository<HybridizationRecord, String> {
 
+    @Override
     Optional<HybridizationRecord> findById(final String id);
 
-    @Aggregation({"{$match: {\"nucleus\": \"?0\", \"shift\": {$gte: ?1, $lte: ?2}, \"multiplicity\": \"?3\"}}", "{$group: {\"_id\": null, \"set\": {$push: \"$hybridization\"}}}", "{$unwind: \"$set\"}"})
-    List<String> aggregateHybridizationsByNucleusAndShiftAndMultiplicity(final String nucleus, final int minShift, final int maxShift, final String multiplicity);
+    @Aggregation({"{$match: {\"nucleus\": \"?0\", \"shift\": {$gte: ?1, $lte: ?2}, \"multiplicity\": \"?3\"}}",
+                  "{$group: {\"_id\": null, \"set\": {$push: \"$hybridization\"}}}", "{$unwind: \"$set\"}"})
+    List<String> aggregateHybridizationsByNucleusAndShiftAndMultiplicity(final String nucleus, final int minShift,
+                                                                         final int maxShift, final String multiplicity);
 }

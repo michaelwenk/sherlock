@@ -22,25 +22,25 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservicehybridization.service;
+package org.openscience.webcase.dbservicehybridization.service.model;
 
-import org.openscience.webcase.dbservicehybridization.service.model.HybridizationRecord;
+import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.List;
-import java.util.Optional;
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+@ToString
 
-public interface HybridizationService {
+@Document(collection = "hybridizations")
+public class HybridizationRecord {
 
-    long count();
-
-    void insert(final HybridizationRecord hybridizationRecord);
-
-    List<HybridizationRecord> findAll();
-
-    Optional<HybridizationRecord> findById(final String id);
-
-    List<String> aggregateHybridizationsByNucleusAndShiftAndMultiplicity(final String nucleus, final int minShift,
-                                                                         final int maxShift, final String multiplicity);
-
-    void deleteAll();
+    @Id
+    private String id;
+    private String nucleus;
+    private int shift;
+    private String multiplicity;
+    private String hybridization;
 }

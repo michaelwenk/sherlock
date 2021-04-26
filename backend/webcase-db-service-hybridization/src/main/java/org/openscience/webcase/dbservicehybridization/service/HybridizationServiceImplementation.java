@@ -24,7 +24,7 @@
 
 package org.openscience.webcase.dbservicehybridization.service;
 
-import org.openscience.webcase.dbservicehybridization.model.HybridizationRecord;
+import org.openscience.webcase.dbservicehybridization.service.model.HybridizationRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -33,9 +33,11 @@ import java.util.Optional;
 
 
 @Service
-public class HybridizationServiceImplementation implements HybridizationService {
+public class HybridizationServiceImplementation
+        implements HybridizationService {
 
     private final HybridizationRepository hybridizationRepository;
+
     @Autowired
     public HybridizationServiceImplementation(final HybridizationRepository hybridizationRepository) {
         this.hybridizationRepository = hybridizationRepository;
@@ -62,8 +64,12 @@ public class HybridizationServiceImplementation implements HybridizationService 
     }
 
     @Override
-    public List<String> aggregateHybridizationsByNucleusAndShiftAndMultiplicity(final String nucleus, final int minShift, final int maxShift, final String multiplicity){
-        return this.hybridizationRepository.aggregateHybridizationsByNucleusAndShiftAndMultiplicity(nucleus, minShift, maxShift, multiplicity);
+    public List<String> aggregateHybridizationsByNucleusAndShiftAndMultiplicity(final String nucleus,
+                                                                                final int minShift, final int maxShift,
+                                                                                final String multiplicity) {
+        return this.hybridizationRepository.aggregateHybridizationsByNucleusAndShiftAndMultiplicity(nucleus, minShift,
+                                                                                                    maxShift,
+                                                                                                    multiplicity);
     }
 
     @Override
