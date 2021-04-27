@@ -10,7 +10,8 @@ import org.springframework.web.reactive.config.WebFluxConfigurer;
 
 @Configuration
 @EnableWebFlux
-public class CORSFilter implements WebFluxConfigurer {
+public class CORSFilter
+        implements WebFluxConfigurer {
 
     @Bean
     public CorsWebFilter corsWebFilter() {
@@ -19,7 +20,7 @@ public class CORSFilter implements WebFluxConfigurer {
         corsConfiguration.addAllowedHeader("content-type");
         corsConfiguration.addAllowedMethod("GET");
         corsConfiguration.addAllowedMethod("POST");
-        corsConfiguration.addAllowedOrigin("http://localhost:3000");
+        corsConfiguration.addAllowedOrigin("http://localhost:3001");
         final UrlBasedCorsConfigurationSource corsConfigurationSource = new UrlBasedCorsConfigurationSource();
         corsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
 
