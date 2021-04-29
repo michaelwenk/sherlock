@@ -4,9 +4,9 @@ Web services for Computer-Assisted Structure Elucidation (CASE).
 ## Compilation and Dependencies 
 
 ### Compilation
-The package casekit (https://github.com/michaelwenk/casekit) has to be compiled and available in the local Maven repository.
+casekit (https://github.com/michaelwenk/casekit) has to be downloaded and compiled beforehand.
 
-This can be done by following command:
+Now add the jar file to the local Maven repository by following command:
 
 (note: replace "PATH/TO/CASEKIT-JAR-WITH-DEPENDENCIES" by the path to previously built casekit jar):
 
