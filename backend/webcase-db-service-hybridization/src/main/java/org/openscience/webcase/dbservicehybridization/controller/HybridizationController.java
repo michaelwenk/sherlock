@@ -42,6 +42,11 @@ public class HybridizationController {
                 - 1];
     }
 
+    @GetMapping(value = "/count", produces = "application/json")
+    public long getCount() {
+        return this.hybridizationServiceImplementation.count();
+    }
+
     @GetMapping(value = "/getAll", produces = "application/json")
     public List<HybridizationRecord> getHybridizationCollection() {
         return this.hybridizationServiceImplementation.findAll();
@@ -79,51 +84,56 @@ public class HybridizationController {
         this.hybridizationServiceImplementation.deleteAll();
 
         for (final String nucleus : nuclei) {
-            final Flux<DataSet> dataSetFlux = this.getByDataSetSpectrumNuclei(new String[]{nucleus});
-            dataSetFlux.subscribe(dataSet -> {
-                String hybridization;
-                String multiplicity;
-                Integer shift;
-                final int[][][] assignmentValues = dataSet.getAssignment()
-                                                          .getAssignments();
-                final String atomType = this.getAtomTypeFromNucleus(nucleus);
-                for (int i = 0; i
-                        < assignmentValues[0].length; i++) {
-                    multiplicity = dataSet.getSpectrum()
-                                          .getSignals()
-                                          .get(i)
-                                          .getMultiplicity();
-                    shift = null;
-                    if (dataSet.getSpectrum()
-                               .getSignals()
-                               .get(i)
-                               .getShifts()[0]
-                            != null) {
-                        shift = dataSet.getSpectrum()
-                                       .getSignals()
-                                       .get(i)
-                                       .getShifts()[0].intValue();
-                    }
-                    for (int k = 0; k
-                            < assignmentValues[0][i].length; k++) {
-                        hybridization = dataSet.getStructure()
-                                               .getHybridizations()[assignmentValues[0][i][k]];
-
-                        if (shift
-                                == null
-                                || dataSet.getStructure()
-                                          .getAtomTypes()[assignmentValues[0][i][k]]
-                                == null
-                                || !dataSet.getStructure()
-                                           .getAtomTypes()[assignmentValues[0][i][k]].equals(atomType)) {
-                            continue;
+            final List<DataSet> dataSetList = this.getByDataSetSpectrumNuclei(new String[]{nucleus})
+                                                  .collectList()
+                                                  .block();
+            if (dataSetList
+                    != null) {
+                for (final DataSet dataset : dataSetList) {
+                    String hybridization;
+                    String multiplicity;
+                    Integer shift;
+                    final int[][][] assignmentValues = dataset.getAssignment()
+                                                              .getAssignments();
+                    final String atomType = this.getAtomTypeFromNucleus(nucleus);
+                    for (int i = 0; i
+                            < assignmentValues[0].length; i++) {
+                        multiplicity = dataset.getSpectrum()
+                                              .getSignals()
+                                              .get(i)
+                                              .getMultiplicity();
+                        shift = null;
+                        if (dataset.getSpectrum()
+                                   .getSignals()
+                                   .get(i)
+                                   .getShifts()[0]
+                                != null) {
+                            shift = dataset.getSpectrum()
+                                           .getSignals()
+                                           .get(i)
+                                           .getShifts()[0].intValue();
                         }
+                        for (int k = 0; k
+                                < assignmentValues[0][i].length; k++) {
+                            hybridization = dataset.getStructure()
+                                                   .getHybridizations()[assignmentValues[0][i][k]];
 
-                        this.hybridizationServiceImplementation.insert(
-                                new HybridizationRecord(null, nucleus, shift, multiplicity, hybridization));
+                            if (shift
+                                    == null
+                                    || dataset.getStructure()
+                                              .getAtomTypes()[assignmentValues[0][i][k]]
+                                    == null
+                                    || !dataset.getStructure()
+                                               .getAtomTypes()[assignmentValues[0][i][k]].equals(atomType)) {
+                                continue;
+                            }
+
+                            this.hybridizationServiceImplementation.insert(
+                                    new HybridizationRecord(null, nucleus, shift, multiplicity, hybridization));
+                        }
                     }
                 }
-            });
+            }
         }
     }
 
