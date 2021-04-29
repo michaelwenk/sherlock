@@ -107,8 +107,8 @@ public class CoreController {
             // DEREPLICATION
             if (requestTransfer.getQueryType()
                                .equals("Dereplication")) {
-                final WebClient webClient = this.webClientBuilder.
-                                                                         baseUrl("http://webcase-gateway:8081/webcase-dereplication/dereplication")
+                final WebClient webClient = this.webClientBuilder.baseUrl(
+                        "http://webcase-gateway:8080/webcase-dereplication/dereplication")
                                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                                  .exchangeStrategies(this.exchangeStrategies)
@@ -139,8 +139,8 @@ public class CoreController {
                 final String requestID = UUID.randomUUID()
                                              .toString();
                 // PyLSD RUN
-                final WebClient webClient = this.webClientBuilder.
-                                                                         baseUrl("http://webcase-gateway:8081/webcase-elucidation/elucidation")
+                final WebClient webClient = this.webClientBuilder.baseUrl(
+                        "http://webcase-gateway:8080/webcase-elucidation/elucidation")
                                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                                  .exchangeStrategies(this.exchangeStrategies)
@@ -167,7 +167,7 @@ public class CoreController {
                 System.out.println("RETRIEVAL: "
                                            + requestTransfer.getResultID());
                 final WebClient webClient = this.webClientBuilder.baseUrl(
-                        "http://webcase-gateway:8081/webcase-result/retrieve")
+                        "http://webcase-gateway:8080/webcase-result/retrieve")
                                                                  .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                                  .build();

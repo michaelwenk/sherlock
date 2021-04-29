@@ -33,7 +33,7 @@ public class ResultRetrievalController {
     @GetMapping(value = "/retrieveResultFromDatabase")
     public Flux<DataSet> retrieveResultFromDatabase(@RequestParam final String resultID) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8081/webcase-db-service-result")
+                "http://webcase-gateway:8080/webcase-db-service-result")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .build();

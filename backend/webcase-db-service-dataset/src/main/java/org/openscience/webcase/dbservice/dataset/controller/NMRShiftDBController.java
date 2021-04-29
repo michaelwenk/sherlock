@@ -112,8 +112,8 @@ public class NMRShiftDBController {
     public void replaceAll(@RequestParam final String[] nuclei) {
         this.deleteAll();
 
-        final WebClient webClient = this.webClientBuilder.
-                                                                 baseUrl("http://webcase-gateway:8081/webcase-casekit/dbservice")
+        final WebClient webClient = this.webClientBuilder.baseUrl(
+                "http://webcase-gateway:8080/webcase-casekit/dbservice")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)

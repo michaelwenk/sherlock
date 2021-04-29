@@ -52,8 +52,8 @@ public class PyLSDController {
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.getDetectedHybridizations(
                 this.webClientBuilder, requestTransfer.getData(), requestTransfer.getElucidationOptions()
                                                                                  .getHybridizationDetectionThreshold());
-        final WebClient webClient = this.webClientBuilder.
-                                                                 baseUrl("http://webcase-gateway:8081/webcase-casekit/pylsd/createInputFile")
+        final WebClient webClient = this.webClientBuilder.baseUrl(
+                "http://webcase-gateway:8080/webcase-casekit/pylsd/createInputFile")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .build();
@@ -147,7 +147,7 @@ public class PyLSDController {
                     if (!responseTransfer.getDataSetList()
                                          .isEmpty()) {
                         final WebClient webClient = this.webClientBuilder.baseUrl(
-                                "http://webcase-gateway:8081/webcase-result/store/storeResult")
+                                "http://webcase-gateway:8080/webcase-result/store/storeResult")
                                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                                          .exchangeStrategies(this.exchangeStrategies)
@@ -188,7 +188,7 @@ public class PyLSDController {
 
     public List<DataSet> retrieveResultFromRankedSDFile(final String pathToRankedSDFile, final String nucleus) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8081/webcase-casekit/fileParser/parseRankedSdf")
+                "http://webcase-gateway:8080/webcase-casekit/fileParser/parseRankedSdf")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)

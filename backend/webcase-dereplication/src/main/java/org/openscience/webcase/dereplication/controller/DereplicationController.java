@@ -78,7 +78,7 @@ public class DereplicationController {
             List<DataSet> dataSetList = dataSetFlux.collectList()
                                                    .block();
             final WebClient webClient = this.webClientBuilder.baseUrl(
-                    "http://webcase-gateway:8081/webcase-casekit/ranking")
+                    "http://webcase-gateway:8080/webcase-casekit/ranking")
                                                              .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                             MediaType.APPLICATION_JSON_VALUE)
                                                              .exchangeStrategies(this.exchangeStrategies)
@@ -107,10 +107,9 @@ public class DereplicationController {
 
     public Flux<DataSet> getDataSetFlux(final Spectrum querySpectrum, final String mf, final boolean useMF) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8081/webcase-db-service-dataset/nmrshiftdb")
-                                                         .
-                                                                 defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                               MediaType.APPLICATION_JSON_VALUE)
+                "http://webcase-gateway:8080/webcase-db-service-dataset/nmrshiftdb")
+                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                        MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)
                                                          .build();
         final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();

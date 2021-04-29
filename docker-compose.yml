@@ -15,7 +15,7 @@ services:
       context: ./backend/webcase-gateway
       dockerfile: Dockerfile
     ports:
-      - "8081:8081"
+      - "8081:8080"
     depends_on:
       - webcase-discovery-server
 
@@ -25,7 +25,7 @@ services:
       context: ./backend/webcase-core
       dockerfile: Dockerfile
     ports:
-      - "8082:8082"
+      - "8082:8080"
     depends_on:
       - webcase-discovery-server
 
@@ -35,7 +35,7 @@ services:
       context: ./backend/webcase-dereplication
       dockerfile: Dockerfile
     ports:
-      - "8083:8083"
+      - "8083:8080"
     depends_on:
       - webcase-discovery-server
 
@@ -45,7 +45,7 @@ services:
       context: ./backend/webcase-elucidation
       dockerfile: Dockerfile
     ports:
-      - "8084:8084"
+      - "8084:8080"
     depends_on:
       - webcase-discovery-server
 
@@ -55,7 +55,7 @@ services:
       context: ./backend/webcase-pylsd
       dockerfile: Dockerfile
     ports:
-      - "8085:8085"
+      - "8085:8080"
     depends_on:
       - webcase-discovery-server
 
@@ -65,7 +65,7 @@ services:
       context: ./backend/webcase-result
       dockerfile: Dockerfile
     ports:
-      - "8086:8086"
+      - "8086:8080"
     depends_on:
       - webcase-discovery-server
 
@@ -75,7 +75,7 @@ services:
       context: ./backend/webcase-db-service-dataset
       dockerfile: Dockerfile
     ports:
-      - "8087:8087"
+      - "8087:8080"
     depends_on:
       - webcase-discovery-server
       - db-instance-nmrshiftdb-dataset
@@ -86,7 +86,7 @@ services:
       context: ./backend/webcase-db-service-hybridization
       dockerfile: Dockerfile
     ports:
-      - "8088:8088"
+      - "8088:8080"
     depends_on:
       - webcase-discovery-server
 
@@ -96,7 +96,7 @@ services:
       context: ./backend/webcase-db-service-result
       dockerfile: Dockerfile
     ports:
-      - "8089:8089"
+      - "8089:8080"
     depends_on:
       - webcase-discovery-server
 
@@ -106,7 +106,7 @@ services:
       context: ./backend/webcase-casekit
       dockerfile: Dockerfile
     ports:
-      - "8090:8090"
+      - "8090:8080"
     depends_on:
       - webcase-discovery-server
 

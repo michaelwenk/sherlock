@@ -34,8 +34,7 @@ public class ElucidationController {
     public ResponseEntity<Transfer> elucidate(@RequestBody final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
 
-        final WebClient webClient = this.webClientBuilder.
-                                                                 baseUrl("http://webcase-gateway:8081/webcase-pylsd/runPyLSD")
+        final WebClient webClient = this.webClientBuilder.baseUrl("http://webcase-gateway:8080/webcase-pylsd/runPyLSD")
                                                          .exchangeStrategies(this.exchangeStrategies)
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
