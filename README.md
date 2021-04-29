@@ -4,11 +4,11 @@ Web services for Computer-Assisted Structure Elucidation (CASE).
 ## Compilation and Dependencies 
 
 ### Compilation
-casekit (https://github.com/michaelwenk/casekit) has to be downloaded and compiled beforehand.
+CASEkit (https://github.com/michaelwenk/casekit) has to be downloaded and compiled beforehand.
 
 Now add the jar file to the local Maven repository by following command:
 
-(note: replace "PATH/TO/CASEKIT-JAR-WITH-DEPENDENCIES" by the path to previously built casekit jar):
+(note: replace "PATH/TO/CASEKIT-JAR-WITH-DEPENDENCIES" by the path to previously built CASEkit jar):
 
     mvn install:install-file -Dfile=PATH/TO/CASEKIT-JAR-WITH-DEPENDENCIES -DgroupId=org.openscience -DartifactId=casekit -Dversion=1.0 -Dpackaging=jar
 
