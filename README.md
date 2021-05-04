@@ -1,7 +1,27 @@
 # WebCASE
 Web services for Computer-Assisted Structure Elucidation (CASE).
 
-## Compilation and Dependencies 
+## Download and Execution of pre-built Containers
+This project uses Docker containers (https://www.docker.com) and starts them via docker-compose. Make sure that docker-compose is installed.
+
+Clone this repository and change the directory:
+ 
+    git clone https://github.com/michaelwenk/webcase.git
+    cd webcase
+
+Now pull all the containers needed for execution from Docker Hub:
+
+     docker-compose -f docker-compose.yml -f docker-compose.publish.yml pull
+
+To start them (in detached mode) use:
+
+    docker-compose -f docker-compose.yml -f docker-compose.publish.yml up -d
+
+To stop the application use:
+
+    docker-compose -f docker-compose.yml -f docker-compose.publish.yml down
+
+## Self Compilation and Dependencies
 
 ### Compilation
 CASEkit (https://github.com/michaelwenk/casekit) has to be downloaded and compiled beforehand.
@@ -19,7 +39,7 @@ Clone this repository:
 Change the directory and build all the .jar files needed for this project using the build shell script:
 
     cd webcase
-    sh build.sh
+    sh buildJars.sh
 
 ### Dependencies
 Some services rely on specific software or file dependencies which has to be downloaded and put into certain places.
@@ -54,19 +74,19 @@ This project uses Docker containers (https://www.docker.com) and starts them via
 #### Build
 To build the container images use the following command:
 
-    docker-compose build
+    docker-compose -f docker-compose.yml -f docker-compose.production.yml build
 
 #### Start 
 To start this application (in detached mode) use
 
-    docker-compose up -d
+    docker-compose -f docker-compose.yml -f docker-compose.production.yml up -d
 
 It can take a few minutes until all services are available and registered.
 
 #### Stop
 To stop this application use
 
-    docker-compose down
+    docker-compose -f docker-compose.yml -f docker-compose.production.yml down
 
 ### Docker Container and Data Preparation/Persistence
 The databases for datasets and hybridizations have to be filled when starting the application the first time.
