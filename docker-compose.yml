@@ -6,6 +6,7 @@ services:
     build:
       context: ./backend/webcase-discovery-server
       dockerfile: Dockerfile
+    image: michaelwenk/webcase-discovery-server
     ports:
       - "8761:8761"
 
@@ -14,6 +15,7 @@ services:
     build:
       context: ./backend/webcase-gateway
       dockerfile: Dockerfile
+    image: michaelwenk/webcase-gateway
     ports:
       - "8081:8080"
     depends_on:
@@ -24,6 +26,7 @@ services:
     build:
       context: ./backend/webcase-core
       dockerfile: Dockerfile
+    image: michaelwenk/webcase-core
     ports:
       - "8082:8080"
     depends_on:
@@ -34,6 +37,7 @@ services:
     build:
       context: ./backend/webcase-dereplication
       dockerfile: Dockerfile
+    image: michaelwenk/webcase-dereplication
     ports:
       - "8083:8080"
     depends_on:
@@ -44,6 +48,7 @@ services:
     build:
       context: ./backend/webcase-elucidation
       dockerfile: Dockerfile
+    image: michaelwenk/webcase-elucidation
     ports:
       - "8084:8080"
     depends_on:
@@ -54,6 +59,7 @@ services:
     build:
       context: ./backend/webcase-pylsd
       dockerfile: Dockerfile
+    image: michaelwenk/webcase-pylsd
     ports:
       - "8085:8080"
     depends_on:
@@ -64,6 +70,7 @@ services:
     build:
       context: ./backend/webcase-result
       dockerfile: Dockerfile
+    image: michaelwenk/webcase-result
     ports:
       - "8086:8080"
     depends_on:
@@ -74,75 +81,65 @@ services:
     build:
       context: ./backend/webcase-db-service-dataset
       dockerfile: Dockerfile
+    image: michaelwenk/webcase-db-service-dataset
     ports:
       - "8087:8080"
     depends_on:
       - webcase-discovery-server
-      - db-instance-nmrshiftdb-dataset
+      - webcase-db-instance-nmrshiftdb-dataset
 
   webcase-db-service-hybridization:
     container_name: webcase-db-service-hybridization
     build:
       context: ./backend/webcase-db-service-hybridization
       dockerfile: Dockerfile
+    image: michaelwenk/webcase-db-service-hybridization
     ports:
       - "8088:8080"
     depends_on:
       - webcase-discovery-server
+      - webcase-db-instance-nmrshiftdb-hybridization
 
   webcase-db-service-result:
     container_name: webcase-db-service-result
     build:
       context: ./backend/webcase-db-service-result
       dockerfile: Dockerfile
+    image: michaelwenk/webcase-db-service-result
     ports:
       - "8089:8080"
     depends_on:
       - webcase-discovery-server
+      - webcase-db-instance-result
 
   webcase-casekit:
     container_name: webcase-casekit
     build:
       context: ./backend/webcase-casekit
       dockerfile: Dockerfile
+    image: michaelwenk/webcase-casekit
     ports:
       - "8090:8080"
     depends_on:
       - webcase-discovery-server
 
-  db-instance-nmrshiftdb-dataset:
-    image: mongo:4
-    container_name: db-instance-nmrshiftdb-dataset
+  webcase-db-instance-nmrshiftdb-dataset:
+    container_name: webcase-db-instance-nmrshiftdb-dataset
     ports:
       - 27020:27017
-    volumes:
-      - "./db-storage/nmrshiftdb-dataset:/data/db"
-    environment:
-      - MONGO_INITDB_DATABASE=nmrshiftdb-dataset
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=password
     restart: always
 
-  db-instance-nmrshiftdb-hybridization:
-    image: mongo:4
-    container_name: db-instance-nmrshiftdb-hybridization
+  webcase-db-instance-nmrshiftdb-hybridization:
+    container_name: webcase-db-instance-nmrshiftdb-hybridization
     ports:
       - 27021:27017
-    volumes:
-      - "./db-storage/nmrshiftdb-hybridization:/data/db"
-    environment:
-      - MONGO_INITDB_DATABASE=nmrshiftdb-hybridization
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD=password
     restart: always
 
-  db-instance-result:
+  webcase-db-instance-result:
     image: mongo:4
-    container_name: db-instance-result
+    container_name: webcase-db-instance-result
     ports:
       - 27022:27017
-    volumes:
-      - "./db-storage/result:/data/db"
     environment:
       - MONGO_INITDB_DATABASE=result
       - MONGO_INITDB_ROOT_USERNAME=admin
