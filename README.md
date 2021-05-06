@@ -91,7 +91,7 @@ To stop this application use
 ### Docker Container and Data Preparation/Persistence
 The databases for datasets and hybridizations have to be filled when starting the application the first time.
 
-After this procedure the container database contents are stored in the project's "db-storage" folder.
+After that procedure, the container database contents are stored in the "data/db" subdirectory of each "db-instance" service.
 That enables the persistence of database content to access the data whenever the database services are restarting.
 
 #### Dataset
