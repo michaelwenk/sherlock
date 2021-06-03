@@ -1,6 +1,16 @@
 # WebCASE
 Web services for Computer-Assisted Structure Elucidation (CASE).
 
+The graphical user interface is available under https://github.com/michaelwenk/webcase-frontend.
+
+## Core  Features
+- Dereplication
+- Elucidation
+- Retrieval of previously generated results 
+
+The dereplication is done by searching for hits in NMRShiftDB. 
+PyLSD is used for structure generation. See [Dependencies](#dependencies) section.
+
 ## Download and Execution of pre-built Containers
 This project uses Docker containers (https://www.docker.com) and starts them via docker-compose. Make sure that docker-compose is installed.
 
