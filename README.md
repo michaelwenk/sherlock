@@ -14,6 +14,7 @@ PyLSD is used for structure generation. See [Dependencies](#dependencies) sectio
 ## Download and Execution of pre-built Containers
 This project uses Docker containers (https://www.docker.com) and starts them via docker-compose. Make sure that docker-compose is installed.
 
+### Download
 Clone this repository and change the directory:
  
     git clone https://github.com/michaelwenk/webcase.git
@@ -23,10 +24,14 @@ Now pull all the containers needed for execution from Docker Hub:
 
      docker-compose -f docker-compose.yml -f docker-compose.publish.yml pull
 
+### Start
 To start them (in detached mode) use:
 
     docker-compose -f docker-compose.yml -f docker-compose.publish.yml up -d
 
+Note: It can take a few minutes until all services are available and registered.
+
+### Stop
 To stop the application use:
 
     docker-compose -f docker-compose.yml -f docker-compose.publish.yml down
@@ -91,7 +96,7 @@ To start this application (in detached mode) use
 
     docker-compose -f docker-compose.yml -f docker-compose.production.yml up -d
 
-It can take a few minutes until all services are available and registered.
+Note: It can take a few minutes until all services are available and registered.
 
 #### Stop
 To stop this application use
