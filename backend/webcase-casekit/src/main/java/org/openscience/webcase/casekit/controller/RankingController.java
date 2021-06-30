@@ -2,7 +2,7 @@ package org.openscience.webcase.casekit.controller;
 
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
-import casekit.nmr.utils.Match;
+import casekit.nmr.similarity.Similarity;
 import org.openscience.webcase.casekit.model.exchange.Transfer;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -39,31 +39,32 @@ public class RankingController {
             // @TODO get shift tolerance as arguments
             dataSetList = dataSetList.stream()
                                      .filter(dataSet -> {
-                                         final Assignment matchAssignment = Match.matchSpectra(dataSet.getSpectrum(),
-                                                                                               requestTransfer.getQuerySpectrum(),
-                                                                                               0, 0, shiftTolerance,
-                                                                                               checkMultiplicity,
-                                                                                               checkEquivalencesCount,
-                                                                                               false);
-                                         return checkEquivalencesCount
-                                                ? matchAssignment.getSetAssignmentsCountWithEquivalences(0)
-                                                        == requestTransfer.getQuerySpectrum()
-                                                                          .getSignalCountWithEquivalences()
-                                                : matchAssignment.getSetAssignmentsCount(0)
-                                                        == requestTransfer.getQuerySpectrum()
-                                                                          .getSignalCount();
+                                         final Assignment matchAssignment = Similarity.matchSpectra(
+                                                 dataSet.getSpectrum(), requestTransfer.getQuerySpectrum(), 0, 0,
+                                                 shiftTolerance, checkMultiplicity, checkEquivalencesCount, false);
+
+                                         if (checkEquivalencesCount
+                                             ? matchAssignment.getSetAssignmentsCountWithEquivalences(0)
+                                                     == requestTransfer.getQuerySpectrum()
+                                                                       .getSignalCountWithEquivalences()
+                                             : matchAssignment.getSetAssignmentsCount(0)
+                                                     == requestTransfer.getQuerySpectrum()
+                                                                       .getSignalCount()) {
+                                             final Double rmsd = Similarity.calculateRMSD(dataSet.getSpectrum(),
+                                                                                          requestTransfer.getQuerySpectrum(),
+                                                                                          0, 0, shiftTolerance,
+                                                                                          checkMultiplicity,
+                                                                                          checkEquivalencesCount,
+                                                                                          false);
+                                             dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
+
+                                             return true;
+                                         }
+
+                                         return false;
                                      })
                                      .collect(Collectors.toList());
-
-            dataSetList.forEach(dataSet -> {
-                final Double rmsd = Match.calculateRMSD(dataSet.getSpectrum(), requestTransfer.getQuerySpectrum(), 0, 0,
-                                                        shiftTolerance, checkMultiplicity, checkEquivalencesCount,
-                                                        false);
-                final Float tanimoto = Match.calculateTanimotoCoefficient(dataSet.getSpectrum(),
-                                                                          requestTransfer.getQuerySpectrum(), 0, 0);
-                dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
-                dataSet.addMetaInfo("tanimoto", String.valueOf(tanimoto));
-            });
+            
             dataSetList.sort((dataSet1, dataSet2) -> {
                 if (Double.parseDouble(dataSet1.getMeta()
                                                .get("rmsd"))
