@@ -25,6 +25,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @RestController
@@ -125,10 +126,9 @@ public class PyLSDController {
                        .command("python2.7", this.pathToPyLSDExecutableFolder
                                + "lsd.py", pathToPyLSDInputFile);
                 final Process process = builder.start();
-                final int exitCode = process.waitFor();
-                final boolean pyLSDRunWasSuccessful = exitCode
-                        == 0;
-
+                final boolean pyLSDRunWasSuccessful = process.waitFor(requestTransfer.getElucidationOptions()
+                                                                                     .getTimeLimitTotal(),
+                                                                      TimeUnit.MINUTES);
                 if (pyLSDRunWasSuccessful) {
                     System.out.println("-> run was successful");
                     final String pathToResultsFilePredictions = this.pathToPyLSDResultFileFolder
@@ -164,13 +164,6 @@ public class PyLSDController {
                             responseTransfer.setResultID(queryResultTransfer.getResultID());
                         }
                     }
-
-                    // cleanup of created files and folder
-                    final String[] directoriesToCheck = new String[]{this.pathToPyLSDInputFileFolder,
-                                                                     this.pathToPyLSDResultFileFolder};
-                    System.out.println("cleaned ? -> "
-                                               + FileSystem.cleanup(directoriesToCheck,
-                                                                    requestTransfer.getRequestID()));
                 } else {
                     System.out.println("run was NOT successful");
                 }
@@ -178,6 +171,11 @@ public class PyLSDController {
                 e.printStackTrace();
                 responseTransfer.setPyLSDRunWasSuccessful(false);
             }
+            // cleanup of created files and folder
+            final String[] directoriesToCheck = new String[]{this.pathToPyLSDInputFileFolder,
+                                                             this.pathToPyLSDResultFileFolder};
+            System.out.println("cleaned ? -> "
+                                       + FileSystem.cleanup(directoriesToCheck, requestTransfer.getRequestID()));
         } else {
             System.out.println("--> file creation failed: "
                                        + pathToPyLSDInputFile);

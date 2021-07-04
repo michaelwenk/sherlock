@@ -20,4 +20,5 @@ public class ElucidationOptions {
     private int cosyP3;
     private int cosyP4;
     private float hybridizationDetectionThreshold;
+    private int timeLimitTotal;
 }
