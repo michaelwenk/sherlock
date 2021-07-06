@@ -14,4 +14,5 @@ public class DereplicationOptions {
     private boolean checkMultiplicity;
     private boolean checkEquivalencesCount;
     private boolean useMF;
+    private double maxAverageDeviation;
 }

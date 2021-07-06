@@ -31,4 +31,5 @@ public class Transfer {
     // for ranked SDF parsing
     private String fileContent;
     private String nucleus;
+    private double maxAverageDeviation;
 }

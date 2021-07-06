@@ -25,7 +25,8 @@ public class FileParserController {
 
         try {
             dataSetList = RankedResultSDFParser.parseRankedResultSDFileContent(requestTransfer.getFileContent(),
-                                                                               requestTransfer.getNucleus());
+                                                                               requestTransfer.getNucleus(),
+                                                                               requestTransfer.getMaxAverageDeviation());
         } catch (final CDKException e) {
             e.printStackTrace();
         }

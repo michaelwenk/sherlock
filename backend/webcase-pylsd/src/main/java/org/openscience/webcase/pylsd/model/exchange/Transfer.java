@@ -25,7 +25,10 @@
 package org.openscience.webcase.pylsd.model.exchange;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 import org.openscience.webcase.pylsd.model.DataSet;
 import org.openscience.webcase.pylsd.model.ElucidationOptions;
 import org.openscience.webcase.pylsd.model.nmrdisplayer.Data;
@@ -38,7 +41,6 @@ import java.util.Map;
 @NoArgsConstructor
 @Getter
 @Setter
-@ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Transfer {
 
@@ -55,4 +57,5 @@ public class Transfer {
     // for ranked SDF parsing
     private String fileContent;
     private String nucleus;
+    private double maxAverageDeviation;
 }

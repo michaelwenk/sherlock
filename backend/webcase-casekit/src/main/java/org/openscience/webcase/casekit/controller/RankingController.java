@@ -30,6 +30,8 @@ public class RankingController {
                                                          .isCheckMultiplicity();
         final boolean checkEquivalencesCount = requestTransfer.getDereplicationOptions()
                                                               .isCheckEquivalencesCount();
+        final double maxAverageDeviation = requestTransfer.getDereplicationOptions()
+                                                          .getMaxAverageDeviation();
 
         if (requestTransfer.getQuerySpectrum()
                            .getNDim()
@@ -50,21 +52,30 @@ public class RankingController {
                                              : matchAssignment.getSetAssignmentsCount(0)
                                                      == requestTransfer.getQuerySpectrum()
                                                                        .getSignalCount()) {
-                                             final Double rmsd = Similarity.calculateRMSD(dataSet.getSpectrum(),
-                                                                                          requestTransfer.getQuerySpectrum(),
-                                                                                          0, 0, shiftTolerance,
-                                                                                          checkMultiplicity,
-                                                                                          checkEquivalencesCount,
-                                                                                          false);
-                                             dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
 
-                                             return true;
+                                             final Double averageDeviation = Similarity.calculateAverageDeviation(
+                                                     dataSet.getSpectrum(), requestTransfer.getQuerySpectrum(), 0, 0,
+                                                     matchAssignment);
+                                             if (averageDeviation
+                                                     != null
+                                                     && averageDeviation
+                                                     <= maxAverageDeviation) {
+                                                 dataSet.addMetaInfo("averageDeviation",
+                                                                     String.valueOf(averageDeviation));
+                                                 final Double rmsd = Similarity.calculateRMSD(dataSet.getSpectrum(),
+                                                                                              requestTransfer.getQuerySpectrum(),
+                                                                                              0, 0, matchAssignment);
+                                                 dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
+
+                                                 return true;
+                                             }
+                                             return false;
                                          }
 
                                          return false;
                                      })
                                      .collect(Collectors.toList());
-            
+
             dataSetList.sort((dataSet1, dataSet2) -> {
                 if (Double.parseDouble(dataSet1.getMeta()
                                                .get("rmsd"))

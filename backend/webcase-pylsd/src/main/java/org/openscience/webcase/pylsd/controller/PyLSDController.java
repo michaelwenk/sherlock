@@ -102,6 +102,8 @@ public class PyLSDController {
 
         // build PyLSD input file
         final String pyLSDInputFileContent = this.createPyLSDInputFile(requestTransfer);
+        System.out.println("file content:\n"
+                                   + pyLSDInputFileContent);
         final String pathToPyLSDInputFile = this.pathToPyLSDInputFileFolder
                 + requestTransfer.getRequestID()
                 + ".pylsd";
@@ -136,7 +138,9 @@ public class PyLSDController {
                             + "_D.sdf";
                     System.out.println(pathToResultsFilePredictions);
 
-                    final List<DataSet> dataSetList = this.retrieveResultFromRankedSDFile(pathToRankedSDFile, "13C");
+                    final List<DataSet> dataSetList = this.retrieveResultFromRankedSDFile(pathToRankedSDFile, "13C",
+                                                                                          requestTransfer.getElucidationOptions()
+                                                                                                         .getMaxAverageDeviation());
 
 
                     System.out.println("--> number of results: "
@@ -184,7 +188,8 @@ public class PyLSDController {
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
-    public List<DataSet> retrieveResultFromRankedSDFile(final String pathToRankedSDFile, final String nucleus) {
+    public List<DataSet> retrieveResultFromRankedSDFile(final String pathToRankedSDFile, final String nucleus,
+                                                        final double maxAverageDeviation) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
                 "http://webcase-gateway:8080/webcase-casekit/fileParser/parseRankedSdf")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
@@ -202,11 +207,12 @@ public class PyLSDController {
         }
         final String fileContent = bufferedReader.lines()
                                                  .collect(Collectors.joining("\n"));
-        final Transfer requestTransfer = new Transfer();
-        requestTransfer.setFileContent(fileContent);
-        requestTransfer.setNucleus(nucleus);
+        final Transfer queryTransfer = new Transfer();
+        queryTransfer.setFileContent(fileContent);
+        queryTransfer.setNucleus(nucleus);
+        queryTransfer.setMaxAverageDeviation(maxAverageDeviation);
         final Transfer resultTransfer = webClient.post()
-                                                 .bodyValue(requestTransfer)
+                                                 .bodyValue(queryTransfer)
                                                  .retrieve()
                                                  .bodyToMono(Transfer.class)
                                                  .block();

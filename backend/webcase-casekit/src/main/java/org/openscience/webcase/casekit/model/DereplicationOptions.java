@@ -15,4 +15,5 @@ public class DereplicationOptions {
     private Map<String, Double> shiftTolerances;
     private boolean checkMultiplicity;
     private boolean checkEquivalencesCount;
+    private double maxAverageDeviation;
 }
