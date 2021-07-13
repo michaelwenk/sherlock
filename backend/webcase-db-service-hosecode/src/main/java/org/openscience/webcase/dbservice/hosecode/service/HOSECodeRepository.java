@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021 Michael Wenk (https://github.com/michaelwenk)
+ * Copyright (c) 2020 Michael Wenk (https://github.com/michaelwenk)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,41 +22,21 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.pylsd.model.exchange;
-
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.openscience.webcase.pylsd.model.DataSet;
-import org.openscience.webcase.pylsd.model.ElucidationOptions;
-import org.openscience.webcase.pylsd.model.nmrdisplayer.Data;
-
-import java.util.List;
-import java.util.Map;
+package org.openscience.webcase.dbservice.hosecode.service;
 
 
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class Transfer {
+import org.openscience.webcase.dbservice.hosecode.service.model.HOSECodeRecord;
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Mono;
 
-    private List<DataSet> dataSetList;
-    private String requestID;
-    private String resultID;
 
-    private Data data;
-    private String mf;
-    private Boolean pyLSDRunWasSuccessful;
-    private ElucidationOptions elucidationOptions;
-    private Map<Integer, List<Integer>> detectedHybridizations;
+@Repository
+public interface HOSECodeRepository
+        extends ReactiveMongoRepository<HOSECodeRecord, String> {
 
-    // for (ranked) SDF parsing
-    private String fileContent;
-    private double maxAverageDeviation;
-    @Deprecated
-    private String nucleus;
+    @Override
+    Mono<HOSECodeRecord> findById(final String id);
+
+    Mono<HOSECodeRecord> findByHoseCodeObjectHOSECode(final String HOSECode);
 }

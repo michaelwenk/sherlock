@@ -51,4 +51,23 @@ public class Spectrum {
     private String standard;
     private List<Signal> signals;
     private int signalCount;
+
+    /**
+     * Simply adds a signal to the end of the signal list without equivalence checks.
+     *
+     * @param signal signal to add
+     *
+     * @return
+     */
+    public boolean addSignalWithoutEquivalenceSearch(final Signal signal) {
+        if (signal
+                == null) {
+            return false;
+        }
+        // add signal at the end of signal list
+        this.signals.add(signal);
+        this.signalCount++;
+
+        return true;
+    }
 }

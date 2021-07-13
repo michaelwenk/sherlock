@@ -102,13 +102,13 @@ public class NMRShiftDBController {
                                          .block();
     }
 
-    @DeleteMapping(value = "/delete/all")
+    @DeleteMapping(value = "/deleteAll")
     public void deleteAll() {
         this.dataSetServiceImplementation.deleteAll()
                                          .block();
     }
 
-    @PostMapping(value = "/replace/all")
+    @PostMapping(value = "/replaceAll")
     public void replaceAll(@RequestParam final String[] nuclei) {
         this.deleteAll();
 

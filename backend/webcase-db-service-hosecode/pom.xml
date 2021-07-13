@@ -5,19 +5,23 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>2.4.4</version>
+        <version>2.4.8</version>
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>org.openscience.webcase</groupId>
-    <artifactId>webcase-casekit</artifactId>
+    <artifactId>webcase-db-service-hosecode</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>webcase-casekit</name>
-    <description>WebCASE CASEkit</description>
+    <name>webcase-db-service-hosecode</name>
+    <description>WebCASE DB Service HOSECode</description>
     <properties>
         <java.version>11</java.version>
-        <spring-cloud.version>2020.0.2</spring-cloud.version>
+        <spring-cloud.version>2020.0.3</spring-cloud.version>
     </properties>
     <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb-reactive</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -45,6 +49,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.projectreactor</groupId>
+            <artifactId>reactor-test</artifactId>
             <scope>test</scope>
         </dependency>
         <dependency>

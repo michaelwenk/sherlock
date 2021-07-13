@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021 Michael Wenk (https://github.com/michaelwenk)
+ * Copyright (c) 2020 Michael Wenk (https://github.com/michaelwenk)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,41 +22,26 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.pylsd.model.exchange;
+package org.openscience.webcase.dbservice.hosecode.service;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.openscience.webcase.pylsd.model.DataSet;
-import org.openscience.webcase.pylsd.model.ElucidationOptions;
-import org.openscience.webcase.pylsd.model.nmrdisplayer.Data;
+import org.openscience.webcase.dbservice.hosecode.service.model.HOSECode;
+import org.openscience.webcase.dbservice.hosecode.service.model.HOSECodeRecord;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.util.List;
-import java.util.Map;
+public interface HOSECodeService {
 
+    Mono<Long> count();
 
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class Transfer {
+    Flux<HOSECode> findAll();
 
-    private List<DataSet> dataSetList;
-    private String requestID;
-    private String resultID;
+    Mono<HOSECode> findById(final String id);
 
-    private Data data;
-    private String mf;
-    private Boolean pyLSDRunWasSuccessful;
-    private ElucidationOptions elucidationOptions;
-    private Map<Integer, List<Integer>> detectedHybridizations;
+    Mono<HOSECode> findByHoseCodeObjectHOSECode(final String HOSECode);
 
-    // for (ranked) SDF parsing
-    private String fileContent;
-    private double maxAverageDeviation;
-    @Deprecated
-    private String nucleus;
+    // insertions/deletions
+
+    Mono<HOSECodeRecord> insert(final HOSECodeRecord hoseCodeRecord);
+
+    Mono<Void> deleteAll();
 }

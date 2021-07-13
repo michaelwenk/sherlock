@@ -34,6 +34,7 @@ public class PyLSDController {
                                                     .getCosyP3());
         elucidationOptions.setCosyP4(requestTransfer.getElucidationOptions()
                                                     .getCosyP4());
+        elucidationOptions.setUsePrediction(false);
 
         return PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getData(), requestTransfer.getMf(),
                                                                 requestTransfer.getDetectedHybridizations(),

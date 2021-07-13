@@ -28,8 +28,14 @@ public class Transfer {
     private String mf;
     private Map<Integer, List<Integer>> detectedHybridizations;
 
+    // for building HOSE code statistics
+    private Map<String, Map<String, Double[]>> hoseCodeShiftStatistics;
+
     // for ranked SDF parsing
+    @Deprecated
     private String fileContent;
+    @Deprecated
     private String nucleus;
+    @Deprecated
     private double maxAverageDeviation;
 }

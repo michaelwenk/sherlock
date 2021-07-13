@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021 Michael Wenk (https://github.com/michaelwenk)
+ * Copyright (c) 2020 Michael Wenk (https://github.com/michaelwenk)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,41 +22,21 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.pylsd.model.exchange;
+package org.openscience.webcase.dbservice.hosecode.service.model;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
 import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-import org.openscience.webcase.pylsd.model.DataSet;
-import org.openscience.webcase.pylsd.model.ElucidationOptions;
-import org.openscience.webcase.pylsd.model.nmrdisplayer.Data;
-
-import java.util.List;
-import java.util.Map;
-
+import lombok.Data;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
 @AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class Transfer {
+@Data
 
-    private List<DataSet> dataSetList;
-    private String requestID;
-    private String resultID;
+@Document(collection = "hosecodes")
+public class HOSECodeRecord {
 
-    private Data data;
-    private String mf;
-    private Boolean pyLSDRunWasSuccessful;
-    private ElucidationOptions elucidationOptions;
-    private Map<Integer, List<Integer>> detectedHybridizations;
-
-    // for (ranked) SDF parsing
-    private String fileContent;
-    private double maxAverageDeviation;
-    @Deprecated
-    private String nucleus;
+    @Id
+    private String id;
+    private HOSECode hoseCodeObject;
 }

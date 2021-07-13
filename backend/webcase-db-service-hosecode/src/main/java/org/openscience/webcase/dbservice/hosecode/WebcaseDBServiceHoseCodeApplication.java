@@ -1,4 +1,4 @@
-package org.openscience.webcase.casekit;
+package org.openscience.webcase.dbservice.hosecode;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,9 +6,9 @@ import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
 
 @SpringBootApplication
 @EnableEurekaClient
-public class WebcaseCasekitApplication {
+public class WebcaseDBServiceHoseCodeApplication {
 
     public static void main(final String[] args) {
-        SpringApplication.run(WebcaseCasekitApplication.class, args);
+        SpringApplication.run(WebcaseDBServiceHoseCodeApplication.class, args);
     }
 }

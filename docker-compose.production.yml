@@ -22,3 +22,12 @@ services:
   webcase-db-instance-result:
     volumes:
       - "./backend/db-instance-result/data/db/result:/data/db"
+
+  webcase-db-instance-hosecode:
+    image: mongo:4
+    volumes:
+      - "./backend/db-instance-hosecode/data/db/hosecode:/data/db"
+    environment:
+      - MONGO_INITDB_DATABASE=hosecode
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password

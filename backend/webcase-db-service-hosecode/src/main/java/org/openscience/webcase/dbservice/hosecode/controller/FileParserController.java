@@ -1,9 +1,11 @@
-package org.openscience.webcase.casekit.controller;
+package org.openscience.webcase.dbservice.hosecode.controller;
 
-import casekit.nmr.lsd.RankedResultSDFParser;
 import casekit.nmr.model.DataSet;
+import casekit.nmr.utils.SDFParser;
 import org.openscience.cdk.exception.CDKException;
-import org.openscience.webcase.casekit.model.exchange.Transfer;
+import org.openscience.webcase.dbservice.hosecode.model.exchange.Transfer;
+import org.openscience.webcase.dbservice.hosecode.utils.PyLSDResultsRanker;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -16,19 +18,19 @@ import java.util.List;
 
 @RestController
 @RequestMapping(value = "/fileParser")
-@Deprecated
 public class FileParserController {
 
-    @Deprecated
-    @PostMapping(value = "/parseRankedResultSDFile")
-    public ResponseEntity<Transfer> parseRankedResultSDF(@RequestBody final Transfer requestTransfer) {
+    @Autowired
+    private PyLSDResultsRanker pyLSDResultsRanker;
+
+    @PostMapping(value = "/parseAndRankResultSDFile")
+    public ResponseEntity<Transfer> parseResultSDF(@RequestBody final Transfer requestTransfer) {
         final Transfer resultTransfer = new Transfer();
         List<DataSet> dataSetList = new ArrayList<>();
-
         try {
-            dataSetList = RankedResultSDFParser.parseRankedResultSDFileContent(requestTransfer.getFileContent(),
-                                                                               requestTransfer.getNucleus(),
-                                                                               requestTransfer.getMaxAverageDeviation());
+            requestTransfer.setDataSetList(SDFParser.parseSDFileContent(requestTransfer.getFileContent()));
+
+            dataSetList = this.pyLSDResultsRanker.rankPyLSDResults(requestTransfer);
         } catch (final CDKException e) {
             e.printStackTrace();
         }

@@ -12,3 +12,9 @@ services:
     build:
       context: backend/db-instance-nmrshiftdb-hybridization
       dockerfile: Dockerfile.publish
+
+  webcase-db-instance-hosecode:
+    image: michaelwenk/webcase-db-instance-hosecode
+    build:
+      context: backend/db-instance-hosecode
+      dockerfile: Dockerfile.publish

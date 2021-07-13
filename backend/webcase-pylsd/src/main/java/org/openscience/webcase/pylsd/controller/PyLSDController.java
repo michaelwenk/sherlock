@@ -107,9 +107,9 @@ public class PyLSDController {
         final String pathToPyLSDInputFile = this.pathToPyLSDInputFileFolder
                 + requestTransfer.getRequestID()
                 + ".pylsd";
-        final String pathToRankedSDFile = this.pathToPyLSDResultFileFolder
-                + requestTransfer.getRequestID()
-                + "_D.sdf";
+        //        final String pathToRankedSDFile = this.pathToPyLSDResultFileFolder
+        //                + requestTransfer.getRequestID()
+        //                + "_D.sdf";
 
         // run PyLSD if file was written successfully
         if (FileSystem.writeFile(pathToPyLSDInputFile, pyLSDInputFileContent)) {
@@ -133,14 +133,24 @@ public class PyLSDController {
                                                                       TimeUnit.MINUTES);
                 if (pyLSDRunWasSuccessful) {
                     System.out.println("-> run was successful");
-                    final String pathToResultsFilePredictions = this.pathToPyLSDResultFileFolder
-                            + requestTransfer.getRequestID()
-                            + "_D.sdf";
-                    System.out.println(pathToResultsFilePredictions);
+                    //                    final String pathToResultsFilePredictions = this.pathToPyLSDResultFileFolder
+                    //                            + requestTransfer.getRequestID()
+                    //                            + "_D.sdf";
+                    //                    System.out.println(pathToResultsFilePredictions);
+                    //
+                    //                    final List<DataSet> dataSetList = this.retrieveResultFromRankedSDFile(pathToRankedSDFile, "13C",
+                    //                                                                                          requestTransfer.getElucidationOptions()
+                    //                                                                                                         .getMaxAverageDeviation());
 
-                    final List<DataSet> dataSetList = this.retrieveResultFromRankedSDFile(pathToRankedSDFile, "13C",
-                                                                                          requestTransfer.getElucidationOptions()
-                                                                                                         .getMaxAverageDeviation());
+                    final String pathToResultsFile = this.pathToPyLSDResultFileFolder
+                            + requestTransfer.getRequestID()
+                            + "_0.sdf";
+                    System.out.println(pathToResultsFile);
+
+                    final List<DataSet> dataSetList = this.retrieveAndRankResultsFromSDFile(pathToResultsFile,
+                                                                                            requestTransfer);
+                    System.out.println("--> number of parsed and ranked structures: "
+                                               + dataSetList.size());
 
 
                     System.out.println("--> number of results: "
@@ -188,10 +198,41 @@ public class PyLSDController {
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
+    public List<DataSet> retrieveAndRankResultsFromSDFile(final String pathToSDFile, final Transfer requestTransfer) {
+        final BufferedReader bufferedReader = FileSystem.readFile(pathToSDFile);
+        if (bufferedReader
+                == null) {
+            System.out.println("parseAndRankResultSDFile: could not read file \""
+                                       + pathToSDFile
+                                       + "\"");
+            return new ArrayList<>();
+        }
+        final WebClient webClient = this.webClientBuilder.baseUrl(
+                "http://webcase-gateway:8080/webcase-db-service-hosecode/fileParser/parseAndRankResultSDFile")
+                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                        MediaType.APPLICATION_JSON_VALUE)
+                                                         .exchangeStrategies(this.exchangeStrategies)
+                                                         .build();
+        final String fileContent = bufferedReader.lines()
+                                                 .collect(Collectors.joining("\n"));
+        final Transfer queryTransfer = new Transfer();
+        queryTransfer.setFileContent(fileContent);
+        queryTransfer.setData(requestTransfer.getData());
+        queryTransfer.setMaxAverageDeviation(requestTransfer.getElucidationOptions()
+                                                            .getMaxAverageDeviation());
+        return webClient.post()
+                        .bodyValue(queryTransfer)
+                        .retrieve()
+                        .bodyToMono(Transfer.class)
+                        .block()
+                        .getDataSetList();
+    }
+
+    @Deprecated
     public List<DataSet> retrieveResultFromRankedSDFile(final String pathToRankedSDFile, final String nucleus,
                                                         final double maxAverageDeviation) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-casekit/fileParser/parseRankedSdf")
+                "http://webcase-gateway:8080/webcase-casekit/fileParser/parseRankedResultSDFile")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)
