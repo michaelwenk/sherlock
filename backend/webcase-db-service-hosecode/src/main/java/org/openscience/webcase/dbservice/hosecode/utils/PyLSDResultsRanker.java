@@ -24,8 +24,8 @@ import java.util.stream.Collectors;
 @Component
 public class PyLSDResultsRanker {
 
-    private final String[] solvents = new String[]{"Chloroform-D1 (CDCl3)", "Methanol-D4 (CD3OD)",
-                                                   "Dimethylsulphoxide-D6 (DMSO-D6, C2D6SO)", "Unreported", "Unknown"};
+    //    private final String[] solvents = new String[]{"Chloroform-D1 (CDCl3)", "Methanol-D4 (CD3OD)",
+    //                                                   "Dimethylsulphoxide-D6 (DMSO-D6, C2D6SO)", "Unreported", "Unknown"};
 
     private final HOSECodeController hoseCodeController;
 
@@ -81,12 +81,12 @@ public class PyLSDResultsRanker {
 
         IAtomContainer structure;
         Spectrum predictedSpectrum;
-        Assignment assignment;
+        Assignment assignment, matchAssignment;
         HOSECode hoseCodeObject;
         double predictedShift;
-        String hoseCode, solvent;
-        Double[] statistics, deviations;
-        Double rmsd, averageDeviation;
+        String hoseCode;
+        Double[] statistics, deviations, deviationsIncomplete;
+        Double rmsd, averageDeviation, rmsdIncomplete, averageDeviationIncomplete;
         int signalIndex, sphere;
         Map<Integer, List<Integer>> assignmentMap;
         List<Double> medians;
@@ -214,12 +214,12 @@ public class PyLSDResultsRanker {
                     }
                 }
 
-                deviations = Similarity.getDeviations(experimentalSpectrum, predictedSpectrum, 0, 0, 50, true, true,
-                                                      false);
-
-
                 dataSet.setSpectrum(predictedSpectrum);
                 dataSet.setAssignment(assignment);
+
+                matchAssignment = Similarity.matchSpectra(experimentalSpectrum, predictedSpectrum, 0, 0, 50, true, true,
+                                                          false);
+                deviations = Similarity.getDeviations(experimentalSpectrum, predictedSpectrum, 0, 0, matchAssignment);
 
                 System.out.println(" --> experimentalSpectrum: "
                                            + experimentalSpectrum.getSignals());
@@ -236,40 +236,110 @@ public class PyLSDResultsRanker {
                 System.out.println(" --> averageDeviation: "
                                            + averageDeviation);
                 if (averageDeviation
-                        != null
-                        && averageDeviation
-                        <= maxAverageDeviation) {
-                    dataSet.addMetaInfo("averageDeviation", String.valueOf(averageDeviation));
-                    rmsd = Statistics.calculateRMSD(deviations);
-                    dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
+                        != null) {
+                    if (averageDeviation
+                            <= maxAverageDeviation) {
+                        dataSet.addMetaInfo("averageDeviation", String.valueOf(averageDeviation));
+                        rmsd = Statistics.calculateRMSD(deviations);
+                        dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
 
-                    System.out.println(" --> rmsd: "
-                                               + rmsd);
+                        dataSetList.add(dataSet);
+                    }
+                } else {
+                    deviationsIncomplete = Arrays.stream(deviations)
+                                                 .filter(Objects::nonNull)
+                                                 .toArray(Double[]::new);
+                    averageDeviationIncomplete = Statistics.calculateAverageDeviation(deviationsIncomplete);
 
-                    dataSetList.add(dataSet);
+                    System.out.println(" --> averageDeviationIncomplete: "
+                                               + averageDeviationIncomplete);
+                    if (averageDeviationIncomplete
+                            <= maxAverageDeviation) {
+                        dataSet.addMetaInfo("averageDeviationIncomplete", String.valueOf(averageDeviationIncomplete));
+                        rmsdIncomplete = Statistics.calculateRMSD(deviationsIncomplete);
+                        dataSet.addMetaInfo("rmsdIncomplete", String.valueOf(rmsdIncomplete));
+                        dataSet.addMetaInfo("setAssignmentsCount",
+                                            String.valueOf(matchAssignment.getSetAssignmentsCount(0)));
+                        dataSet.addMetaInfo("setAssignmentsCountWithEquivalences",
+                                            String.valueOf(matchAssignment.getSetAssignmentsCountWithEquivalences(0)));
+
+                        dataSetList.add(dataSet);
+                    }
                 }
             }
         } catch (final Exception e) {
             e.printStackTrace();
         }
 
-
         // pre-sort by RMSD value
+        this.sortDataSetList(dataSetList);
+
+        return dataSetList;
+    }
+
+    public void sortDataSetList(final List<DataSet> dataSetList) {
         dataSetList.sort((dataSet1, dataSet2) -> {
-            if (Double.parseDouble(dataSet1.getMeta()
-                                           .get("rmsd"))
-                    < Double.parseDouble(dataSet2.getMeta()
-                                                 .get("rmsd"))) {
+            final int rmsdComparison = this.compareNumericDataSetMetaKey(dataSet1, dataSet2, "rmsd");
+            if (rmsdComparison
+                    != 0) {
+                return rmsdComparison;
+            }
+            final int setAssignmentsCountWithEquivalencesComparison = this.compareNumericDataSetMetaKey(dataSet1,
+                                                                                                        dataSet2,
+                                                                                                        "setAssignmentsCountWithEquivalences");
+            if (setAssignmentsCountWithEquivalencesComparison
+                    != 0) {
+                return -1
+                        * setAssignmentsCountWithEquivalencesComparison;
+            }
+            final int rmsdIncompleteComparison = this.compareNumericDataSetMetaKey(dataSet1, dataSet2,
+                                                                                   "rmsdIncomplete");
+            if (rmsdIncompleteComparison
+                    != 0) {
+                return rmsdIncompleteComparison;
+            }
+
+            return 0;
+        });
+    }
+
+    private int compareNumericDataSetMetaKey(final DataSet dataSet1, final DataSet dataSet2, final String metaKey) {
+        Double valueDataSet1 = null;
+        Double valueDataSet2 = null;
+        try {
+            valueDataSet1 = Double.parseDouble(dataSet1.getMeta()
+                                                       .get(metaKey));
+        } catch (final NullPointerException | NumberFormatException e) {
+            //                e.printStackTrace();
+        }
+        try {
+            valueDataSet2 = Double.parseDouble(dataSet2.getMeta()
+                                                       .get(metaKey));
+        } catch (final NullPointerException | NumberFormatException e) {
+            //                e.printStackTrace();
+        }
+
+        if (valueDataSet1
+                != null
+                && valueDataSet2
+                != null) {
+            if (valueDataSet1
+                    < valueDataSet2) {
                 return -1;
-            } else if (Double.parseDouble(dataSet1.getMeta()
-                                                  .get("rmsd"))
-                    > Double.parseDouble(dataSet2.getMeta()
-                                                 .get("rmsd"))) {
+            } else if (valueDataSet1
+                    > valueDataSet2) {
                 return 1;
             }
             return 0;
-        });
+        }
+        if (valueDataSet1
+                != null) {
+            return -1;
+        } else if (valueDataSet2
+                != null) {
+            return 1;
+        }
 
-        return dataSetList;
+        return 0;
     }
 }
