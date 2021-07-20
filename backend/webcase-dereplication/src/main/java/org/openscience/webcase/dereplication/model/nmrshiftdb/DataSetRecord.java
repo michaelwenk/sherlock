@@ -25,8 +25,8 @@
 package org.openscience.webcase.dereplication.model.nmrshiftdb;
 
 
+import casekit.nmr.model.DataSet;
 import lombok.Data;
-import org.openscience.webcase.dereplication.model.DataSet;
 
 @Data
 public class DataSetRecord {

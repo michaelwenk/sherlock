@@ -24,10 +24,11 @@
 
 package org.openscience.webcase.dereplication.controller;
 
-import org.openscience.webcase.dereplication.model.DataSet;
-import org.openscience.webcase.dereplication.model.Spectrum;
+import casekit.nmr.model.DataSet;
+import casekit.nmr.model.Spectrum;
+import casekit.nmr.utils.Utils;
 import org.openscience.webcase.dereplication.model.exchange.Transfer;
-import org.openscience.webcase.dereplication.utils.Utils;
+import org.openscience.webcase.dereplication.utils.Ranking;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -77,29 +78,12 @@ public class DereplicationController {
                                                                                  .isUseMF());
             List<DataSet> dataSetList = dataSetFlux.collectList()
                                                    .block();
-            final WebClient webClient = this.webClientBuilder.baseUrl(
-                    "http://webcase-gateway:8080/webcase-casekit/ranking")
-                                                             .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                            MediaType.APPLICATION_JSON_VALUE)
-                                                             .exchangeStrategies(this.exchangeStrategies)
-                                                             .build();
-            final Transfer queryTransfer = new Transfer();
-            queryTransfer.setDataSetList(dataSetList);
-            queryTransfer.setQuerySpectrum(querySpectrum);
-            queryTransfer.setDereplicationOptions(requestTransfer.getDereplicationOptions());
-            queryTransfer.setQueryType(requestTransfer.getQueryType());
-            dataSetList = webClient.post()
-                                   .uri("/rankBySpectralSimilarity")
-                                   .bodyValue(queryTransfer)
-                                   .retrieve()
-                                   .bodyToMono(Transfer.class)
-                                   .block()
-                                   .getDataSetList();
+            dataSetList = Ranking.rankBySpectralSimilarity(dataSetList, querySpectrum,
+                                                           requestTransfer.getDereplicationOptions());
 
             responseTransfer.setDataSetList(dataSetList);
             return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
         }
-
 
         responseTransfer.setDataSetList(new ArrayList<>());
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
@@ -136,4 +120,6 @@ public class DereplicationController {
                         .retrieve()
                         .bodyToFlux(DataSet.class);
     }
+
+
 }
