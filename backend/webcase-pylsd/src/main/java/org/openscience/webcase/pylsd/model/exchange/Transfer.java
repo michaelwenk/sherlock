@@ -24,14 +24,14 @@
 
 package org.openscience.webcase.pylsd.model.exchange;
 
+import casekit.nmr.model.DataSet;
+import casekit.nmr.model.nmrdisplayer.Data;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
-import org.openscience.webcase.pylsd.model.DataSet;
 import org.openscience.webcase.pylsd.model.ElucidationOptions;
-import org.openscience.webcase.pylsd.model.nmrdisplayer.Data;
 
 import java.util.List;
 import java.util.Map;

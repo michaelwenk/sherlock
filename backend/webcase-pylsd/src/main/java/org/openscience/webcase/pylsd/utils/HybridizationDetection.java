@@ -1,7 +1,9 @@
 package org.openscience.webcase.pylsd.utils;
 
-import org.openscience.webcase.pylsd.model.nmrdisplayer.Correlation;
-import org.openscience.webcase.pylsd.model.nmrdisplayer.Data;
+import casekit.nmr.lsd.Constants;
+import casekit.nmr.model.nmrdisplayer.Correlation;
+import casekit.nmr.model.nmrdisplayer.Data;
+import casekit.nmr.utils.Utils;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -35,7 +37,7 @@ public class HybridizationDetection {
             correlation = data.getCorrelations()
                               .getValues()
                               .get(i);
-            multiplicity = HybridizationDetection.getMultiplicityFromProtonsCount(correlation);
+            multiplicity = Utils.getMultiplicityFromProtonsCount(correlation);
             if (multiplicity
                     != null) {
                 uriComponentsBuilder = UriComponentsBuilder.newInstance();
@@ -62,28 +64,5 @@ public class HybridizationDetection {
         }
 
         return detectedHybridizations;
-    }
-
-    private static String getMultiplicityFromProtonsCount(final Correlation correlation) {
-        if (correlation.getAtomType()
-                       .equals("C")
-                && correlation.getProtonsCount()
-                              .size()
-                == 1) {
-            switch (correlation.getProtonsCount()
-                               .get(0)) {
-                case 0:
-                    return "s";
-                case 1:
-                    return "d";
-                case 2:
-                    return "t";
-                case 3:
-                    return "q";
-                default:
-                    return null;
-            }
-        }
-        return null;
     }
 }

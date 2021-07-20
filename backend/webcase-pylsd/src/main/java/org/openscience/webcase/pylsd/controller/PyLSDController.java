@@ -1,8 +1,10 @@
 package org.openscience.webcase.pylsd.controller;
 
-import org.openscience.webcase.pylsd.model.DataSet;
+import casekit.io.FileSystem;
+import casekit.nmr.lsd.PyLSDInputFileBuilder;
+import casekit.nmr.lsd.model.ElucidationOptions;
+import casekit.nmr.model.DataSet;
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
-import org.openscience.webcase.pylsd.utils.FileSystem;
 import org.openscience.webcase.pylsd.utils.HybridizationDetection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -53,11 +55,6 @@ public class PyLSDController {
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.getDetectedHybridizations(
                 this.webClientBuilder, requestTransfer.getData(), requestTransfer.getElucidationOptions()
                                                                                  .getHybridizationDetectionThreshold());
-        final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-casekit/pylsd/createInputFile")
-                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                        MediaType.APPLICATION_JSON_VALUE)
-                                                         .build();
 
         final Transfer queryTransfer = new Transfer();
         queryTransfer.setData(requestTransfer.getData());
@@ -89,11 +86,38 @@ public class PyLSDController {
         queryTransfer.getElucidationOptions()
                      .setFilterPaths(filterList.toArray(String[]::new));
 
-        return webClient.post()
-                        .bodyValue(queryTransfer)
-                        .retrieve()
-                        .bodyToMono(String.class)
-                        .block();
+        queryTransfer.getElucidationOptions()
+                     .setUsePrediction(false);
+
+        return this.createInputFile(queryTransfer);
+    }
+
+    private String createInputFile(final Transfer requestTransfer) {
+        final ElucidationOptions elucidationOptions = new ElucidationOptions();
+
+        elucidationOptions.setFilterPaths(requestTransfer.getElucidationOptions()
+                                                         .getFilterPaths());
+        elucidationOptions.setAllowHeteroHeteroBonds(requestTransfer.getElucidationOptions()
+                                                                    .isAllowHeteroHeteroBonds());
+        elucidationOptions.setUseElim(requestTransfer.getElucidationOptions()
+                                                     .isUseElim());
+        elucidationOptions.setElimP1(requestTransfer.getElucidationOptions()
+                                                    .getElimP1());
+        elucidationOptions.setElimP2(requestTransfer.getElucidationOptions()
+                                                    .getElimP2());
+        elucidationOptions.setHmbcP3(requestTransfer.getElucidationOptions()
+                                                    .getHmbcP3());
+        elucidationOptions.setHmbcP4(requestTransfer.getElucidationOptions()
+                                                    .getHmbcP4());
+        elucidationOptions.setCosyP3(requestTransfer.getElucidationOptions()
+                                                    .getCosyP3());
+        elucidationOptions.setCosyP4(requestTransfer.getElucidationOptions()
+                                                    .getCosyP4());
+        elucidationOptions.setUsePrediction(false);
+
+        return PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getData(), requestTransfer.getMf(),
+                                                                requestTransfer.getDetectedHybridizations(),
+                                                                elucidationOptions);
     }
 
     @PostMapping(value = "/runPyLSD")
@@ -226,38 +250,5 @@ public class PyLSDController {
                         .bodyToMono(Transfer.class)
                         .block()
                         .getDataSetList();
-    }
-
-    @Deprecated
-    public List<DataSet> retrieveResultFromRankedSDFile(final String pathToRankedSDFile, final String nucleus,
-                                                        final double maxAverageDeviation) {
-        final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-casekit/fileParser/parseRankedResultSDFile")
-                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                        MediaType.APPLICATION_JSON_VALUE)
-                                                         .exchangeStrategies(this.exchangeStrategies)
-                                                         .build();
-
-        final BufferedReader bufferedReader = FileSystem.readFile(pathToRankedSDFile);
-        if (bufferedReader
-                == null) {
-            System.out.println("retrieveResultFromRankedSDFile: could not read file \""
-                                       + pathToRankedSDFile
-                                       + "\"");
-            return new ArrayList<>();
-        }
-        final String fileContent = bufferedReader.lines()
-                                                 .collect(Collectors.joining("\n"));
-        final Transfer queryTransfer = new Transfer();
-        queryTransfer.setFileContent(fileContent);
-        queryTransfer.setNucleus(nucleus);
-        queryTransfer.setMaxAverageDeviation(maxAverageDeviation);
-        final Transfer resultTransfer = webClient.post()
-                                                 .bodyValue(queryTransfer)
-                                                 .retrieve()
-                                                 .bodyToMono(Transfer.class)
-                                                 .block();
-
-        return resultTransfer.getDataSetList();
     }
 }

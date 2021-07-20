@@ -21,6 +21,7 @@ public class ElucidationOptions {
     private int cosyP3;
     private int cosyP4;
     private float hybridizationDetectionThreshold;
+    private boolean usePrediction;
     // elucidation process
     private int timeLimitTotal;
     // generated structures filter
