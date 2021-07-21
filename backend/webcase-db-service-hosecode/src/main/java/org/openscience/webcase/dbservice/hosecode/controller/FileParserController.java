@@ -4,7 +4,7 @@ import casekit.nmr.model.DataSet;
 import casekit.nmr.utils.SDFParser;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.webcase.dbservice.hosecode.model.exchange.Transfer;
-import org.openscience.webcase.dbservice.hosecode.utils.PyLSDResultsRanker;
+import org.openscience.webcase.dbservice.hosecode.utils.ResultsRanker;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -21,7 +21,7 @@ import java.util.List;
 public class FileParserController {
 
     @Autowired
-    private PyLSDResultsRanker pyLSDResultsRanker;
+    private ResultsRanker resultsRanker;
 
     @PostMapping(value = "/parseAndRankResultSDFile")
     public ResponseEntity<Transfer> parseResultSDF(@RequestBody final Transfer requestTransfer) {
@@ -30,7 +30,7 @@ public class FileParserController {
         try {
             requestTransfer.setDataSetList(SDFParser.parseSDFileContent(requestTransfer.getFileContent()));
 
-            dataSetList = this.pyLSDResultsRanker.rankPyLSDResults(requestTransfer);
+            dataSetList = this.resultsRanker.predictAndRankResults(requestTransfer);
         } catch (final CDKException e) {
             e.printStackTrace();
         }

@@ -22,7 +22,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
-public class PyLSDResultsRanker {
+public class ResultsRanker {
 
     //    private final String[] solvents = new String[]{"Chloroform-D1 (CDCl3)", "Methanol-D4 (CD3OD)",
     //                                                   "Dimethylsulphoxide-D6 (DMSO-D6, C2D6SO)", "Unreported", "Unknown"};
@@ -30,11 +30,11 @@ public class PyLSDResultsRanker {
     private final HOSECodeController hoseCodeController;
 
     @Autowired
-    public PyLSDResultsRanker(final HOSECodeController hoseCodeController) {
+    public ResultsRanker(final HOSECodeController hoseCodeController) {
         this.hoseCodeController = hoseCodeController;
     }
 
-    public List<DataSet> rankPyLSDResults(final Transfer requestTransfer) {
+    public List<DataSet> predictAndRankResults(final Transfer requestTransfer) {
         // @TODO method modifications for different nuclei and solvent needed
         final String nucleus = "13C";
         final String atomType = Utils.getAtomTypeFromNucleus(nucleus);

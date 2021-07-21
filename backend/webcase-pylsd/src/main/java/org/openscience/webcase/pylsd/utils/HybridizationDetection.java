@@ -17,7 +17,8 @@ import java.util.Map;
 public class HybridizationDetection {
 
     public static Map<Integer, List<Integer>> getDetectedHybridizations(final WebClient.Builder webClientBuilder,
-                                                                        final Data data, final float thrs) {
+                                                                        final Data data, final float thrs,
+                                                                        final int shiftTol) {
         final Map<Integer, List<Integer>> detectedHybridizations = new HashMap<>();
 
         final WebClient webClient = webClientBuilder.baseUrl(
@@ -45,10 +46,10 @@ public class HybridizationDetection {
                                     .queryParam("nucleus", Constants.nucleiMap.get(correlation.getAtomType()))
                                     .queryParam("minShift", (int) correlation.getSignal()
                                                                              .getDelta()
-                                            - 2)
+                                            - shiftTol)
                                     .queryParam("maxShift", (int) correlation.getSignal()
                                                                              .getDelta()
-                                            + 2)
+                                            + shiftTol)
                                     .queryParam("multiplicity", multiplicity)
                                     .queryParam("thrs", thrs);
                 hybridizations = webClient //final Flux<DataSet> results = webClient

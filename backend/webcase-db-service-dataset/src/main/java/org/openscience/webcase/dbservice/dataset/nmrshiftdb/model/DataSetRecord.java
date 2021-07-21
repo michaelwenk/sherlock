@@ -25,9 +25,9 @@
 package org.openscience.webcase.dbservice.dataset.nmrshiftdb.model;
 
 
+import casekit.nmr.model.DataSet;
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.openscience.webcase.dbservice.dataset.model.DataSet;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 

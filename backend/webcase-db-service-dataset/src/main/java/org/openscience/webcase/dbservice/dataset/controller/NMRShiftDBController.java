@@ -24,38 +24,27 @@
 
 package org.openscience.webcase.dbservice.dataset.controller;
 
-import org.openscience.webcase.dbservice.dataset.model.DataSet;
-import org.openscience.webcase.dbservice.dataset.model.exchange.Transfer;
+import casekit.nmr.dbservice.NMRShiftDB;
+import casekit.nmr.model.DataSet;
+import org.openscience.cdk.exception.CDKException;
 import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.DataSetRecord;
 import org.openscience.webcase.dbservice.dataset.nmrshiftdb.service.DataSetServiceImplementation;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.List;
 
 
 @RestController
 @RequestMapping(value = "/nmrshiftdb")
 public class NMRShiftDBController {
 
-    // set ExchangeSettings
-    final int maxInMemorySizeMB = 1000;
-    final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
-                                                                    .codecs(configurer -> configurer.defaultCodecs()
-                                                                                                    .maxInMemorySize(
-                                                                                                            this.maxInMemorySizeMB
-                                                                                                                    * 1024
-                                                                                                                    * 1024))
-                                                                    .build();
-
     private final DataSetServiceImplementation dataSetServiceImplementation;
-    @Autowired
-    private WebClient.Builder webClientBuilder;
+
+    private final String pathToNMRShiftDB = "/data/nmrshiftdb/nmrshiftdb2withsignals.sd";
 
     public NMRShiftDBController(final DataSetServiceImplementation dataSetServiceImplementation) {
         this.dataSetServiceImplementation = dataSetServiceImplementation;
@@ -112,22 +101,13 @@ public class NMRShiftDBController {
     public void replaceAll(@RequestParam final String[] nuclei) {
         this.deleteAll();
 
-        final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-casekit/dbservice")
-                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                        MediaType.APPLICATION_JSON_VALUE)
-                                                         .exchangeStrategies(this.exchangeStrategies)
-                                                         .build();
-        final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-        uriComponentsBuilder.path("/getDataSetsFromNMRShiftDB")
-                            .queryParam("nuclei", String.join(",", nuclei));
-        final Transfer queryResultTransfer = webClient.get()
-                                                      .uri(uriComponentsBuilder.toUriString())
-                                                      .retrieve()
-                                                      .bodyToMono(Transfer.class)
-                                                      .block();
+        List<DataSet> dataSetList = new ArrayList<>();
+        try {
+            dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(this.pathToNMRShiftDB, nuclei);
+        } catch (final FileNotFoundException | CDKException e) {
+            e.printStackTrace();
+        }
 
-        queryResultTransfer.getDataSetList()
-                           .forEach(dataSet -> this.insert(new DataSetRecord(null, dataSet)));
+        dataSetList.forEach(dataSet -> this.insert(new DataSetRecord(null, dataSet)));
     }
 }

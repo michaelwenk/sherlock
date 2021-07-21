@@ -112,17 +112,6 @@ services:
       - webcase-discovery-server
       - webcase-db-instance-result
 
-  webcase-casekit:
-    container_name: webcase-casekit
-    build:
-      context: ./backend/webcase-casekit
-      dockerfile: Dockerfile
-    image: michaelwenk/webcase-casekit
-    ports:
-      - "8090:8080"
-    depends_on:
-      - webcase-discovery-server
-
   webcase-db-service-hosecode:
     container_name: webcase-db-service-hosecode
     build:

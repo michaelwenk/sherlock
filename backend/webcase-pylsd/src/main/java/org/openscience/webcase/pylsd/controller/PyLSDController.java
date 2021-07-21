@@ -54,7 +54,8 @@ public class PyLSDController {
     public String createPyLSDInputFile(@RequestBody final Transfer requestTransfer) {
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.getDetectedHybridizations(
                 this.webClientBuilder, requestTransfer.getData(), requestTransfer.getElucidationOptions()
-                                                                                 .getHybridizationDetectionThreshold());
+                                                                                 .getHybridizationDetectionThreshold(),
+                2);
 
         final Transfer queryTransfer = new Transfer();
         queryTransfer.setData(requestTransfer.getData());
@@ -222,7 +223,7 @@ public class PyLSDController {
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
-    public List<DataSet> retrieveAndRankResultsFromSDFile(final String pathToSDFile, final Transfer requestTransfer) {
+    private List<DataSet> retrieveAndRankResultsFromSDFile(final String pathToSDFile, final Transfer requestTransfer) {
         final BufferedReader bufferedReader = FileSystem.readFile(pathToSDFile);
         if (bufferedReader
                 == null) {

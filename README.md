@@ -112,12 +112,12 @@ That enables the persistence of database content to access the data whenever the
 #### Dataset
 For dataset creation and insertion use:
 
-    curl -X POST -i 'http://localhost:8081/webcase-db-service-dataset/nmrshiftdb/replace/all?nuclei=13C'
+    curl -X POST -i 'http://localhost:8081/webcase-db-service-dataset/nmrshiftdb/replaceAll?nuclei=13C'
 
 This will fill-in datasets with 13C spectra only. If multiple nuclei are desired, 
 then this could be done by adding them separated by comma, e.g. 13C, 15N: 
 
-    curl -X POST -i 'http://localhost:8081/webcase-db-service-dataset/nmrshiftdb/replace/all?nuclei=13C,15N'
+    curl -X POST -i 'http://localhost:8081/webcase-db-service-dataset/nmrshiftdb/replaceAll?nuclei=13C,15N'
 
 One can then check the number of datasets:
 
@@ -126,11 +126,20 @@ One can then check the number of datasets:
 #### Hybridizations
 As for datasets we need to insert the hybridization data and can decide which nuclei to consider:
 
-    curl -X POST -i 'http://localhost:8081/webcase-db-service-hybridization/nmrshiftdb/buildHybridizationCollection?nuclei=13C'
+    curl -X POST -i 'http://localhost:8081/webcase-db-service-hybridization/nmrshiftdb/replaceAll?nuclei=13C'
 
 To check the number of hybridization entries:
 
     curl -X GET -i 'http://localhost:8081/webcase-db-service-hybridization/nmrshiftdb/count'
+
+#### HOSE Codes
+One needs to insert the HOSE code information too:
+
+    curl -X POST -i 'http://localhost:8081/webcase-db-service-hosecode/replaceAll?nuclei=13C'
+
+To check the number of HOSE code entries:
+
+    curl -X GET -i 'http://localhost:8081/webcase-db-service-hosecode/count'
 
 
 All services and database contents should be available now.

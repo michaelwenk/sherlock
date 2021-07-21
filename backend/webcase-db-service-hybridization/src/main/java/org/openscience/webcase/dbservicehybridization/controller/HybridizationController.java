@@ -1,7 +1,7 @@
 package org.openscience.webcase.dbservicehybridization.controller;
 
-import org.openscience.webcase.dbservicehybridization.constants.Constants;
-import org.openscience.webcase.dbservicehybridization.model.DataSet;
+import casekit.nmr.lsd.Constants;
+import casekit.nmr.model.DataSet;
 import org.openscience.webcase.dbservicehybridization.service.HybridizationServiceImplementation;
 import org.openscience.webcase.dbservicehybridization.service.model.HybridizationRecord;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -78,24 +78,24 @@ public class HybridizationController {
         return new ArrayList<>(uniqueValues);
     }
 
-    @PostMapping(value = "/buildHybridizationCollection")
-    public void buildHybridizationCollection(@RequestParam final String[] nuclei) {
-
+    @PostMapping(value = "/replaceAll")
+    public void replaceAll(@RequestParam final String[] nuclei) {
         this.hybridizationServiceImplementation.deleteAll();
 
+        List<DataSet> dataSetList;
+        String atomType, hybridization, multiplicity;
+        Integer shift;
+        int[][][] assignmentValues;
         for (final String nucleus : nuclei) {
-            final List<DataSet> dataSetList = this.getByDataSetSpectrumNuclei(new String[]{nucleus})
-                                                  .collectList()
-                                                  .block();
+            dataSetList = this.getByDataSetSpectrumNuclei(new String[]{nucleus})
+                              .collectList()
+                              .block();
             if (dataSetList
                     != null) {
+                atomType = this.getAtomTypeFromNucleus(nucleus);
                 for (final DataSet dataset : dataSetList) {
-                    String hybridization;
-                    String multiplicity;
-                    Integer shift;
-                    final int[][][] assignmentValues = dataset.getAssignment()
-                                                              .getAssignments();
-                    final String atomType = this.getAtomTypeFromNucleus(nucleus);
+                    assignmentValues = dataset.getAssignment()
+                                              .getAssignments();
                     for (int i = 0; i
                             < assignmentValues[0].length; i++) {
                         multiplicity = dataset.getSpectrum()
@@ -116,7 +116,7 @@ public class HybridizationController {
                         for (int k = 0; k
                                 < assignmentValues[0][i].length; k++) {
                             hybridization = dataset.getStructure()
-                                                   .getHybridizations()[assignmentValues[0][i][k]];
+                                                   .getHybridizations()[assignmentValues[0][i][k]].name();
 
                             if (shift
                                     == null

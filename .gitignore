@@ -36,8 +36,10 @@
 
 ### webcase ###
 **/db/
-# webcase-casekit: e.g. nmrshiftdb file
-backend/webcase-casekit/data/nmrshiftdb
+# webcase-db-service-dataset: e.g. nmrshiftdb file
+backend/webcase-db-service-dataset/data/nmrshiftdb
+# webcase-db-service-hosecode: e.g. nmrshiftdb file
+backend/webcase-db-service-hosecode/data/nmrshiftdb
 # webcase-pylsd: custom filters but allow default ones
 backend/webcase-pylsd/data/lsd
 
