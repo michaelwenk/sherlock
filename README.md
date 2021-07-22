@@ -135,7 +135,7 @@ To check the number of hybridization entries:
 #### HOSE Codes
 One needs to insert the HOSE code information too:
 
-    curl -X POST -i 'http://localhost:8081/webcase-db-service-hosecode/replaceAll?nuclei=13C'
+    curl -X POST -i 'http://localhost:8081/webcase-db-service-hosecode/replaceAll?nuclei=13C&maxSphere=6'
 
 To check the number of HOSE code entries:
 
