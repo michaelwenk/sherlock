@@ -77,7 +77,7 @@ and put the custom filters there. The system will use them automatically.
 For more details about LSD and defining substructures and filters see http://eos.univ-reims.fr/LSD/MANUAL_ENG.html#SSTR .
 
 #### NMRShiftDB
-For the dereplication step and hybridization detection the NMRShiftDB (https://nmrshiftdb.nmr.uni-koeln.de) is required.
+For the dereplication, automatic hybridization detection und chemical shift prediction via HOSE codes the NMRShiftDB (https://nmrshiftdb.nmr.uni-koeln.de) is required.
 
 Download the "nmrshiftdb2withsignals.sd" from https://sourceforge.net/projects/nmrshiftdb2/files/data/ and copy it into 
 
