@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 public class PyLSDController {
     final String pathToPyLSDExecutableFolder = "/data/lsd/PyLSD/Variant/";
     final String pathToPyLSDInputFileFolder = "/data/lsd/PyLSD/Variant/";
-    final String pathToPyLSDResultFileFolder = "/data/lsd/PyLSD/Variant/"; //"/data/lsd/PyLSD/Predict/";
+    final String pathToPyLSDResultFileFolder = "/data/lsd/PyLSD/Variant/";
 
     // set ExchangeSettings
     final int maxInMemorySizeMB = 1000;
@@ -47,8 +47,13 @@ public class PyLSDController {
                                                                                                                     * 1024))
                                                                     .build();
 
+    private final WebClient.Builder webClientBuilder;
+
     @Autowired
-    private WebClient.Builder webClientBuilder;
+    public PyLSDController(final WebClient.Builder webClientBuilder) {
+        this.webClientBuilder = webClientBuilder;
+    }
+
 
     private String createPyLSDInputFile(final Transfer requestTransfer) {
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.getDetectedHybridizations(

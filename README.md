@@ -81,7 +81,7 @@ For the dereplication step and hybridization detection the NMRShiftDB (https://n
 
 Download the "nmrshiftdb2withsignals.sd" from https://sourceforge.net/projects/nmrshiftdb2/files/data/ and copy it into 
 
-    backend/webcase-casekit/data/nmrshiftdb/
+    backend/webcase-db-service-dataset/data/nmrshiftdb/
 
 ### Docker and Application Start/Stop
 This project uses Docker containers (https://www.docker.com) and starts them via docker-compose. Make sure that docker-compose is installed.
