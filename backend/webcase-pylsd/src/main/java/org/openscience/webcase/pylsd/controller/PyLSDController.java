@@ -50,8 +50,7 @@ public class PyLSDController {
     @Autowired
     private WebClient.Builder webClientBuilder;
 
-    @PostMapping(value = "createPyLSDInputFile", consumes = "application/json")
-    public String createPyLSDInputFile(@RequestBody final Transfer requestTransfer) {
+    private String createPyLSDInputFile(final Transfer requestTransfer) {
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.getDetectedHybridizations(
                 this.webClientBuilder, requestTransfer.getData(), requestTransfer.getElucidationOptions()
                                                                                  .getHybridizationDetectionThreshold(),
@@ -132,9 +131,6 @@ public class PyLSDController {
         final String pathToPyLSDInputFile = this.pathToPyLSDInputFileFolder
                 + requestTransfer.getRequestID()
                 + ".pylsd";
-        //        final String pathToRankedSDFile = this.pathToPyLSDResultFileFolder
-        //                + requestTransfer.getRequestID()
-        //                + "_D.sdf";
 
         // run PyLSD if file was written successfully
         if (FileSystem.writeFile(pathToPyLSDInputFile, pyLSDInputFileContent)) {
@@ -243,8 +239,7 @@ public class PyLSDController {
         final Transfer queryTransfer = new Transfer();
         queryTransfer.setFileContent(fileContent);
         queryTransfer.setData(requestTransfer.getData());
-        queryTransfer.setMaxAverageDeviation(requestTransfer.getElucidationOptions()
-                                                            .getMaxAverageDeviation());
+        queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
         return webClient.post()
                         .bodyValue(queryTransfer)
                         .retrieve()

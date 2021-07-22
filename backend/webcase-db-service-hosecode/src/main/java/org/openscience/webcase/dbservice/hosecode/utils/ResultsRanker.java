@@ -47,14 +47,8 @@ public class ResultsRanker {
         System.out.println(" ---> requestDataSets: "
                                    + requestDataSetList.size());
         final Data data = requestTransfer.getData();
-        final double maxAverageDeviation = requestTransfer.getMaxAverageDeviation();
-        System.out.println("correlations: "
-                                   + data.getCorrelations()
-                                         .getValues()
-                                         .size());
-        System.out.println("maxAverageDeviation: "
-                                   + maxAverageDeviation);
-
+        final double maxAverageDeviation = requestTransfer.getElucidationOptions()
+                                                          .getMaxAverageDeviation();
         final List<Correlation> correlationsAtomType = data.getCorrelations()
                                                            .getValues()
                                                            .stream()
@@ -76,8 +70,6 @@ public class ResultsRanker {
             signal.setEquivalencesCount(correlation.getEquivalence());
             experimentalSpectrum.addSignalWithoutEquivalenceSearch(signal);
         }
-        System.out.println(" --> experimentalSpectrum: "
-                                   + experimentalSpectrum);
 
         IAtomContainer structure;
         Spectrum predictedSpectrum;
@@ -94,11 +86,9 @@ public class ResultsRanker {
             for (final DataSet dataSet : requestDataSetList) {
                 structure = dataSet.getStructure()
                                    .toAtomContainer();
-
                 //                // convert implicit to explicit hydrogens for building HOSE codes and lookup in HOSE code DB
                 //                Utils.convertImplicitToExplicitHydrogens(structure);
                 //                Utils.setAromaticityAndKekulize(structure);
-
 
                 predictedSpectrum = new Spectrum();
                 predictedSpectrum.setNuclei(experimentalSpectrum.getNuclei());
@@ -113,26 +103,14 @@ public class ResultsRanker {
                         continue;
                     }
 
-                    statistics = null;
+                    //                    statistics = null;
                     medians = new ArrayList<>();
                     sphere = maxSphere;
-                    final long start = System.currentTimeMillis();
                     while (sphere
                             >= 1) {
                         hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
-
-                        System.out.println(" query HOSE code: "
-                                                   + hoseCode);
-
-                        final long start2 = System.currentTimeMillis();
                         hoseCodeObject = this.hoseCodeController.getByID(hoseCode) //getByHOSECode(hoseCode)
                                                                 .block();
-
-                        final long stop2 = System.currentTimeMillis();
-                        System.out.println(" -----> time2: "
-                                                   + (stop2
-                                - start2));
-
                         //                        if (hoseCodeObject
                         //                                != null
                         //                                && hoseCodeObject.getValues()
@@ -150,26 +128,18 @@ public class ResultsRanker {
                                                                                                 .entrySet()) {
                                 statistics = hoseCodeObject.getValues()
                                                            .get(solventEntry.getKey());
-                                System.out.println(" --> statistics: "
-                                                           + Arrays.toString(statistics));
                                 medians.add(statistics[3]);
                             }
-
-
                             break;
                         }
                         sphere--;
                     }
 
                     if (!medians.isEmpty()) {
-                        System.out.println(" -> "
-                                                   + Arrays.toString(statistics));
                         predictedShift = Statistics.getMean(medians);
                     } else {
                         predictedShift = 1000;
                     }
-                    System.out.println(" -> "
-                                               + predictedShift);
                     signal = new Signal();
                     signal.setNuclei(experimentalSpectrum.getNuclei());
                     signal.setShifts(new Double[]{predictedShift});
@@ -182,11 +152,6 @@ public class ResultsRanker {
                     assignmentMap.putIfAbsent(signalIndex, new ArrayList<>());
                     assignmentMap.get(signalIndex)
                                  .add(i);
-
-                    final long stop = System.currentTimeMillis();
-                    System.out.println(" ---------> time total: "
-                                               + (stop
-                            - start));
                 }
 
                 // if no spectrum could be built or the number of signals in spectrum is different than the atom number in molecule
@@ -196,7 +161,6 @@ public class ResultsRanker {
                                                                                         dataSet.getMeta()
                                                                                                .get("mf")), 0)
                             != 0) {
-                        System.out.println("\n\n----> getDifferenceSpectrumSizeAndMolecularFormulaCount: false\n\n");
                         continue;
                     }
                 } catch (final CDKException e) {
@@ -220,21 +184,7 @@ public class ResultsRanker {
                 matchAssignment = Similarity.matchSpectra(experimentalSpectrum, predictedSpectrum, 0, 0, 50, true, true,
                                                           false);
                 deviations = Similarity.getDeviations(experimentalSpectrum, predictedSpectrum, 0, 0, matchAssignment);
-
-                System.out.println(" --> experimentalSpectrum: "
-                                           + experimentalSpectrum.getSignals());
-                System.out.println(" --> predictedSpectrum: "
-                                           + dataSet.getSpectrum()
-                                                    .getSignals());
-                System.out.println(" --> deviations: "
-                                           + Arrays.deepToString(deviations));
-                System.out.println(" --> assignments: "
-                                           + Arrays.deepToString(dataSet.getAssignment()
-                                                                        .getAssignments(0)));
-
                 averageDeviation = Statistics.calculateAverageDeviation(deviations);
-                System.out.println(" --> averageDeviation: "
-                                           + averageDeviation);
                 if (averageDeviation
                         != null) {
                     if (averageDeviation
@@ -250,9 +200,6 @@ public class ResultsRanker {
                                                  .filter(Objects::nonNull)
                                                  .toArray(Double[]::new);
                     averageDeviationIncomplete = Statistics.calculateAverageDeviation(deviationsIncomplete);
-
-                    System.out.println(" --> averageDeviationIncomplete: "
-                                               + averageDeviationIncomplete);
                     if (averageDeviationIncomplete
                             <= maxAverageDeviation) {
                         dataSet.addMetaInfo("averageDeviationIncomplete", String.valueOf(averageDeviationIncomplete));

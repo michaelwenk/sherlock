@@ -56,7 +56,4 @@ public class Transfer {
 
     // for (ranked) SDF parsing
     private String fileContent;
-    private double maxAverageDeviation;
-    @Deprecated
-    private String nucleus;
 }

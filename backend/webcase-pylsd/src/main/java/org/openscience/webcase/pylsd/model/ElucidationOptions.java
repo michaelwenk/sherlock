@@ -7,21 +7,12 @@ import lombok.*;
 @Getter
 @Setter
 @ToString
-public class ElucidationOptions {
+public class ElucidationOptions
+        extends casekit.nmr.lsd.model.ElucidationOptions {
     // PyLSD options
-    private String[] filterPaths;
+    private float hybridizationDetectionThreshold;
     private boolean useFilterLsdRing3;
     private boolean useFilterLsdRing4;
-    private boolean allowHeteroHeteroBonds;
-    private boolean useElim;
-    private int elimP1;
-    private int elimP2;
-    private int hmbcP3;
-    private int hmbcP4;
-    private int cosyP3;
-    private int cosyP4;
-    private float hybridizationDetectionThreshold;
-    private boolean usePrediction;
     // elucidation process
     private int timeLimitTotal;
     // generated structures filter
