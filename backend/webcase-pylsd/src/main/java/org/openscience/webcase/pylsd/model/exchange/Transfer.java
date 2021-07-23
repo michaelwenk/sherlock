@@ -46,7 +46,6 @@ public class Transfer {
 
     private List<DataSet> dataSetList;
     private String requestID;
-    private String resultID;
 
     private Data data;
     private String mf;

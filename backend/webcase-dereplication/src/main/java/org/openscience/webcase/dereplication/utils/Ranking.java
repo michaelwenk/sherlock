@@ -29,11 +29,28 @@ public class Ranking {
                                                  dataSet.getSpectrum(), querySpectrum, 0, 0, shiftTolerance,
                                                  checkMultiplicity, checkEquivalencesCount, false);
 
+                                         dataSet.addMetaInfo("querySpectrumSignalCount",
+                                                             String.valueOf(querySpectrum.getSignalCount()));
+                                         dataSet.addMetaInfo("querySpectrumSignalCountWithEquivalences", String.valueOf(
+                                                 querySpectrum.getSignalCountWithEquivalences()));
+                                         dataSet.addMetaInfo("setAssignmentsCountWithEquivalences", String.valueOf(
+                                                 matchAssignment.getSetAssignmentsCountWithEquivalences(0)));
+                                         final boolean isCompleteSpectralMatch = querySpectrum.getSignalCount()
+                                                 == matchAssignment.getSetAssignmentsCount(0);
+                                         final boolean isCompleteSpectralMatchWithEquivalences = querySpectrum.getSignalCountWithEquivalences()
+                                                 == matchAssignment.getSetAssignmentsCountWithEquivalences(0);
+                                         dataSet.addMetaInfo("setAssignmentsCount",
+                                                             String.valueOf(matchAssignment.getSetAssignmentsCount(0)));
+                                         dataSet.addMetaInfo("setAssignmentsCountWithEquivalences", String.valueOf(
+                                                 matchAssignment.getSetAssignmentsCountWithEquivalences(0)));
+                                         dataSet.addMetaInfo("isCompleteSpectralMatch",
+                                                             String.valueOf(isCompleteSpectralMatch));
+                                         dataSet.addMetaInfo("isCompleteSpectralMatchWithEquivalences",
+                                                             String.valueOf(isCompleteSpectralMatchWithEquivalences));
+
                                          if (checkEquivalencesCount
-                                             ? matchAssignment.getSetAssignmentsCountWithEquivalences(0)
-                                                     == querySpectrum.getSignalCountWithEquivalences()
-                                             : matchAssignment.getSetAssignmentsCount(0)
-                                                     == querySpectrum.getSignalCount()) {
+                                             ? isCompleteSpectralMatchWithEquivalences
+                                             : isCompleteSpectralMatch) {
 
                                              final Double averageDeviation = Similarity.calculateAverageDeviation(
                                                      dataSet.getSpectrum(), querySpectrum, 0, 0, matchAssignment);
@@ -56,21 +73,6 @@ public class Ranking {
                                          return false;
                                      })
                                      .collect(Collectors.toList());
-
-            dataSetList.sort((dataSet1, dataSet2) -> {
-                if (Double.parseDouble(dataSet1.getMeta()
-                                               .get("rmsd"))
-                        < Double.parseDouble(dataSet2.getMeta()
-                                                     .get("rmsd"))) {
-                    return -1;
-                } else if (Double.parseDouble(dataSet1.getMeta()
-                                                      .get("rmsd"))
-                        > Double.parseDouble(dataSet2.getMeta()
-                                                     .get("rmsd"))) {
-                    return 1;
-                }
-                return 0;
-            });
         }
 
         return dataSetList;

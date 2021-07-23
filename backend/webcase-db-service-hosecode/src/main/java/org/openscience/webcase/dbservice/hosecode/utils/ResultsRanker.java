@@ -181,8 +181,20 @@ public class ResultsRanker {
                 dataSet.setSpectrum(predictedSpectrum);
                 dataSet.setAssignment(assignment);
 
+                dataSet.addMetaInfo("querySpectrumSignalCount", String.valueOf(experimentalSpectrum.getSignalCount()));
+                dataSet.addMetaInfo("querySpectrumSignalCountWithEquivalences",
+                                    String.valueOf(experimentalSpectrum.getSignalCountWithEquivalences()));
                 matchAssignment = Similarity.matchSpectra(experimentalSpectrum, predictedSpectrum, 0, 0, 50, true, true,
                                                           false);
+                dataSet.addMetaInfo("setAssignmentsCount", String.valueOf(matchAssignment.getSetAssignmentsCount(0)));
+                dataSet.addMetaInfo("setAssignmentsCountWithEquivalences",
+                                    String.valueOf(matchAssignment.getSetAssignmentsCountWithEquivalences(0)));
+                dataSet.addMetaInfo("isCompleteSpectralMatch", String.valueOf(experimentalSpectrum.getSignalCount()
+                                                                                      == matchAssignment.getSetAssignmentsCount(
+                        0)));
+                dataSet.addMetaInfo("isCompleteSpectralMatchWithEquivalences", String.valueOf(
+                        experimentalSpectrum.getSignalCountWithEquivalences()
+                                == matchAssignment.getSetAssignmentsCountWithEquivalences(0)));
                 deviations = Similarity.getDeviations(experimentalSpectrum, predictedSpectrum, 0, 0, matchAssignment);
                 averageDeviation = Statistics.calculateAverageDeviation(deviations);
                 if (averageDeviation
@@ -205,10 +217,6 @@ public class ResultsRanker {
                         dataSet.addMetaInfo("averageDeviationIncomplete", String.valueOf(averageDeviationIncomplete));
                         rmsdIncomplete = Statistics.calculateRMSD(deviationsIncomplete);
                         dataSet.addMetaInfo("rmsdIncomplete", String.valueOf(rmsdIncomplete));
-                        dataSet.addMetaInfo("setAssignmentsCount",
-                                            String.valueOf(matchAssignment.getSetAssignmentsCount(0)));
-                        dataSet.addMetaInfo("setAssignmentsCountWithEquivalences",
-                                            String.valueOf(matchAssignment.getSetAssignmentsCountWithEquivalences(0)));
 
                         dataSetList.add(dataSet);
                     }
@@ -218,75 +226,6 @@ public class ResultsRanker {
             e.printStackTrace();
         }
 
-        // pre-sort by RMSD value
-        this.sortDataSetList(dataSetList);
-
         return dataSetList;
-    }
-
-    public void sortDataSetList(final List<DataSet> dataSetList) {
-        dataSetList.sort((dataSet1, dataSet2) -> {
-            final int rmsdComparison = this.compareNumericDataSetMetaKey(dataSet1, dataSet2, "rmsd");
-            if (rmsdComparison
-                    != 0) {
-                return rmsdComparison;
-            }
-            final int setAssignmentsCountWithEquivalencesComparison = this.compareNumericDataSetMetaKey(dataSet1,
-                                                                                                        dataSet2,
-                                                                                                        "setAssignmentsCountWithEquivalences");
-            if (setAssignmentsCountWithEquivalencesComparison
-                    != 0) {
-                return -1
-                        * setAssignmentsCountWithEquivalencesComparison;
-            }
-            final int rmsdIncompleteComparison = this.compareNumericDataSetMetaKey(dataSet1, dataSet2,
-                                                                                   "rmsdIncomplete");
-            if (rmsdIncompleteComparison
-                    != 0) {
-                return rmsdIncompleteComparison;
-            }
-
-            return 0;
-        });
-    }
-
-    private int compareNumericDataSetMetaKey(final DataSet dataSet1, final DataSet dataSet2, final String metaKey) {
-        Double valueDataSet1 = null;
-        Double valueDataSet2 = null;
-        try {
-            valueDataSet1 = Double.parseDouble(dataSet1.getMeta()
-                                                       .get(metaKey));
-        } catch (final NullPointerException | NumberFormatException e) {
-            //                e.printStackTrace();
-        }
-        try {
-            valueDataSet2 = Double.parseDouble(dataSet2.getMeta()
-                                                       .get(metaKey));
-        } catch (final NullPointerException | NumberFormatException e) {
-            //                e.printStackTrace();
-        }
-
-        if (valueDataSet1
-                != null
-                && valueDataSet2
-                != null) {
-            if (valueDataSet1
-                    < valueDataSet2) {
-                return -1;
-            } else if (valueDataSet1
-                    > valueDataSet2) {
-                return 1;
-            }
-            return 0;
-        }
-        if (valueDataSet1
-                != null) {
-            return -1;
-        } else if (valueDataSet2
-                != null) {
-            return 1;
-        }
-
-        return 0;
     }
 }

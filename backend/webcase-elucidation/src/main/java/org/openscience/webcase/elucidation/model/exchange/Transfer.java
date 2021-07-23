@@ -24,12 +24,12 @@
 
 package org.openscience.webcase.elucidation.model.exchange;
 
+import casekit.nmr.model.DataSet;
+import casekit.nmr.model.Spectrum;
+import casekit.nmr.model.nmrdisplayer.Data;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
-import org.openscience.webcase.elucidation.model.DataSet;
 import org.openscience.webcase.elucidation.model.ElucidationOptions;
-import org.openscience.webcase.elucidation.model.Spectrum;
-import org.openscience.webcase.elucidation.model.nmrdisplayer.Data;
 
 import java.util.List;
 

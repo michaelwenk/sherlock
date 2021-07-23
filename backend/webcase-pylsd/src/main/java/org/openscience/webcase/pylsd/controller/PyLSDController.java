@@ -182,28 +182,6 @@ public class PyLSDController {
                     System.out.println("--> number of results: "
                                                + dataSetList.size());
                     responseTransfer.setDataSetList(dataSetList);
-
-                    // store results in DB if not empty
-                    if (!responseTransfer.getDataSetList()
-                                         .isEmpty()) {
-                        final WebClient webClient = this.webClientBuilder.baseUrl(
-                                "http://webcase-gateway:8080/webcase-result/store/storeResult")
-                                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                                        MediaType.APPLICATION_JSON_VALUE)
-                                                                         .exchangeStrategies(this.exchangeStrategies)
-                                                                         .build();
-                        final Transfer queryResultTransfer = webClient.post()
-                                                                      .bodyValue(responseTransfer)
-                                                                      .retrieve()
-                                                                      .bodyToMono(Transfer.class)
-                                                                      .block();
-                        if (queryResultTransfer.getResultID()
-                                != null) {
-                            System.out.println("resultID: "
-                                                       + queryResultTransfer.getResultID());
-                            responseTransfer.setResultID(queryResultTransfer.getResultID());
-                        }
-                    }
                 } else {
                     System.out.println("run was NOT successful");
                 }

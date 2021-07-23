@@ -24,11 +24,12 @@
 
 package org.openscience.webcase.core.controller;
 
-import org.openscience.webcase.core.model.DataSet;
-import org.openscience.webcase.core.model.Signal;
-import org.openscience.webcase.core.model.Spectrum;
+import casekit.nmr.model.DataSet;
+import casekit.nmr.model.Signal;
+import casekit.nmr.model.Spectrum;
+import casekit.nmr.utils.Utils;
 import org.openscience.webcase.core.model.exchange.Transfer;
-import org.openscience.webcase.core.utils.Utils;
+import org.openscience.webcase.core.utils.Ranking;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -44,6 +45,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -80,9 +82,9 @@ public class CoreController {
                                                 .map(correlation -> new Signal(querySpectrum.getNuclei(), new Double[]{
                                                         correlation.getSignal().getDelta()},
                                                                                Utils.getMultiplicityFromProtonsCount(
-                                                                                       correlation), null,
+                                                                                       correlation),
                                                                                correlation.getSignal()
-                                                                                          .getKind(),
+                                                                                          .getKind(), null,
                                                                                correlation.getEquivalence(),
                                                                                correlation.getSignal()
                                                                                           .getSign()))
@@ -125,11 +127,13 @@ public class CoreController {
                                                                .retrieve()
                                                                .bodyToMono(Transfer.class)
                                                                .block();
-                responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
+                final List<DataSet> dataSetList = queryResultTransfer.getDataSetList();
+                Ranking.sortDataSetList(dataSetList);
+                responseTransfer.setDataSetList(dataSetList);
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
 
-            // @TODO check possible structural input (incl. assignment) by nmr-displayer
+            // @TODO check possible structural input (incl. assignment) by NMRium
 
             // @TODO SUBSTRUCTURE SEARCH
 
@@ -139,25 +143,47 @@ public class CoreController {
                 final String requestID = UUID.randomUUID()
                                              .toString();
                 // PyLSD RUN
-                final WebClient webClient = this.webClientBuilder.baseUrl(
+                WebClient webClient = this.webClientBuilder.baseUrl(
                         "http://webcase-gateway:8080/webcase-elucidation/elucidation")
-                                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                                MediaType.APPLICATION_JSON_VALUE)
-                                                                 .exchangeStrategies(this.exchangeStrategies)
-                                                                 .build();
+                                                           .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                          MediaType.APPLICATION_JSON_VALUE)
+                                                           .exchangeStrategies(this.exchangeStrategies)
+                                                           .build();
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setData(requestTransfer.getData());
                 queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
                 queryTransfer.setRequestID(requestID);
                 queryTransfer.setMf(mf);
 
-                final Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
-                                                               .post()
-                                                               .bodyValue(queryTransfer)
-                                                               .retrieve()
-                                                               .bodyToMono(Transfer.class)
-                                                               .block();
-                responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
+                Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
+                                                         .post()
+                                                         .bodyValue(queryTransfer)
+                                                         .retrieve()
+                                                         .bodyToMono(Transfer.class)
+                                                         .block();
+                final List<DataSet> dataSetList = queryResultTransfer.getDataSetList();
+                Ranking.sortDataSetList(dataSetList);
+                responseTransfer.setDataSetList(dataSetList);
+                // store results in DB if not empty
+                if (!dataSetList.isEmpty()) {
+                    webClient = this.webClientBuilder.baseUrl(
+                            "http://webcase-gateway:8080/webcase-result/store/storeResult")
+                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                    MediaType.APPLICATION_JSON_VALUE)
+                                                     .exchangeStrategies(this.exchangeStrategies)
+                                                     .build();
+                    queryResultTransfer = webClient.post()
+                                                   .bodyValue(responseTransfer)
+                                                   .retrieve()
+                                                   .bodyToMono(Transfer.class)
+                                                   .block();
+                    if (queryResultTransfer.getResultID()
+                            != null) {
+                        System.out.println("resultID: "
+                                                   + queryResultTransfer.getResultID());
+                        responseTransfer.setResultID(queryResultTransfer.getResultID());
+                    }
+                }
                 responseTransfer.setResultID(queryResultTransfer.getResultID());
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
