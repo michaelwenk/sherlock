@@ -34,17 +34,25 @@ import reactor.core.publisher.Mono;
 
 
 @Repository
-public interface DataSetRepository extends ReactiveMongoRepository<DataSetRecord, String> {
+public interface DataSetRepository
+        extends ReactiveMongoRepository<DataSetRecord, String> {
 
+    @Override
     Mono<DataSetRecord> findById(final String id);
+
+    @Override
+    Flux<DataSetRecord> findAllById(Iterable<String> iterable);
 
     @Query(value = "{\"dataSet.meta.mf\": \"?0\"}")
     Flux<DataSetRecord> findByMf(final String mf);
 
     Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
 
-    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei, final int signalCount);
+    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei,
+                                                                                 final int signalCount);
 
     @Query(value = "{\"dataSet.spectrum.nuclei\": ?0, \"dataSet.spectrum.signalCount\": ?1, \"dataSet.meta.mf\": \"?2\"}")
-    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(final String[] nuclei, final int signalCount, final String mf);
+    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(final String[] nuclei,
+                                                                                      final int signalCount,
+                                                                                      final String mf);
 }

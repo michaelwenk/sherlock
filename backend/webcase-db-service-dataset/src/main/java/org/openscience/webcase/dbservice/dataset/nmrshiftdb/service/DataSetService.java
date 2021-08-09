@@ -24,7 +24,6 @@
 
 package org.openscience.webcase.dbservice.dataset.nmrshiftdb.service;
 
-import casekit.nmr.model.DataSet;
 import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.DataSetRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -33,19 +32,22 @@ public interface DataSetService {
 
     Mono<Long> count();
 
-    Flux<DataSet> findAll();
+    Flux<DataSetRecord> findAll();
 
-    Mono<DataSet> findById(final String id);
+    Mono<DataSetRecord> findById(final String id);
 
-    Flux<DataSet> findByMf(final String mf);
+    Flux<DataSetRecord> findAllById(Iterable<String> iterable);
 
-    Flux<DataSet> findByDataSetSpectrumNuclei(final String[] nuclei);
+    Flux<DataSetRecord> findByMf(final String mf);
 
-    Flux<DataSet> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei,
-                                                                           final int signalCount);
+    Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
 
-    Flux<DataSet> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(final String[] nuclei,
-                                                                                final int signalCount, final String mf);
+    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei,
+                                                                                 final int signalCount);
+
+    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(final String[] nuclei,
+                                                                                      final int signalCount,
+                                                                                      final String mf);
 
     // insertions/deletions
 
