@@ -32,6 +32,5 @@ import lombok.Data;
 public class DataSetRecord {
 
     private String id;
-    private String mf;
     private DataSet dataSet;
 }
