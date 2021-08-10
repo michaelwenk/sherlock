@@ -257,16 +257,18 @@ public class NMRShiftDBController {
 
     @GetMapping(value = "/getMultiplicitySectionsSettings", produces = "application/json")
     public Map<String, int[]> getMultiplicitySectionsSettings() {
-        final Map<String, int[]> multiplicitySectionsSettings = new HashMap<>();
         final List<MultiplicitySectionsSettingsRecord> multiplicitySectionsSettingsRecordList = this.multiplicitySectionsSettingsServiceImplementation.findAll()
                                                                                                                                                       .collectList()
                                                                                                                                                       .block();
-        for (final MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord : multiplicitySectionsSettingsRecordList) {
-            multiplicitySectionsSettings.put(multiplicitySectionsSettingsRecord.getNucleus(),
-                                             multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings());
+        if (multiplicitySectionsSettingsRecordList
+                != null) {
+            for (final MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord : multiplicitySectionsSettingsRecordList) {
+                this.multiplicitySectionsSettings.put(multiplicitySectionsSettingsRecord.getNucleus(),
+                                                      multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings());
+            }
         }
 
-        return multiplicitySectionsSettings;
+        return this.multiplicitySectionsSettings;
     }
 
     private void setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(final List<DataSet> dataSetList) {
@@ -317,11 +319,6 @@ public class NMRShiftDBController {
             this.multiplicitySectionsSettingsServiceImplementation.insert(
                     new MultiplicitySectionsSettingsRecord(null, nucleus, settings))
                                                                   .block();
-
-            System.out.println("\n\nfor "
-                                       + nucleus
-                                       + ": "
-                                       + Arrays.toString(this.multiplicitySectionsSettings.get(nucleus)));
         }
     }
 }
