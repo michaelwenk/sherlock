@@ -11,13 +11,12 @@ import org.openscience.webcase.dereplication.model.DereplicationOptions;
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class Ranking {
+public class ResultsFilter {
 
 
-    public static List<DataSet> rankAndFilterBySpectralSimilarity(List<DataSet> dataSetList,
-                                                                  final Spectrum querySpectrum,
-                                                                  final DereplicationOptions dereplicationOptions,
-                                                                  final MultiplicitySectionsBuilder multiplicitySectionsBuilder) {
+    public static List<DataSet> filterBySpectralSimilarity(List<DataSet> dataSetList, final Spectrum querySpectrum,
+                                                           final DereplicationOptions dereplicationOptions,
+                                                           final MultiplicitySectionsBuilder multiplicitySectionsBuilder) {
         final double shiftTolerance = dereplicationOptions.getShiftTolerances()
                                                           .get("C");
         final boolean checkMultiplicity = dereplicationOptions.isCheckMultiplicity();

@@ -30,7 +30,7 @@ import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
 import org.openscience.webcase.dereplication.model.exchange.Transfer;
 import org.openscience.webcase.dereplication.model.nmrshiftdb.DataSetRecord;
-import org.openscience.webcase.dereplication.utils.Ranking;
+import org.openscience.webcase.dereplication.utils.ResultsFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
@@ -103,9 +103,9 @@ public class DereplicationController {
                                                .map(DataSetRecord::getDataSet)
                                                .collect(Collectors.toList());
             }
-            dataSetList = Ranking.rankAndFilterBySpectralSimilarity(dataSetList, querySpectrum,
-                                                                    requestTransfer.getDereplicationOptions(),
-                                                                    this.multiplicitySectionsBuilder);
+            dataSetList = ResultsFilter.filterBySpectralSimilarity(dataSetList, querySpectrum,
+                                                                   requestTransfer.getDereplicationOptions(),
+                                                                   this.multiplicitySectionsBuilder);
 
             responseTransfer.setDataSetList(dataSetList);
             return new ResponseEntity<>(responseTransfer, HttpStatus.OK);

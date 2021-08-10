@@ -24,7 +24,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
-public class ResultsRanker {
+public class ResultsParser {
 
     //    private final String[] solvents = new String[]{"Chloroform-D1 (CDCl3)", "Methanol-D4 (CD3OD)",
     //                                                   "Dimethylsulphoxide-D6 (DMSO-D6, C2D6SO)", "Unreported", "Unknown"};
@@ -33,12 +33,12 @@ public class ResultsRanker {
     private final HOSECodeController hoseCodeController;
 
     @Autowired
-    public ResultsRanker(final HOSECodeController hoseCodeController) {
+    public ResultsParser(final HOSECodeController hoseCodeController) {
         this.hoseCodeController = hoseCodeController;
     }
 
-    public List<DataSet> predictAndRankResults(final Transfer requestTransfer,
-                                               final Map<String, int[]> multiplicitySectionsSettings) {
+    public List<DataSet> parseAndPredict(final Transfer requestTransfer,
+                                         final Map<String, int[]> multiplicitySectionsSettings) {
         // @TODO method modifications for different nuclei and solvent needed
         final String nucleus = "13C";
         final String atomType = Utils.getAtomTypeFromNucleus(nucleus);

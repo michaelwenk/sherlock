@@ -4,7 +4,7 @@ import casekit.nmr.model.DataSet;
 import casekit.nmr.utils.SDFParser;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.webcase.dbservice.hosecode.model.exchange.Transfer;
-import org.openscience.webcase.dbservice.hosecode.utils.ResultsRanker;
+import org.openscience.webcase.dbservice.hosecode.utils.ResultsParser;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
@@ -37,22 +37,21 @@ public class FileParserController {
                                                                     .build();
 
     private final WebClient.Builder webClientBuilder;
-    private final ResultsRanker resultsRanker;
+    private final ResultsParser resultsParser;
 
     @Autowired
-    public FileParserController(final WebClient.Builder webClientBuilder, final ResultsRanker resultsRanker) {
+    public FileParserController(final WebClient.Builder webClientBuilder, final ResultsParser resultsParser) {
         this.webClientBuilder = webClientBuilder;
-        this.resultsRanker = resultsRanker;
+        this.resultsParser = resultsParser;
     }
 
-    @PostMapping(value = "/parseAndRankResultSDFile")
-    public ResponseEntity<Transfer> parseResultSDF(@RequestBody final Transfer requestTransfer) {
+    @PostMapping(value = "/parseResultSDFile")
+    public ResponseEntity<Transfer> parseResultSDFile(@RequestBody final Transfer requestTransfer) {
         final Transfer resultTransfer = new Transfer();
         List<DataSet> dataSetList = new ArrayList<>();
         try {
             requestTransfer.setDataSetList(SDFParser.parseSDFileContent(requestTransfer.getFileContent()));
-            dataSetList = this.resultsRanker.predictAndRankResults(requestTransfer,
-                                                                   this.getMultiplicitySectionsSettings());
+            dataSetList = this.resultsParser.parseAndPredict(requestTransfer, this.getMultiplicitySectionsSettings());
         } catch (final CDKException e) {
             e.printStackTrace();
         }

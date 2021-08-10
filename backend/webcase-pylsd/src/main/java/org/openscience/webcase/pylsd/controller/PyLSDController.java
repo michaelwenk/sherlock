@@ -159,15 +159,6 @@ public class PyLSDController {
                                                                       TimeUnit.MINUTES);
                 if (pyLSDRunWasSuccessful) {
                     System.out.println("-> run was successful");
-                    //                    final String pathToResultsFilePredictions = this.pathToPyLSDResultFileFolder
-                    //                            + requestTransfer.getRequestID()
-                    //                            + "_D.sdf";
-                    //                    System.out.println(pathToResultsFilePredictions);
-                    //
-                    //                    final List<DataSet> dataSetList = this.retrieveResultFromRankedSDFile(pathToRankedSDFile, "13C",
-                    //                                                                                          requestTransfer.getElucidationOptions()
-                    //                                                                                                         .getMaxAverageDeviation());
-
                     final String pathToResultsFile = this.pathToPyLSDResultFileFolder
                             + requestTransfer.getRequestID()
                             + "_0.sdf";
@@ -212,7 +203,7 @@ public class PyLSDController {
             return new ArrayList<>();
         }
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-hosecode/fileParser/parseAndRankResultSDFile")
+                "http://webcase-gateway:8080/webcase-db-service-hosecode/fileParser/parseResultSDFile")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)

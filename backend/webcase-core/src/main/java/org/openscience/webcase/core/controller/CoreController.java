@@ -128,7 +128,7 @@ public class CoreController {
                                                                .bodyToMono(Transfer.class)
                                                                .block();
                 final List<DataSet> dataSetList = queryResultTransfer.getDataSetList();
-                Ranking.sortDataSetList(dataSetList);
+                Ranking.rankDataSetList(dataSetList);
                 responseTransfer.setDataSetList(dataSetList);
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
@@ -162,7 +162,7 @@ public class CoreController {
                                                          .bodyToMono(Transfer.class)
                                                          .block();
                 final List<DataSet> dataSetList = queryResultTransfer.getDataSetList();
-                Ranking.sortDataSetList(dataSetList);
+                Ranking.rankDataSetList(dataSetList);
                 responseTransfer.setDataSetList(dataSetList);
                 // store results in DB if not empty
                 if (!dataSetList.isEmpty()) {
