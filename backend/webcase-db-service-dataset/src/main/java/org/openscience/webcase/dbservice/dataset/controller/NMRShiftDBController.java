@@ -32,8 +32,10 @@ import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.BitSetRecord;
 import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.DataSetRecord;
+import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.MultiplicitySectionsSettingsRecord;
 import org.openscience.webcase.dbservice.dataset.nmrshiftdb.service.BitSetServiceImplementation;
 import org.openscience.webcase.dbservice.dataset.nmrshiftdb.service.DataSetServiceImplementation;
+import org.openscience.webcase.dbservice.dataset.nmrshiftdb.service.MultiplicitySectionsSettingsServiceImplementation;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -49,15 +51,18 @@ public class NMRShiftDBController {
 
     private final DataSetServiceImplementation dataSetServiceImplementation;
     private final BitSetServiceImplementation bitSetServiceImplementation;
+    private final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation;
 
     private final String pathToNMRShiftDB = "/data/nmrshiftdb/nmrshiftdb2withsignals.sd";
     private final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
-    private final Map<String, int[]> multiplicitySectionsProps = new HashMap<>();
+    private final Map<String, int[]> multiplicitySectionsSettings = new HashMap<>();
 
     public NMRShiftDBController(final DataSetServiceImplementation dataSetServiceImplementation,
-                                final BitSetServiceImplementation bitSetServiceImplementation) {
+                                final BitSetServiceImplementation bitSetServiceImplementation,
+                                final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation) {
         this.dataSetServiceImplementation = dataSetServiceImplementation;
         this.bitSetServiceImplementation = bitSetServiceImplementation;
+        this.multiplicitySectionsSettingsServiceImplementation = multiplicitySectionsSettingsServiceImplementation;
     }
 
     @GetMapping(value = "/count")
@@ -135,9 +140,9 @@ public class NMRShiftDBController {
             nucleus = insertedDataSetRecord.getDataSet()
                                            .getSpectrum()
                                            .getNuclei()[0];
-            this.multiplicitySectionsBuilder.setMinLimit(this.multiplicitySectionsProps.get(nucleus)[0]);
-            this.multiplicitySectionsBuilder.setMaxLimit(this.multiplicitySectionsProps.get(nucleus)[1]);
-            this.multiplicitySectionsBuilder.setStepSize(this.multiplicitySectionsProps.get(nucleus)[2]);
+            this.multiplicitySectionsBuilder.setMinLimit(this.multiplicitySectionsSettings.get(nucleus)[0]);
+            this.multiplicitySectionsBuilder.setMaxLimit(this.multiplicitySectionsSettings.get(nucleus)[1]);
+            this.multiplicitySectionsBuilder.setStepSize(this.multiplicitySectionsSettings.get(nucleus)[2]);
             final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(
                     insertedDataSetRecord.getDataSet()
                                          .getSpectrum(), 0, this.multiplicitySectionsBuilder);
@@ -169,8 +174,9 @@ public class NMRShiftDBController {
                     setBits[i] = Integer.parseInt(split[i].trim());
                 }
                 fingerprintSize = this.multiplicitySectionsBuilder.calculateSteps(
-                        this.multiplicitySectionsProps.get(nucleus)[0], this.multiplicitySectionsProps.get(nucleus)[1],
-                        this.multiplicitySectionsProps.get(nucleus)[2]);
+                        this.multiplicitySectionsSettings.get(nucleus)[0],
+                        this.multiplicitySectionsSettings.get(nucleus)[1],
+                        this.multiplicitySectionsSettings.get(nucleus)[2]);
 
                 this.bitSetServiceImplementation.insert(
                         new BitSetRecord(null, nucleus, fingerprintSize, setBits, setBits.length,
@@ -249,6 +255,20 @@ public class NMRShiftDBController {
         return dataSetRecordIDList;
     }
 
+    @GetMapping(value = "/getMultiplicitySectionsSettings", produces = "application/json")
+    public Map<String, int[]> getMultiplicitySectionsSettings() {
+        final Map<String, int[]> multiplicitySectionsSettings = new HashMap<>();
+        final List<MultiplicitySectionsSettingsRecord> multiplicitySectionsSettingsRecordList = this.multiplicitySectionsSettingsServiceImplementation.findAll()
+                                                                                                                                                      .collectList()
+                                                                                                                                                      .block();
+        for (final MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord : multiplicitySectionsSettingsRecordList) {
+            multiplicitySectionsSettings.put(multiplicitySectionsSettingsRecord.getNucleus(),
+                                             multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings());
+        }
+
+        return multiplicitySectionsSettings;
+    }
+
     private void setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(final List<DataSet> dataSetList) {
         final Map<String, Integer> stepSizes = new HashMap<>();
         stepSizes.put("13C", 5);
@@ -280,22 +300,28 @@ public class NMRShiftDBController {
             }
         }
 
-        int[] props;
+        // delete previously stored multiplicity sections settings
+        this.multiplicitySectionsSettingsServiceImplementation.deleteAll()
+                                                              .block();
+        int[] settings;
         for (final Map.Entry<String, Integer[]> entry : limits.entrySet()) {
             nucleus = entry.getKey();
-            props = new int[3];
-            props[0] = limits.get(nucleus)[0]
+            settings = new int[3];
+            settings[0] = limits.get(nucleus)[0]
                     - stepSizes.get(nucleus); // extend by one more step
-            props[1] = limits.get(nucleus)[1]
+            settings[1] = limits.get(nucleus)[1]
                     // extend by one more step
                     + stepSizes.get(nucleus);
-            props[2] = stepSizes.get(nucleus);
-            this.multiplicitySectionsProps.put(nucleus, props);
+            settings[2] = stepSizes.get(nucleus);
+            this.multiplicitySectionsSettings.put(nucleus, settings);
+            this.multiplicitySectionsSettingsServiceImplementation.insert(
+                    new MultiplicitySectionsSettingsRecord(null, nucleus, settings))
+                                                                  .block();
 
             System.out.println("\n\nfor "
                                        + nucleus
                                        + ": "
-                                       + Arrays.toString(this.multiplicitySectionsProps.get(nucleus)));
+                                       + Arrays.toString(this.multiplicitySectionsSettings.get(nucleus)));
         }
     }
 }
