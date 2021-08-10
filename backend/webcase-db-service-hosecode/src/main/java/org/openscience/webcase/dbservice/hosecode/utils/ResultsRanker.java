@@ -1,5 +1,6 @@
 package org.openscience.webcase.dbservice.hosecode.utils;
 
+import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.hose.HOSECodeBuilder;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
@@ -11,6 +12,7 @@ import casekit.nmr.similarity.Similarity;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
+import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.webcase.dbservice.hosecode.controller.HOSECodeController;
 import org.openscience.webcase.dbservice.hosecode.model.exchange.Transfer;
@@ -26,6 +28,7 @@ public class ResultsRanker {
 
     //    private final String[] solvents = new String[]{"Chloroform-D1 (CDCl3)", "Methanol-D4 (CD3OD)",
     //                                                   "Dimethylsulphoxide-D6 (DMSO-D6, C2D6SO)", "Unreported", "Unknown"};
+    private final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
 
     private final HOSECodeController hoseCodeController;
 
@@ -34,7 +37,8 @@ public class ResultsRanker {
         this.hoseCodeController = hoseCodeController;
     }
 
-    public List<DataSet> predictAndRankResults(final Transfer requestTransfer) {
+    public List<DataSet> predictAndRankResults(final Transfer requestTransfer,
+                                               final Map<String, int[]> multiplicitySectionsSettings) {
         // @TODO method modifications for different nuclei and solvent needed
         final String nucleus = "13C";
         final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
@@ -58,18 +62,25 @@ public class ResultsRanker {
                                                            .collect(Collectors.toList());
 
 
-        final Spectrum experimentalSpectrum = new Spectrum();
-        experimentalSpectrum.setNuclei(new String[]{nucleus});
-        experimentalSpectrum.setSignals(new ArrayList<>());
+        final Spectrum querySpectrum = new Spectrum();
+        querySpectrum.setNuclei(new String[]{nucleus});
+        querySpectrum.setSignals(new ArrayList<>());
         Signal signal;
         for (final Correlation correlation : correlationsAtomType) {
             signal = new Signal();
-            signal.setNuclei(experimentalSpectrum.getNuclei());
+            signal.setNuclei(querySpectrum.getNuclei());
             signal.setShifts(new Double[]{correlation.getSignal().getDelta()});
             signal.setMultiplicity(Utils.getMultiplicityFromProtonsCount(correlation));
             signal.setEquivalencesCount(correlation.getEquivalence());
-            experimentalSpectrum.addSignalWithoutEquivalenceSearch(signal);
+            querySpectrum.addSignalWithoutEquivalenceSearch(signal);
         }
+
+        this.multiplicitySectionsBuilder.setMinLimit(multiplicitySectionsSettings.get(nucleus)[0]);
+        this.multiplicitySectionsBuilder.setMaxLimit(multiplicitySectionsSettings.get(nucleus)[1]);
+        this.multiplicitySectionsBuilder.setStepSize(multiplicitySectionsSettings.get(nucleus)[2]);
+
+        final BitSetFingerprint bitSetFingerprintQuerySpectrum = Similarity.getBitSetFingerprint(querySpectrum, 0,
+                                                                                                 this.multiplicitySectionsBuilder);
 
         IAtomContainer structure;
         Spectrum predictedSpectrum;
@@ -77,11 +88,12 @@ public class ResultsRanker {
         HOSECode hoseCodeObject;
         double predictedShift;
         String hoseCode;
-        Double[] statistics, deviations, deviationsIncomplete;
-        Double rmsd, averageDeviation, rmsdIncomplete, averageDeviationIncomplete;
+        Double[] statistics, deviations;
+        Double rmsd, averageDeviation, tanimotoCoefficient;
         int signalIndex, sphere;
         Map<Integer, List<Integer>> assignmentMap;
         List<Double> medians;
+        BitSetFingerprint bitSetFingerprintDataSet;
         try {
             for (final DataSet dataSet : requestDataSetList) {
                 structure = dataSet.getStructure()
@@ -91,7 +103,7 @@ public class ResultsRanker {
                 //                Utils.setAromaticityAndKekulize(structure);
 
                 predictedSpectrum = new Spectrum();
-                predictedSpectrum.setNuclei(experimentalSpectrum.getNuclei());
+                predictedSpectrum.setNuclei(querySpectrum.getNuclei());
                 predictedSpectrum.setSignals(new ArrayList<>());
 
                 assignmentMap = new HashMap<>();
@@ -141,7 +153,7 @@ public class ResultsRanker {
                         predictedShift = 1000;
                     }
                     signal = new Signal();
-                    signal.setNuclei(experimentalSpectrum.getNuclei());
+                    signal.setNuclei(querySpectrum.getNuclei());
                     signal.setShifts(new Double[]{predictedShift});
                     signal.setMultiplicity(Utils.getMultiplicityFromProtonsCount(structure.getAtom(i)
                                                                                           .getImplicitHydrogenCount()));
@@ -181,21 +193,21 @@ public class ResultsRanker {
                 dataSet.setSpectrum(predictedSpectrum);
                 dataSet.setAssignment(assignment);
 
-                dataSet.addMetaInfo("querySpectrumSignalCount", String.valueOf(experimentalSpectrum.getSignalCount()));
+                dataSet.addMetaInfo("querySpectrumSignalCount", String.valueOf(querySpectrum.getSignalCount()));
                 dataSet.addMetaInfo("querySpectrumSignalCountWithEquivalences",
-                                    String.valueOf(experimentalSpectrum.getSignalCountWithEquivalences()));
-                matchAssignment = Similarity.matchSpectra(experimentalSpectrum, predictedSpectrum, 0, 0, 50, true, true,
+                                    String.valueOf(querySpectrum.getSignalCountWithEquivalences()));
+                matchAssignment = Similarity.matchSpectra(querySpectrum, predictedSpectrum, 0, 0, 50, true, true,
                                                           false);
                 dataSet.addMetaInfo("setAssignmentsCount", String.valueOf(matchAssignment.getSetAssignmentsCount(0)));
                 dataSet.addMetaInfo("setAssignmentsCountWithEquivalences",
                                     String.valueOf(matchAssignment.getSetAssignmentsCountWithEquivalences(0)));
-                dataSet.addMetaInfo("isCompleteSpectralMatch", String.valueOf(experimentalSpectrum.getSignalCount()
+                dataSet.addMetaInfo("isCompleteSpectralMatch", String.valueOf(querySpectrum.getSignalCount()
                                                                                       == matchAssignment.getSetAssignmentsCount(
                         0)));
                 dataSet.addMetaInfo("isCompleteSpectralMatchWithEquivalences", String.valueOf(
-                        experimentalSpectrum.getSignalCountWithEquivalences()
+                        querySpectrum.getSignalCountWithEquivalences()
                                 == matchAssignment.getSetAssignmentsCountWithEquivalences(0)));
-                deviations = Similarity.getDeviations(experimentalSpectrum, predictedSpectrum, 0, 0, matchAssignment);
+                deviations = Similarity.getDeviations(querySpectrum, predictedSpectrum, 0, 0, matchAssignment);
                 averageDeviation = Statistics.calculateAverageDeviation(deviations);
                 if (averageDeviation
                         != null) {
@@ -204,19 +216,29 @@ public class ResultsRanker {
                         dataSet.addMetaInfo("averageDeviation", String.valueOf(averageDeviation));
                         rmsd = Statistics.calculateRMSD(deviations);
                         dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
+                        bitSetFingerprintDataSet = Similarity.getBitSetFingerprint(dataSet.getSpectrum(), 0,
+                                                                                   this.multiplicitySectionsBuilder);
+                        tanimotoCoefficient = Similarity.calculateTanimotoCoefficient(bitSetFingerprintQuerySpectrum,
+                                                                                      bitSetFingerprintDataSet);
+                        dataSet.addMetaInfo("tanimoto", String.valueOf(tanimotoCoefficient));
 
                         dataSetList.add(dataSet);
                     }
                 } else {
-                    deviationsIncomplete = Arrays.stream(deviations)
-                                                 .filter(Objects::nonNull)
-                                                 .toArray(Double[]::new);
-                    averageDeviationIncomplete = Statistics.calculateAverageDeviation(deviationsIncomplete);
-                    if (averageDeviationIncomplete
+                    deviations = Arrays.stream(deviations)
+                                       .filter(Objects::nonNull)
+                                       .toArray(Double[]::new);
+                    averageDeviation = Statistics.calculateAverageDeviation(deviations);
+                    if (averageDeviation
                             <= maxAverageDeviation) {
-                        dataSet.addMetaInfo("averageDeviationIncomplete", String.valueOf(averageDeviationIncomplete));
-                        rmsdIncomplete = Statistics.calculateRMSD(deviationsIncomplete);
-                        dataSet.addMetaInfo("rmsdIncomplete", String.valueOf(rmsdIncomplete));
+                        dataSet.addMetaInfo("averageDeviation", String.valueOf(averageDeviation));
+                        rmsd = Statistics.calculateRMSD(deviations);
+                        dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
+                        bitSetFingerprintDataSet = Similarity.getBitSetFingerprint(dataSet.getSpectrum(), 0,
+                                                                                   this.multiplicitySectionsBuilder);
+                        tanimotoCoefficient = Similarity.calculateTanimotoCoefficient(bitSetFingerprintQuerySpectrum,
+                                                                                      bitSetFingerprintDataSet);
+                        dataSet.addMetaInfo("tanimoto", String.valueOf(tanimotoCoefficient));
 
                         dataSetList.add(dataSet);
                     }
