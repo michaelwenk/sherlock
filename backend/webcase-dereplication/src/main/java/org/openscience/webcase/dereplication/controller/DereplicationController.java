@@ -24,12 +24,15 @@
 
 package org.openscience.webcase.dereplication.controller;
 
+import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
 import org.openscience.webcase.dereplication.model.exchange.Transfer;
+import org.openscience.webcase.dereplication.model.nmrshiftdb.DataSetRecord;
 import org.openscience.webcase.dereplication.utils.Ranking;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -46,6 +49,8 @@ import reactor.core.publisher.Flux;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "/")
@@ -60,9 +65,13 @@ public class DereplicationController {
                                                                                                                     * 1024
                                                                                                                     * 1024))
                                                                     .build();
+    private final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
+    private final WebClient.Builder webClientBuilder;
 
     @Autowired
-    private WebClient.Builder webClientBuilder;
+    public DereplicationController(final WebClient.Builder webClientBuilder) {
+        this.webClientBuilder = webClientBuilder;
+    }
 
     @PostMapping(value = "dereplication", consumes = "application/json", produces = "application/json")
     //, produces = "application/stream+json")
@@ -73,13 +82,30 @@ public class DereplicationController {
 
         if (querySpectrum.getNuclei().length
                 == 1) {
-            final Flux<DataSet> dataSetFlux = this.getDataSetFlux(querySpectrum, requestTransfer.getMf(),
-                                                                  requestTransfer.getDereplicationOptions()
-                                                                                 .isUseMF());
-            List<DataSet> dataSetList = dataSetFlux.collectList()
-                                                   .block();
-            dataSetList = Ranking.rankBySpectralSimilarity(dataSetList, querySpectrum,
-                                                           requestTransfer.getDereplicationOptions());
+            final Map<String, int[]> multiplicitySectionsSettings = this.getMultiplicitySectionsSettings();
+            this.multiplicitySectionsBuilder.setMinLimit(
+                    multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[0]);
+            this.multiplicitySectionsBuilder.setMaxLimit(
+                    multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[1]);
+            this.multiplicitySectionsBuilder.setStepSize(
+                    multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[2]);
+
+            final List<DataSetRecord> dataSetRecordList = this.getDataSetRecordFlux(querySpectrum,
+                                                                                    requestTransfer.getMf(),
+                                                                                    requestTransfer.getDereplicationOptions()
+                                                                                                   .isUseMF())
+                                                              .collectList()
+                                                              .block();
+            List<DataSet> dataSetList = new ArrayList<>();
+            if (dataSetRecordList
+                    != null) {
+                dataSetList = dataSetRecordList.stream()
+                                               .map(DataSetRecord::getDataSet)
+                                               .collect(Collectors.toList());
+            }
+            dataSetList = Ranking.rankAndFilterBySpectralSimilarity(dataSetList, querySpectrum,
+                                                                    requestTransfer.getDereplicationOptions(),
+                                                                    this.multiplicitySectionsBuilder);
 
             responseTransfer.setDataSetList(dataSetList);
             return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
@@ -89,7 +115,23 @@ public class DereplicationController {
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
-    public Flux<DataSet> getDataSetFlux(final Spectrum querySpectrum, final String mf, final boolean useMF) {
+    public Map<String, int[]> getMultiplicitySectionsSettings() {
+        final WebClient webClient = this.webClientBuilder.baseUrl(
+                "http://webcase-gateway:8080/webcase-db-service-dataset/nmrshiftdb/getMultiplicitySectionsSettings")
+                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                        MediaType.APPLICATION_JSON_VALUE)
+                                                         .exchangeStrategies(this.exchangeStrategies)
+                                                         .build();
+
+        return webClient.get()
+                        .retrieve()
+                        .bodyToMono(new ParameterizedTypeReference<Map<String, int[]>>() {
+                        })
+                        .block();
+    }
+
+    public Flux<DataSetRecord> getDataSetRecordFlux(final Spectrum querySpectrum, final String mf,
+                                                    final boolean useMF) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
                 "http://webcase-gateway:8080/webcase-db-service-dataset/nmrshiftdb")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
@@ -118,8 +160,6 @@ public class DereplicationController {
         return webClient.get()
                         .uri(uriComponentsBuilder.toUriString())
                         .retrieve()
-                        .bodyToFlux(DataSet.class);
+                        .bodyToFlux(DataSetRecord.class);
     }
-
-
 }

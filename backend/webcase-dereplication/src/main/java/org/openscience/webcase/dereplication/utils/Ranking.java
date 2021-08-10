@@ -1,9 +1,11 @@
 package org.openscience.webcase.dereplication.utils;
 
+import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.similarity.Similarity;
+import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.webcase.dereplication.model.DereplicationOptions;
 
 import java.util.List;
@@ -11,8 +13,11 @@ import java.util.stream.Collectors;
 
 public class Ranking {
 
-    public static List<DataSet> rankBySpectralSimilarity(List<DataSet> dataSetList, final Spectrum querySpectrum,
-                                                         final DereplicationOptions dereplicationOptions) {
+
+    public static List<DataSet> rankAndFilterBySpectralSimilarity(List<DataSet> dataSetList,
+                                                                  final Spectrum querySpectrum,
+                                                                  final DereplicationOptions dereplicationOptions,
+                                                                  final MultiplicitySectionsBuilder multiplicitySectionsBuilder) {
         final double shiftTolerance = dereplicationOptions.getShiftTolerances()
                                                           .get("C");
         final boolean checkMultiplicity = dereplicationOptions.isCheckMultiplicity();
@@ -23,6 +28,8 @@ public class Ranking {
                 == 1
                 && querySpectrum.getNuclei()[0].equals("13C")) {
             // @TODO get shift tolerance as arguments
+            final BitSetFingerprint bitSetFingerprintQuerySpectrum = Similarity.getBitSetFingerprint(querySpectrum, 0,
+                                                                                                     multiplicitySectionsBuilder);
             dataSetList = dataSetList.stream()
                                      .filter(dataSet -> {
                                          final Assignment matchAssignment = Similarity.matchSpectra(
@@ -64,6 +71,12 @@ public class Ranking {
                                                                                               querySpectrum, 0, 0,
                                                                                               matchAssignment);
                                                  dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
+
+                                                 final BitSetFingerprint bitSetFingerprintDataSet = Similarity.getBitSetFingerprint(
+                                                         dataSet.getSpectrum(), 0, multiplicitySectionsBuilder);
+                                                 final Double tanimotoCoefficient = Similarity.calculateTanimotoCoefficient(
+                                                         bitSetFingerprintQuerySpectrum, bitSetFingerprintDataSet);
+                                                 dataSet.addMetaInfo("tanimoto", String.valueOf(tanimotoCoefficient));
 
                                                  return true;
                                              }
