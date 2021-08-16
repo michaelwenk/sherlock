@@ -1,8 +1,7 @@
 package org.openscience.webcase.dbservice.hosecode.controller;
 
 import casekit.nmr.model.DataSet;
-import casekit.nmr.utils.SDFParser;
-import org.openscience.cdk.exception.CDKException;
+import casekit.nmr.utils.Parser;
 import org.openscience.webcase.dbservice.hosecode.model.exchange.Transfer;
 import org.openscience.webcase.dbservice.hosecode.utils.ResultsParser;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,16 +44,13 @@ public class FileParserController {
         this.resultsParser = resultsParser;
     }
 
-    @PostMapping(value = "/parseResultSDFile")
-    public ResponseEntity<Transfer> parseResultSDFile(@RequestBody final Transfer requestTransfer) {
+    @PostMapping(value = "/parseResultFile")
+    public ResponseEntity<Transfer> parseResultFile(@RequestBody final Transfer requestTransfer) {
         final Transfer resultTransfer = new Transfer();
         List<DataSet> dataSetList = new ArrayList<>();
-        try {
-            requestTransfer.setDataSetList(SDFParser.parseSDFileContent(requestTransfer.getFileContent()));
-            dataSetList = this.resultsParser.parseAndPredict(requestTransfer, this.getMultiplicitySectionsSettings());
-        } catch (final CDKException e) {
-            e.printStackTrace();
-        }
+        //        requestTransfer.setDataSetList(Parser.parseSDFileContent(requestTransfer.getFileContent()));
+        requestTransfer.setSmilesList(Parser.smilesFileContentToList(requestTransfer.getFileContent()));
+        dataSetList = this.resultsParser.parseAndPredict(requestTransfer, this.getMultiplicitySectionsSettings());
 
         resultTransfer.setDataSetList(dataSetList);
         return new ResponseEntity<>(resultTransfer, HttpStatus.OK);

@@ -18,6 +18,7 @@ import java.util.Map;
 public class Transfer {
     // for SDF parsing
     private List<DataSet> dataSetList;
+    private List<String> smilesList;
     private Data data;
     private String fileContent;
     private ElucidationOptions elucidationOptions;

@@ -14,6 +14,8 @@ import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.cdk.silent.SilentChemObjectBuilder;
+import org.openscience.cdk.smiles.SmilesParser;
 import org.openscience.webcase.dbservice.hosecode.controller.HOSECodeController;
 import org.openscience.webcase.dbservice.hosecode.model.exchange.Transfer;
 import org.openscience.webcase.dbservice.hosecode.service.model.HOSECode;
@@ -46,10 +48,10 @@ public class ResultsParser {
         //        final String solvent = this.solvents[0];
         final int maxSphere = 6;
 
-        final List<DataSet> requestDataSetList = requestTransfer.getDataSetList();
+        final List<String> smilesList = requestTransfer.getSmilesList();
         final List<DataSet> dataSetList = new ArrayList<>();
-        System.out.println(" ---> requestDataSets: "
-                                   + requestDataSetList.size());
+        System.out.println(" ---> requestSMILES: "
+                                   + smilesList.size());
         final Data data = requestTransfer.getData();
         final double maxAverageDeviation = requestTransfer.getElucidationOptions()
                                                           .getMaxAverageDeviation();
@@ -82,6 +84,8 @@ public class ResultsParser {
         final BitSetFingerprint bitSetFingerprintQuerySpectrum = Similarity.getBitSetFingerprint(querySpectrum, 0,
                                                                                                  this.multiplicitySectionsBuilder);
 
+        final SmilesParser smilesParser = new SmilesParser(SilentChemObjectBuilder.getInstance());
+        DataSet dataSet;
         IAtomContainer structure;
         Spectrum predictedSpectrum;
         Assignment assignment, matchAssignment;
@@ -94,10 +98,11 @@ public class ResultsParser {
         Map<Integer, List<Integer>> assignmentMap;
         List<Double> medians;
         BitSetFingerprint bitSetFingerprintDataSet;
+        int counter = 1;
         try {
-            for (final DataSet dataSet : requestDataSetList) {
-                structure = dataSet.getStructure()
-                                   .toAtomContainer();
+            for (final String smiles : smilesList) {
+                structure = smilesParser.parseSmiles(smiles);
+                dataSet = Utils.atomContainerToDataSet(structure);
                 //                // convert implicit to explicit hydrogens for building HOSE codes and lookup in HOSE code DB
                 //                Utils.convertImplicitToExplicitHydrogens(structure);
                 //                Utils.setAromaticityAndKekulize(structure);
@@ -106,6 +111,10 @@ public class ResultsParser {
                 predictedSpectrum.setNuclei(querySpectrum.getNuclei());
                 predictedSpectrum.setSignals(new ArrayList<>());
 
+                System.out.println("\nprediction for: "
+                                           + counter
+                                           + "/"
+                                           + smilesList.size());
                 assignmentMap = new HashMap<>();
                 for (int i = 0; i
                         < structure.getAtomCount(); i++) {
@@ -114,8 +123,6 @@ public class ResultsParser {
                                   .equals(atomType)) {
                         continue;
                     }
-
-                    //                    statistics = null;
                     medians = new ArrayList<>();
                     sphere = maxSphere;
                     while (sphere
@@ -123,17 +130,6 @@ public class ResultsParser {
                         hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
                         hoseCodeObject = this.hoseCodeController.getByID(hoseCode) //getByHOSECode(hoseCode)
                                                                 .block();
-                        //                        if (hoseCodeObject
-                        //                                != null
-                        //                                && hoseCodeObject.getValues()
-                        //                                                 .containsKey(solvent)) {
-                        //                            statistics = hoseCodeObject.getValues()
-                        //                                                       .get(solvent);
-                        //                            System.out.println(" --> statistics: "
-                        //                                                       + Arrays.toString(statistics));
-                        //
-                        //                            break;
-                        //                        }
                         if (hoseCodeObject
                                 != null) {
                             for (final Map.Entry<String, Double[]> solventEntry : hoseCodeObject.getValues()
@@ -146,12 +142,10 @@ public class ResultsParser {
                         }
                         sphere--;
                     }
-
-                    if (!medians.isEmpty()) {
-                        predictedShift = Statistics.getMean(medians);
-                    } else {
-                        predictedShift = 1000;
+                    if (medians.isEmpty()) {
+                        continue;
                     }
+                    predictedShift = Statistics.getMean(medians);
                     signal = new Signal();
                     signal.setNuclei(querySpectrum.getNuclei());
                     signal.setShifts(new Double[]{predictedShift});
@@ -190,6 +184,9 @@ public class ResultsParser {
                     }
                 }
 
+                // to save space and time when (re-)converting structures delete the larger ExtendedConnectionMatrix
+                // the SMILES was build by CDK and stored in Meta member anyway
+                dataSet.setStructure(null);
                 dataSet.setSpectrum(predictedSpectrum);
                 dataSet.setAssignment(assignment);
 
@@ -243,6 +240,7 @@ public class ResultsParser {
                         dataSetList.add(dataSet);
                     }
                 }
+                counter++;
             }
         } catch (final Exception e) {
             e.printStackTrace();

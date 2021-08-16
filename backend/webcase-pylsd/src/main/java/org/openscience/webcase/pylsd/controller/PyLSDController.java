@@ -55,6 +55,74 @@ public class PyLSDController {
     }
 
 
+    @PostMapping(value = "/runPyLSD")
+    public ResponseEntity<Transfer> runPyLSD(@RequestBody final Transfer requestTransfer) {
+        final Transfer responseTransfer = new Transfer();
+
+        // build PyLSD input file
+        final String pyLSDInputFileContent = this.createPyLSDInputFile(requestTransfer);
+        System.out.println("file content:\n"
+                                   + pyLSDInputFileContent);
+        final String pathToPyLSDInputFile = this.pathToPyLSDInputFileFolder
+                + requestTransfer.getRequestID()
+                + ".pylsd";
+
+        // run PyLSD if file was written successfully
+        if (FileSystem.writeFile(pathToPyLSDInputFile, pyLSDInputFileContent)) {
+            System.out.println("--> has been written successfully: "
+                                       + pathToPyLSDInputFile);
+            try {
+                // try to execute PyLSD
+                final ProcessBuilder builder = new ProcessBuilder();
+                builder.directory(new File(this.pathToPyLSDExecutableFolder))
+                       .redirectError(new File(this.pathToPyLSDInputFileFolder
+                                                       + requestTransfer.getRequestID()
+                                                       + "_error.txt"))
+                       .redirectOutput(new File(this.pathToPyLSDInputFileFolder
+                                                        + requestTransfer.getRequestID()
+                                                        + "_log.txt"))
+                       .command("python2.7", this.pathToPyLSDExecutableFolder
+                               + "lsd.py", pathToPyLSDInputFile);
+                final Process process = builder.start();
+                final boolean pyLSDRunWasSuccessful = process.waitFor(requestTransfer.getElucidationOptions()
+                                                                                     .getTimeLimitTotal(),
+                                                                      TimeUnit.MINUTES);
+                if (pyLSDRunWasSuccessful) {
+                    System.out.println("-> run was successful");
+                    final String pathToResultsFile = this.pathToPyLSDResultFileFolder
+                            + requestTransfer.getRequestID()
+                            + "_0.smiles";
+                    System.out.println(pathToResultsFile);
+
+                    final List<DataSet> dataSetList = this.retrieveAndRankResultsFromPyLSDOutputFile(pathToResultsFile,
+                                                                                                     requestTransfer);
+                    System.out.println("--> number of parsed and ranked structures: "
+                                               + dataSetList.size());
+
+
+                    System.out.println("--> number of results: "
+                                               + dataSetList.size());
+                    responseTransfer.setDataSetList(dataSetList);
+                } else {
+                    System.out.println("run was NOT successful");
+                }
+            } catch (final Exception e) {
+                e.printStackTrace();
+                responseTransfer.setPyLSDRunWasSuccessful(false);
+            }
+            // cleanup of created files and folder
+            final String[] directoriesToCheck = new String[]{this.pathToPyLSDInputFileFolder,
+                                                             this.pathToPyLSDResultFileFolder};
+            System.out.println("cleaned ? -> "
+                                       + FileSystem.cleanup(directoriesToCheck, requestTransfer.getRequestID()));
+        } else {
+            System.out.println("--> file creation failed: "
+                                       + pathToPyLSDInputFile);
+        }
+
+        return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
+    }
+    
     private String createPyLSDInputFile(final Transfer requestTransfer) {
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.getDetectedHybridizations(
                 this.webClientBuilder, requestTransfer.getData(), requestTransfer.getElucidationOptions()
@@ -125,85 +193,19 @@ public class PyLSDController {
                                                                 elucidationOptions);
     }
 
-    @PostMapping(value = "/runPyLSD")
-    public ResponseEntity<Transfer> runPyLSD(@RequestBody final Transfer requestTransfer) {
-        final Transfer responseTransfer = new Transfer();
 
-        // build PyLSD input file
-        final String pyLSDInputFileContent = this.createPyLSDInputFile(requestTransfer);
-        System.out.println("file content:\n"
-                                   + pyLSDInputFileContent);
-        final String pathToPyLSDInputFile = this.pathToPyLSDInputFileFolder
-                + requestTransfer.getRequestID()
-                + ".pylsd";
-
-        // run PyLSD if file was written successfully
-        if (FileSystem.writeFile(pathToPyLSDInputFile, pyLSDInputFileContent)) {
-            System.out.println("--> has been written successfully: "
-                                       + pathToPyLSDInputFile);
-            try {
-                // try to execute PyLSD
-                final ProcessBuilder builder = new ProcessBuilder();
-                builder.directory(new File(this.pathToPyLSDExecutableFolder))
-                       .redirectError(new File(this.pathToPyLSDInputFileFolder
-                                                       + requestTransfer.getRequestID()
-                                                       + "_error.txt"))
-                       .redirectOutput(new File(this.pathToPyLSDInputFileFolder
-                                                        + requestTransfer.getRequestID()
-                                                        + "_log.txt"))
-                       .command("python2.7", this.pathToPyLSDExecutableFolder
-                               + "lsd.py", pathToPyLSDInputFile);
-                final Process process = builder.start();
-                final boolean pyLSDRunWasSuccessful = process.waitFor(requestTransfer.getElucidationOptions()
-                                                                                     .getTimeLimitTotal(),
-                                                                      TimeUnit.MINUTES);
-                if (pyLSDRunWasSuccessful) {
-                    System.out.println("-> run was successful");
-                    final String pathToResultsFile = this.pathToPyLSDResultFileFolder
-                            + requestTransfer.getRequestID()
-                            + "_0.sdf";
-                    System.out.println(pathToResultsFile);
-
-                    final List<DataSet> dataSetList = this.retrieveAndRankResultsFromSDFile(pathToResultsFile,
-                                                                                            requestTransfer);
-                    System.out.println("--> number of parsed and ranked structures: "
-                                               + dataSetList.size());
-
-
-                    System.out.println("--> number of results: "
-                                               + dataSetList.size());
-                    responseTransfer.setDataSetList(dataSetList);
-                } else {
-                    System.out.println("run was NOT successful");
-                }
-            } catch (final Exception e) {
-                e.printStackTrace();
-                responseTransfer.setPyLSDRunWasSuccessful(false);
-            }
-            // cleanup of created files and folder
-            final String[] directoriesToCheck = new String[]{this.pathToPyLSDInputFileFolder,
-                                                             this.pathToPyLSDResultFileFolder};
-            System.out.println("cleaned ? -> "
-                                       + FileSystem.cleanup(directoriesToCheck, requestTransfer.getRequestID()));
-        } else {
-            System.out.println("--> file creation failed: "
-                                       + pathToPyLSDInputFile);
-        }
-
-        return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
-    }
-
-    private List<DataSet> retrieveAndRankResultsFromSDFile(final String pathToSDFile, final Transfer requestTransfer) {
-        final BufferedReader bufferedReader = FileSystem.readFile(pathToSDFile);
+    private List<DataSet> retrieveAndRankResultsFromPyLSDOutputFile(final String pathToResultsFile,
+                                                                    final Transfer requestTransfer) {
+        final BufferedReader bufferedReader = FileSystem.readFile(pathToResultsFile);
         if (bufferedReader
                 == null) {
-            System.out.println("parseAndRankResultSDFile: could not read file \""
-                                       + pathToSDFile
+            System.out.println("retrieveAndRankResultsFromPyLSDOutputFile: could not read file \""
+                                       + pathToResultsFile
                                        + "\"");
             return new ArrayList<>();
         }
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-hosecode/fileParser/parseResultSDFile")
+                "http://webcase-gateway:8080/webcase-db-service-hosecode/fileParser/parseResultFile")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)
