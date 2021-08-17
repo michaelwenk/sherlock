@@ -33,10 +33,30 @@ public class ResultsParser {
     private final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
 
     private final HOSECodeController hoseCodeController;
+    private final Map<String, HOSECode> hoseCodeDBEntries;
 
     @Autowired
-    public ResultsParser(final HOSECodeController hoseCodeController) {
+    public ResultsParser(final HOSECodeController hoseCodeController, final Map<String, HOSECode> hoseCodeDBEntries) {
         this.hoseCodeController = hoseCodeController;
+        this.hoseCodeDBEntries = hoseCodeDBEntries;
+
+        this.initHOSECodeDBEntries();
+    }
+
+    private void initHOSECodeDBEntries() {
+        System.out.println("\nloading DB...");
+        final List<HOSECode> hoseCodeList = this.hoseCodeController.getAll()
+                                                                   .collectList()
+                                                                   .block();
+        if (hoseCodeList
+                != null) {
+            for (final HOSECode hoseCodeObject : hoseCodeList) {
+                this.hoseCodeDBEntries.put(hoseCodeObject.getHOSECode(), hoseCodeObject);
+            }
+        }
+
+        System.out.println(" -> "
+                                   + this.hoseCodeDBEntries.size());
     }
 
     public List<DataSet> parseAndPredict(final Transfer requestTransfer,
@@ -128,8 +148,9 @@ public class ResultsParser {
                     while (sphere
                             >= 1) {
                         hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
-                        hoseCodeObject = this.hoseCodeController.getByID(hoseCode) //getByHOSECode(hoseCode)
-                                                                .block();
+                        //                        hoseCodeObject = this.hoseCodeController.getByID(hoseCode) //getByHOSECode(hoseCode)
+                        //                                                                .block();
+                        hoseCodeObject = this.hoseCodeDBEntries.get(hoseCode);
                         if (hoseCodeObject
                                 != null) {
                             for (final Map.Entry<String, Double[]> solventEntry : hoseCodeObject.getValues()
