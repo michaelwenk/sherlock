@@ -25,6 +25,7 @@
 package org.openscience.webcase.dbservice.dataset.controller;
 
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
+import casekit.nmr.dbservice.COCONUT;
 import casekit.nmr.dbservice.NMRShiftDB;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.similarity.Similarity;
@@ -54,6 +55,24 @@ public class NMRShiftDBController {
     private final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation;
 
     private final String pathToNMRShiftDB = "/data/nmrshiftdb/nmrshiftdb2withsignals.sd";
+    private final String[] pathsToCOCONUT = new String[]{"/data/nmrshiftdb/acd_coconut_1.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_2.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_3.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_4.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_5.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_6.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_7.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_8.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_9.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_10.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_11.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_12.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_13.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_14.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_15.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_16.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_17.sdf",
+                                                         "/data/nmrshiftdb/acd_coconut_18.sdf"};
     private final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
     private final Map<String, int[]> multiplicitySectionsSettings = new HashMap<>();
 
@@ -125,11 +144,34 @@ public class NMRShiftDBController {
         List<DataSet> dataSetList = new ArrayList<>();
         try {
             dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(this.pathToNMRShiftDB, nuclei);
+            Map<String, Integer[]> limits = this.setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(dataSetList,
+                                                                                                     new HashMap<>());
+            System.out.println("limits NMRShiftDB: "
+                                       + Arrays.toString(limits.get("13C")));
+            for (int i = 0; i
+                    < this.pathsToCOCONUT.length; i++) {
+                if (i
+                        == 4) {
+                    break;
+                }
+                System.out.println(" -> COCONUT "
+                                           + i
+                                           + " -> "
+                                           + this.pathsToCOCONUT[i]);
+                dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(this.pathsToCOCONUT[i], nuclei);
+                System.out.println("dataset size COCONUT "
+                                           + i
+                                           + " -> "
+                                           + dataSetList.size());
+                limits = this.setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(dataSetList, limits);
+                System.out.println("limits COCONUT "
+                                           + i
+                                           + ": "
+                                           + Arrays.toString(limits.get("13C")));
+            }
         } catch (final FileNotFoundException | CDKException e) {
             e.printStackTrace();
         }
-
-        this.setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(dataSetList);
 
         final Map<String, Map<String, List<String>>> dataSetRecordIDsPerNucleusAndSetBits = new HashMap<>(); // per nucleus(outer key) a map of: set bits string as (inner) key and object array as value: dataset record id, nucleus, fingerprint
         DataSetRecord insertedDataSetRecord;
@@ -271,12 +313,13 @@ public class NMRShiftDBController {
         return this.multiplicitySectionsSettings;
     }
 
-    private void setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(final List<DataSet> dataSetList) {
+    private Map<String, Integer[]> setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(final List<DataSet> dataSetList,
+                                                                                       final Map<String, Integer[]> prevLimits) {
         final Map<String, Integer> stepSizes = new HashMap<>();
         stepSizes.put("13C", 5);
         stepSizes.put("15N", 10);
         stepSizes.put("1H", 1);
-        final Map<String, Integer[]> limits = new HashMap<>(); // min/max limit per nucleus
+        final Map<String, Integer[]> limits = new HashMap<>(prevLimits); // min/max limit per nucleus
         String nucleus;
         Double tempMin, tempMax;
         for (final DataSet dataSet : dataSetList) {
@@ -320,5 +363,7 @@ public class NMRShiftDBController {
                     new MultiplicitySectionsSettingsRecord(null, nucleus, settings))
                                                                   .block();
         }
+
+        return limits;
     }
 }
