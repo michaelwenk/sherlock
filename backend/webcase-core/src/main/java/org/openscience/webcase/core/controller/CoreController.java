@@ -31,6 +31,7 @@ import casekit.nmr.utils.Utils;
 import org.openscience.webcase.core.model.exchange.Transfer;
 import org.openscience.webcase.core.utils.Ranking;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -42,7 +43,6 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
-import reactor.core.publisher.Flux;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -202,12 +202,13 @@ public class CoreController {
                                     .queryParam("resultID", requestTransfer.getResultID());
 
                 // retrieve results
-                final Flux<DataSet> dataSetFlux = webClient.get()
+                final List<DataSet> dataSetList = webClient.get()
                                                            .uri(uriComponentsBuilder.toUriString())
                                                            .retrieve()
-                                                           .bodyToFlux(DataSet.class);
-                responseTransfer.setDataSetList(dataSetFlux.collectList()
-                                                           .block());
+                                                           .bodyToMono(new ParameterizedTypeReference<List<DataSet>>() {
+                                                           })
+                                                           .block();
+                responseTransfer.setDataSetList(dataSetList);
                 responseTransfer.setResultID(requestTransfer.getResultID());
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }

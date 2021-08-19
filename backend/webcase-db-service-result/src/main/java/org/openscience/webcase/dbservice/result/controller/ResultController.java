@@ -1,10 +1,8 @@
 package org.openscience.webcase.dbservice.result.controller;
 
-import org.openscience.webcase.dbservice.result.model.DataSet;
 import org.openscience.webcase.dbservice.result.model.db.ResultRecord;
 import org.openscience.webcase.dbservice.result.service.ResultServiceImplementation;
 import org.springframework.web.bind.annotation.*;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -17,13 +15,28 @@ public class ResultController {
         this.resultServiceImplementation = resultServiceImplementation;
     }
 
+    @GetMapping(value = "/count")
+    public Mono<Long> count() {
+        return this.resultServiceImplementation.count();
+    }
+
     @GetMapping(value = "/getById", produces = "application/json")
-    public Flux<DataSet> getById(@RequestParam final String id) {
+    public Mono<ResultRecord> getById(@RequestParam final String id) {
         return this.resultServiceImplementation.findById(id);
     }
 
     @PostMapping(value = "/insert", consumes = "application/json", produces = "application/json")
     public Mono<ResultRecord> insert(@RequestBody final ResultRecord resultRecord) {
         return this.resultServiceImplementation.insert(resultRecord);
+    }
+
+    @DeleteMapping(value = "/deleteById")
+    public Mono<Void> deleteById(final String id) {
+        return this.resultServiceImplementation.deleteById(id);
+    }
+
+    @DeleteMapping(value = "/deleteAll")
+    public Mono<Void> deleteAll() {
+        return this.resultServiceImplementation.deleteAll();
     }
 }

@@ -2,6 +2,7 @@ package org.openscience.webcase.dbservicehybridization.controller;
 
 import casekit.nmr.lsd.Constants;
 import casekit.nmr.model.DataSet;
+import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.webcase.dbservicehybridization.service.HybridizationServiceImplementation;
 import org.openscience.webcase.dbservicehybridization.service.model.HybridizationRecord;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -85,6 +86,8 @@ public class HybridizationController {
         List<DataSet> dataSetList;
         String atomType, hybridization, multiplicity;
         Integer shift;
+        IAtomContainer structure;
+        int atomIndex;
         int[][][] assignmentValues;
         for (final String nucleus : nuclei) {
             dataSetList = this.getByDataSetSpectrumNuclei(new String[]{nucleus})
@@ -94,37 +97,41 @@ public class HybridizationController {
                     != null) {
                 atomType = this.getAtomTypeFromNucleus(nucleus);
                 for (final DataSet dataset : dataSetList) {
+                    structure = dataset.getStructure()
+                                       .toAtomContainer();
                     assignmentValues = dataset.getAssignment()
                                               .getAssignments();
-                    for (int i = 0; i
-                            < assignmentValues[0].length; i++) {
+                    for (int signalIndex = 0; signalIndex
+                            < assignmentValues[0].length; signalIndex++) {
                         multiplicity = dataset.getSpectrum()
-                                              .getSignals()
-                                              .get(i)
+                                              .getSignal(signalIndex)
                                               .getMultiplicity();
                         shift = null;
                         if (dataset.getSpectrum()
                                    .getSignals()
-                                   .get(i)
+                                   .get(signalIndex)
                                    .getShifts()[0]
                                 != null) {
                             shift = dataset.getSpectrum()
-                                           .getSignals()
-                                           .get(i)
-                                           .getShifts()[0].intValue();
+                                           .getSignal(signalIndex)
+                                           .getShift(0)
+                                           .intValue();
                         }
-                        for (int k = 0; k
-                                < assignmentValues[0][i].length; k++) {
-                            hybridization = dataset.getStructure()
-                                                   .getHybridizations()[assignmentValues[0][i][k]].name();
+                        for (int equivalenceIndex = 0; equivalenceIndex
+                                < assignmentValues[0][signalIndex].length; equivalenceIndex++) {
+                            atomIndex = assignmentValues[0][signalIndex][equivalenceIndex];
+                            hybridization = structure.getAtom(atomIndex)
+                                                     .getHybridization()
+                                                     .name();
 
                             if (shift
                                     == null
-                                    || dataset.getStructure()
-                                              .getAtomTypes()[assignmentValues[0][i][k]]
+                                    || structure.getAtom(atomIndex)
+                                                .getSymbol()
                                     == null
-                                    || !dataset.getStructure()
-                                               .getAtomTypes()[assignmentValues[0][i][k]].equals(atomType)) {
+                                    || !structure.getAtom(atomIndex)
+                                                 .getSymbol()
+                                                 .equals(atomType)) {
                                 continue;
                             }
 

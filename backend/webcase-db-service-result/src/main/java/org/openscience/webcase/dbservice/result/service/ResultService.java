@@ -24,9 +24,7 @@
 
 package org.openscience.webcase.dbservice.result.service;
 
-import org.openscience.webcase.dbservice.result.model.DataSet;
 import org.openscience.webcase.dbservice.result.model.db.ResultRecord;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 public interface ResultService {
@@ -35,7 +33,9 @@ public interface ResultService {
 
     Mono<ResultRecord> insert(final ResultRecord resultRecord);
 
-    Flux<DataSet> findById(final String id);
+    Mono<ResultRecord> findById(final String id);
+
+    Mono<Void> deleteById(final String id);
 
     Mono<Void> deleteAll();
 }
