@@ -24,11 +24,9 @@
 
 package org.openscience.webcase.dbservice.result.service;
 
-import casekit.nmr.model.DataSet;
 import org.openscience.webcase.dbservice.result.model.db.ResultRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 
@@ -54,9 +52,13 @@ public class ResultServiceImplementation
     }
 
     @Override
-    public Flux<DataSet> findById(final String id) {
-        return this.resultRepository.findById(id)
-                                    .flatMapMany(resultRecord -> Flux.fromIterable(resultRecord.getDataSetList()));
+    public Mono<ResultRecord> findById(final String id) {
+        return this.resultRepository.findById(id);
+    }
+
+    @Override
+    public Mono<Void> deleteById(final String id) {
+        return this.resultRepository.deleteById(id);
     }
 
     @Override
