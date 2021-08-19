@@ -1,6 +1,6 @@
 package org.openscience.webcase.result.controller;
 
-import org.openscience.webcase.result.model.DataSet;
+import casekit.nmr.model.DataSet;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;

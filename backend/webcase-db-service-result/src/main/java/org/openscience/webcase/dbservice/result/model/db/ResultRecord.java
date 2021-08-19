@@ -24,8 +24,8 @@
 
 package org.openscience.webcase.dbservice.result.model.db;
 
+import casekit.nmr.model.DataSet;
 import lombok.*;
-import org.openscience.webcase.dbservice.result.model.DataSet;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 

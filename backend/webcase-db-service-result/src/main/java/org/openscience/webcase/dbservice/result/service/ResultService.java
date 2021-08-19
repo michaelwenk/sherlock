@@ -24,7 +24,7 @@
 
 package org.openscience.webcase.dbservice.result.service;
 
-import org.openscience.webcase.dbservice.result.model.DataSet;
+import casekit.nmr.model.DataSet;
 import org.openscience.webcase.dbservice.result.model.db.ResultRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

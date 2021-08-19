@@ -205,9 +205,9 @@ public class ResultsParser {
                     }
                 }
 
-                // to save space and time when (re-)converting structures delete the larger ExtendedConnectionMatrix
-                // the SMILES was build by CDK and stored in Meta member anyway
-                dataSet.setStructure(null);
+                //                // to save space and time when (re-)converting structures delete the larger ExtendedAdjacencyList
+                //                // the SMILES was build by CDK and stored in Meta member anyway
+                //                dataSet.setStructure(null);
                 dataSet.setSpectrum(predictedSpectrum);
                 dataSet.setAssignment(assignment);
 

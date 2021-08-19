@@ -24,7 +24,7 @@
 
 package org.openscience.webcase.dbservice.result.service;
 
-import org.openscience.webcase.dbservice.result.model.DataSet;
+import casekit.nmr.model.DataSet;
 import org.openscience.webcase.dbservice.result.model.db.ResultRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

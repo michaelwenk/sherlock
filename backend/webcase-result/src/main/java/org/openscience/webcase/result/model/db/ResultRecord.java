@@ -24,8 +24,8 @@
 
 package org.openscience.webcase.result.model.db;
 
+import casekit.nmr.model.DataSet;
 import lombok.*;
-import org.openscience.webcase.result.model.DataSet;
 
 import java.util.List;
 

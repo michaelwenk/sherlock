@@ -1,6 +1,6 @@
 package org.openscience.webcase.dbservice.result.controller;
 
-import org.openscience.webcase.dbservice.result.model.DataSet;
+import casekit.nmr.model.DataSet;
 import org.openscience.webcase.dbservice.result.model.db.ResultRecord;
 import org.openscience.webcase.dbservice.result.service.ResultServiceImplementation;
 import org.springframework.web.bind.annotation.*;

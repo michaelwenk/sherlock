@@ -19,5 +19,5 @@ cd backend/webcase-db-service-hybridization && mvn clean package
 cd ../..
 cd backend/webcase-db-service-result && mvn clean package
 cd ../..
-cd backend/webcase-db-service-hosecode && mvn clean package
+cd backend/webcase-db-service-hosecode && mvn clean package -DskipTests
 cd ../..
