@@ -31,56 +31,50 @@ import casekit.nmr.model.DataSet;
 import casekit.nmr.similarity.Similarity;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.BitSetRecord;
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.DataSetRecord;
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.MultiplicitySectionsSettingsRecord;
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.service.BitSetServiceImplementation;
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.service.DataSetServiceImplementation;
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.service.MultiplicitySectionsSettingsServiceImplementation;
+import org.openscience.webcase.dbservice.dataset.db.model.DataSetRecord;
+import org.openscience.webcase.dbservice.dataset.db.model.MultiplicitySectionsSettingsRecord;
+import org.openscience.webcase.dbservice.dataset.db.service.DataSetServiceImplementation;
+import org.openscience.webcase.dbservice.dataset.db.service.MultiplicitySectionsSettingsServiceImplementation;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.FileNotFoundException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 
 @RestController
-@RequestMapping(value = "/nmrshiftdb")
-public class NMRShiftDBController {
+@RequestMapping(value = "/")
+public class DatabaseController {
 
     private final DataSetServiceImplementation dataSetServiceImplementation;
-    private final BitSetServiceImplementation bitSetServiceImplementation;
     private final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation;
 
-    private final String pathToNMRShiftDB = "/data/nmrshiftdb/nmrshiftdb2withsignals.sd";
-    private final String[] pathsToCOCONUT = new String[]{"/data/nmrshiftdb/acd_coconut_1.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_2.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_3.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_4.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_5.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_6.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_7.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_8.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_9.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_10.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_11.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_12.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_13.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_14.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_15.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_16.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_17.sdf",
-                                                         "/data/nmrshiftdb/acd_coconut_18.sdf"};
+    private final String pathToNMRShiftDB = "/data/nmrshiftdb/nmrshiftdb.sdf";
+    private final String[] pathsToCOCONUT = new String[]{"/data/coconut/acd_coconut_1.sdf",
+                                                         "/data/coconut/acd_coconut_2.sdf",
+                                                         "/data/coconut/acd_coconut_3.sdf",
+                                                         "/data/coconut/acd_coconut_4.sdf",
+                                                         "/data/coconut/acd_coconut_5.sdf",
+                                                         "/data/coconut/acd_coconut_6.sdf",
+                                                         "/data/coconut/acd_coconut_7.sdf",
+                                                         "/data/coconut/acd_coconut_8.sdf",
+                                                         "/data/coconut/acd_coconut_9.sdf",
+                                                         "/data/coconut/acd_coconut_10.sdf",
+                                                         "/data/coconut/acd_coconut_11.sdf",
+                                                         "/data/coconut/acd_coconut_12.sdf",
+                                                         "/data/coconut/acd_coconut_13.sdf",
+                                                         "/data/coconut/acd_coconut_14.sdf",
+                                                         "/data/coconut/acd_coconut_15.sdf",
+                                                         "/data/coconut/acd_coconut_16.sdf",
+                                                         "/data/coconut/acd_coconut_17.sdf",
+                                                         "/data/coconut/acd_coconut_18.sdf"};
     private final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
     private final Map<String, int[]> multiplicitySectionsSettings = new HashMap<>();
 
-    public NMRShiftDBController(final DataSetServiceImplementation dataSetServiceImplementation,
-                                final BitSetServiceImplementation bitSetServiceImplementation,
-                                final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation) {
+    public DatabaseController(final DataSetServiceImplementation dataSetServiceImplementation,
+                              final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation) {
         this.dataSetServiceImplementation = dataSetServiceImplementation;
-        this.bitSetServiceImplementation = bitSetServiceImplementation;
         this.multiplicitySectionsSettingsServiceImplementation = multiplicitySectionsSettingsServiceImplementation;
     }
 
@@ -138,22 +132,19 @@ public class NMRShiftDBController {
     @PostMapping(value = "/replaceAll")
     public void replaceAll(@RequestParam final String[] nuclei) {
         this.deleteAll();
-        this.bitSetServiceImplementation.deleteAll()
-                                        .block();
 
-        List<DataSet> dataSetList = new ArrayList<>();
+        // detect bitset ranges and store in DB
+        List<DataSet> dataSetList;
         try {
             dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(this.pathToNMRShiftDB, nuclei);
             Map<String, Integer[]> limits = this.setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(dataSetList,
                                                                                                      new HashMap<>());
+            System.out.println("dataset size NMRShiftDB -> "
+                                       + dataSetList.size());
             System.out.println("limits NMRShiftDB: "
                                        + Arrays.toString(limits.get("13C")));
             for (int i = 0; i
                     < this.pathsToCOCONUT.length; i++) {
-                if (i
-                        == 4) {
-                    break;
-                }
                 System.out.println(" -> COCONUT "
                                            + i
                                            + " -> "
@@ -173,128 +164,51 @@ public class NMRShiftDBController {
             e.printStackTrace();
         }
 
-        final Map<String, Map<String, List<String>>> dataSetRecordIDsPerNucleusAndSetBits = new HashMap<>(); // per nucleus(outer key) a map of: set bits string as (inner) key and object array as value: dataset record id, nucleus, fingerprint
-        DataSetRecord insertedDataSetRecord;
+        // store datasets in DB
+        try {
+            dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(this.pathToNMRShiftDB, nuclei);
+            System.out.println("dataset size NMRShiftDB -> "
+                                       + dataSetList.size());
+            this.insertDataSetRecords(dataSetList);
+            for (int i = 0; i
+                    < this.pathsToCOCONUT.length; i++) {
+                System.out.println(" -> COCONUT "
+                                           + i
+                                           + " -> "
+                                           + this.pathsToCOCONUT[i]);
+                dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(this.pathsToCOCONUT[i], nuclei);
+                System.out.println("dataset size COCONUT "
+                                           + i
+                                           + " -> "
+                                           + dataSetList.size());
+                this.insertDataSetRecords(dataSetList);
+                System.out.println("storage for COCONUT "
+                                           + i
+                                           + " done!");
+            }
+        } catch (final FileNotFoundException | CDKException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void insertDataSetRecords(final List<DataSet> dataSetList) {
+        BitSetFingerprint bitSetFingerprint;
         String nucleus, setBitsString;
         for (final DataSet dataSet : dataSetList) {
-            insertedDataSetRecord = this.insert(new DataSetRecord(null, dataSet))
-                                        .block();
-            nucleus = insertedDataSetRecord.getDataSet()
-                                           .getSpectrum()
-                                           .getNuclei()[0];
+            nucleus = dataSet.getSpectrum()
+                             .getNuclei()[0];
             this.multiplicitySectionsBuilder.setMinLimit(this.multiplicitySectionsSettings.get(nucleus)[0]);
             this.multiplicitySectionsBuilder.setMaxLimit(this.multiplicitySectionsSettings.get(nucleus)[1]);
             this.multiplicitySectionsBuilder.setStepSize(this.multiplicitySectionsSettings.get(nucleus)[2]);
-            final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(
-                    insertedDataSetRecord.getDataSet()
-                                         .getSpectrum(), 0, this.multiplicitySectionsBuilder);
+            bitSetFingerprint = Similarity.getBitSetFingerprint(dataSet.getSpectrum(), 0,
+                                                                this.multiplicitySectionsBuilder);
             setBitsString = Arrays.toString(bitSetFingerprint.getSetbits());
 
-            dataSetRecordIDsPerNucleusAndSetBits.putIfAbsent(nucleus, new HashMap<>());
-
-            dataSetRecordIDsPerNucleusAndSetBits.get(nucleus)
-                                                .putIfAbsent(setBitsString, new ArrayList<>());
-            dataSetRecordIDsPerNucleusAndSetBits.get(nucleus)
-                                                .get(setBitsString)
-                                                .add(insertedDataSetRecord.getId());
+            dataSet.addMetaInfo("fpSize", String.valueOf(bitSetFingerprint.size()));
+            dataSet.addMetaInfo("setBits", setBitsString);
+            this.insert(new DataSetRecord(null, dataSet))
+                .block();
         }
-        String key;
-        String[] split;
-        int[] setBits;
-        long fingerprintSize;
-        for (final Map.Entry<String, Map<String, List<String>>> entryNucleus : dataSetRecordIDsPerNucleusAndSetBits.entrySet()) {
-            nucleus = entryNucleus.getKey();
-            for (final Map.Entry<String, List<String>> entrySetBits : entryNucleus.getValue()
-                                                                                  .entrySet()) {
-                key = entrySetBits.getKey();
-                key = key.replaceFirst("\\[", "");
-                key = key.replaceFirst("\\]", "");
-                split = key.split(",");
-                setBits = new int[split.length];
-                for (int i = 0; i
-                        < split.length; i++) {
-                    setBits[i] = Integer.parseInt(split[i].trim());
-                }
-                fingerprintSize = this.multiplicitySectionsBuilder.calculateSteps(
-                        this.multiplicitySectionsSettings.get(nucleus)[0],
-                        this.multiplicitySectionsSettings.get(nucleus)[1],
-                        this.multiplicitySectionsSettings.get(nucleus)[2]);
-
-                this.bitSetServiceImplementation.insert(
-                        new BitSetRecord(null, nucleus, fingerprintSize, setBits, setBits.length,
-                                         entrySetBits.getValue()))
-                                                .block();
-            }
-        }
-    }
-
-    @GetMapping(value = "/getBySetBits", produces = "application/json")
-    public List<DataSetRecord> getBySetBits(@RequestParam final String nucleus,
-                                            @RequestParam final long fingerprintSize,
-                                            @RequestParam final int[] setBits) {
-        final List<DataSetRecord> dataSetRecordList = new ArrayList<>();
-        final List<BitSetRecord> bitSetRecordList = this.bitSetServiceImplementation.findBitSetRecordByNucleusAndFingerprintSizeAndSetBits(
-                nucleus, fingerprintSize, setBits)
-                                                                                    .collectList()
-                                                                                    .block();
-        List<DataSetRecord> dataSetRecordListTemp;
-        if (bitSetRecordList
-                != null) {
-            for (final BitSetRecord bitSetRecord : bitSetRecordList) {
-                dataSetRecordListTemp = this.dataSetServiceImplementation.findAllById(
-                        bitSetRecord.getDataSetRecordIDs())
-                                                                         .collectList()
-                                                                         .block();
-                if (dataSetRecordListTemp
-                        != null) {
-                    dataSetRecordList.addAll(dataSetRecordListTemp);
-                }
-            }
-        }
-
-        return dataSetRecordList;
-    }
-
-    @GetMapping(value = "/getByMfAndSetBits", produces = "application/json")
-    public List<DataSetRecord> getByMfAndSetBits(@RequestParam final String mf, @RequestParam final String nucleus,
-                                                 @RequestParam final long fingerprintSize,
-                                                 @RequestParam final int[] setBits) {
-        final List<DataSetRecord> dataSetRecordList = this.getByMf(mf)
-                                                          .collectList()
-                                                          .block();
-        if (dataSetRecordList
-                != null) {
-            final List<DataSetRecord> dataSetRecordListSetBits = this.getBySetBits(nucleus, fingerprintSize, setBits);
-            if (dataSetRecordListSetBits
-                    != null) {
-                dataSetRecordList.removeAll(dataSetRecordList.stream()
-                                                             .filter(dataSetRecord -> dataSetRecordListSetBits.stream()
-                                                                                                              .noneMatch(
-                                                                                                                      dataSetRecordSetBits -> dataSetRecordSetBits.getId()
-                                                                                                                                                                  .equals(dataSetRecord.getId())))
-                                                             .collect(Collectors.toList()));
-            }
-        }
-
-        return dataSetRecordList;
-    }
-
-    @GetMapping(value = "/getBySetBitsCount", produces = "application/stream+json")
-    public List<String> getBySetBitsCount(@RequestParam final String nucleus, @RequestParam final long fingerprintSize,
-                                          @RequestParam final int setBitsCount) {
-        final List<String> dataSetRecordIDList = new ArrayList<>();
-        final List<BitSetRecord> bitSetRecordList = this.bitSetServiceImplementation.findBitSetRecordByNucleusAndFingerprintSizeAndSetBitsCount(
-                nucleus, fingerprintSize, setBitsCount)
-                                                                                    .collectList()
-                                                                                    .block();
-        if (bitSetRecordList
-                != null) {
-            for (final BitSetRecord bitSetRecord : bitSetRecordList) {
-                dataSetRecordIDList.addAll(bitSetRecord.getDataSetRecordIDs());
-            }
-        }
-
-        return dataSetRecordIDList;
     }
 
     @GetMapping(value = "/getMultiplicitySectionsSettings", produces = "application/json")

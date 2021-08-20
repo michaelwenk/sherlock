@@ -86,7 +86,7 @@ services:
       - "8087:8080"
     depends_on:
       - webcase-discovery-server
-      - webcase-db-instance-nmrshiftdb-dataset
+      - webcase-db-instance-dataset
 
   webcase-db-service-hybridization:
     container_name: webcase-db-service-hybridization
@@ -98,7 +98,7 @@ services:
       - "8088:8080"
     depends_on:
       - webcase-discovery-server
-      - webcase-db-instance-nmrshiftdb-hybridization
+      - webcase-db-instance-hybridization
 
   webcase-db-service-result:
     container_name: webcase-db-service-result
@@ -124,14 +124,14 @@ services:
       - webcase-discovery-server
       - webcase-db-instance-hosecode
 
-  webcase-db-instance-nmrshiftdb-dataset:
-    container_name: webcase-db-instance-nmrshiftdb-dataset
+  webcase-db-instance-dataset:
+    container_name: webcase-db-instance-dataset
     ports:
       - 27020:27017
     restart: always
 
-  webcase-db-instance-nmrshiftdb-hybridization:
-    container_name: webcase-db-instance-nmrshiftdb-hybridization
+  webcase-db-instance-hybridization:
+    container_name: webcase-db-instance-hybridization
     ports:
       - 27021:27017
     restart: always

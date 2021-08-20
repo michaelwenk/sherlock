@@ -93,7 +93,7 @@ public class HOSECodeController {
 
     public Flux<DataSet> getByDataSetSpectrumNuclei(final String[] nuclei) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-dataset/nmrshiftdb")
+                "http://webcase-gateway:8080/webcase-db-service-dataset/")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)

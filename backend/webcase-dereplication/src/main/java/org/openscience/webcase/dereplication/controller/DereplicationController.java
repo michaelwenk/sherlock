@@ -28,8 +28,8 @@ import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
+import org.openscience.webcase.dereplication.model.db.DataSetRecord;
 import org.openscience.webcase.dereplication.model.exchange.Transfer;
-import org.openscience.webcase.dereplication.model.nmrshiftdb.DataSetRecord;
 import org.openscience.webcase.dereplication.utils.ResultsFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
@@ -117,7 +117,7 @@ public class DereplicationController {
 
     public Map<String, int[]> getMultiplicitySectionsSettings() {
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-dataset/nmrshiftdb/getMultiplicitySectionsSettings")
+                "http://webcase-gateway:8080/webcase-db-service-dataset/getMultiplicitySectionsSettings")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)
@@ -133,7 +133,7 @@ public class DereplicationController {
     public Flux<DataSetRecord> getDataSetRecordFlux(final Spectrum querySpectrum, final String mf,
                                                     final boolean useMF) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-dataset/nmrshiftdb")
+                "http://webcase-gateway:8080/webcase-db-service-dataset/")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)

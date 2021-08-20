@@ -2,8 +2,10 @@ package org.openscience.webcase.dbservicehybridization.controller;
 
 import casekit.nmr.lsd.Constants;
 import casekit.nmr.model.DataSet;
+import casekit.nmr.utils.Utils;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.webcase.dbservicehybridization.service.HybridizationServiceImplementation;
+import org.openscience.webcase.dbservicehybridization.service.model.DataSetRecord;
 import org.openscience.webcase.dbservicehybridization.service.model.HybridizationRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -17,7 +19,7 @@ import reactor.core.publisher.Flux;
 import java.util.*;
 
 @RestController
-@RequestMapping(value = "/nmrshiftdb")
+@RequestMapping(value = "/")
 public class HybridizationController {
 
     // set ExchangeSettings
@@ -37,11 +39,6 @@ public class HybridizationController {
         this.hybridizationServiceImplementation = hybridizationServiceImplementation;
     }
 
-    public String getAtomTypeFromNucleus(final String nucleus) {
-        final String[] nucleusSplit = nucleus.split("\\d");
-        return nucleusSplit[nucleusSplit.length
-                - 1];
-    }
 
     @GetMapping(value = "/count", produces = "application/json")
     public long getCount() {
@@ -49,7 +46,7 @@ public class HybridizationController {
     }
 
     @GetMapping(value = "/getAll", produces = "application/json")
-    public List<HybridizationRecord> getHybridizationCollection() {
+    public List<HybridizationRecord> getAll() {
         return this.hybridizationServiceImplementation.findAll();
     }
 
@@ -83,70 +80,73 @@ public class HybridizationController {
     public void replaceAll(@RequestParam final String[] nuclei) {
         this.hybridizationServiceImplementation.deleteAll();
 
-        List<DataSet> dataSetList;
-        String atomType, hybridization, multiplicity;
+        String atomType, nucleus, hybridization, multiplicity;
         Integer shift;
         IAtomContainer structure;
         int atomIndex;
         int[][][] assignmentValues;
-        for (final String nucleus : nuclei) {
-            dataSetList = this.getByDataSetSpectrumNuclei(new String[]{nucleus})
-                              .collectList()
-                              .block();
-            if (dataSetList
-                    != null) {
-                atomType = this.getAtomTypeFromNucleus(nucleus);
-                for (final DataSet dataset : dataSetList) {
-                    structure = dataset.getStructure()
-                                       .toAtomContainer();
-                    assignmentValues = dataset.getAssignment()
-                                              .getAssignments();
-                    for (int signalIndex = 0; signalIndex
-                            < assignmentValues[0].length; signalIndex++) {
-                        multiplicity = dataset.getSpectrum()
-                                              .getSignal(signalIndex)
-                                              .getMultiplicity();
-                        shift = null;
-                        if (dataset.getSpectrum()
-                                   .getSignals()
-                                   .get(signalIndex)
-                                   .getShifts()[0]
-                                != null) {
-                            shift = dataset.getSpectrum()
-                                           .getSignal(signalIndex)
-                                           .getShift(0)
-                                           .intValue();
-                        }
-                        for (int equivalenceIndex = 0; equivalenceIndex
-                                < assignmentValues[0][signalIndex].length; equivalenceIndex++) {
-                            atomIndex = assignmentValues[0][signalIndex][equivalenceIndex];
-                            hybridization = structure.getAtom(atomIndex)
-                                                     .getHybridization()
-                                                     .name();
+        final List<DataSet> dataSetList = this.getByDataSetSpectrumNuclei(nuclei)
+                                              .map(DataSetRecord::getDataSet)
+                                              .collectList()
+                                              .block();
+        if (dataSetList
+                != null) {
+            for (final DataSet dataset : dataSetList) {
+                System.out.println(dataset);
+                System.out.println(dataset.getStructure());
+                nucleus = dataset.getSpectrum()
+                                 .getNuclei()[0];
+                atomType = Utils.getAtomTypeFromNucleus(nucleus);
+                structure = dataset.getStructure()
+                                   .toAtomContainer();
+                System.out.println(structure);
+                assignmentValues = dataset.getAssignment()
+                                          .getAssignments();
+                for (int signalIndex = 0; signalIndex
+                        < assignmentValues[0].length; signalIndex++) {
+                    multiplicity = dataset.getSpectrum()
+                                          .getSignal(signalIndex)
+                                          .getMultiplicity();
+                    shift = null;
+                    if (dataset.getSpectrum()
+                               .getSignals()
+                               .get(signalIndex)
+                               .getShifts()[0]
+                            != null) {
+                        shift = dataset.getSpectrum()
+                                       .getSignal(signalIndex)
+                                       .getShift(0)
+                                       .intValue();
+                    }
+                    for (int equivalenceIndex = 0; equivalenceIndex
+                            < assignmentValues[0][signalIndex].length; equivalenceIndex++) {
+                        atomIndex = assignmentValues[0][signalIndex][equivalenceIndex];
+                        hybridization = structure.getAtom(atomIndex)
+                                                 .getHybridization()
+                                                 .name();
 
-                            if (shift
-                                    == null
-                                    || structure.getAtom(atomIndex)
-                                                .getSymbol()
-                                    == null
-                                    || !structure.getAtom(atomIndex)
-                                                 .getSymbol()
-                                                 .equals(atomType)) {
-                                continue;
-                            }
-
-                            this.hybridizationServiceImplementation.insert(
-                                    new HybridizationRecord(null, nucleus, shift, multiplicity, hybridization));
+                        if (shift
+                                == null
+                                || structure.getAtom(atomIndex)
+                                            .getSymbol()
+                                == null
+                                || !structure.getAtom(atomIndex)
+                                             .getSymbol()
+                                             .equals(atomType)) {
+                            continue;
                         }
+
+                        this.hybridizationServiceImplementation.insert(
+                                new HybridizationRecord(null, nucleus, shift, multiplicity, hybridization));
                     }
                 }
             }
         }
     }
 
-    public Flux<DataSet> getByDataSetSpectrumNuclei(final String[] nuclei) {
+    public Flux<DataSetRecord> getByDataSetSpectrumNuclei(final String[] nuclei) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-dataset/nmrshiftdb")
+                "http://webcase-gateway:8080/webcase-db-service-dataset")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)
@@ -162,6 +162,6 @@ public class HybridizationController {
         return webClient.get()
                         .uri(uriComponentsBuilder.toUriString())
                         .retrieve()
-                        .bodyToFlux(DataSet.class);
+                        .bodyToFlux(DataSetRecord.class);
     }
 }

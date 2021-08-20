@@ -1,16 +1,16 @@
 version: "3"
 
 services:
-  webcase-db-instance-nmrshiftdb-dataset:
-    image: michaelwenk/webcase-db-instance-nmrshiftdb-dataset
+  webcase-db-instance-dataset:
+    image: michaelwenk/webcase-db-instance-dataset
     build:
-      context: backend/db-instance-nmrshiftdb-dataset
+      context: backend/db-instance-dataset
       dockerfile: Dockerfile.publish
 
-  webcase-db-instance-nmrshiftdb-hybridization:
-    image: michaelwenk/webcase-db-instance-nmrshiftdb-hybridization
+  webcase-db-instance-hybridization:
+    image: michaelwenk/webcase-db-instance-hybridization
     build:
-      context: backend/db-instance-nmrshiftdb-hybridization
+      context: backend/db-instance-hybridization
       dockerfile: Dockerfile.publish
 
   webcase-db-instance-hosecode:

@@ -1,21 +1,21 @@
 version: "3"
 
 services:
-  webcase-db-instance-nmrshiftdb-dataset:
+  webcase-db-instance-dataset:
     image: mongo:4
     volumes:
-      - "./backend/db-instance-nmrshiftdb-dataset/data/db/nmrshiftdb-dataset:/data/db"
+      - "./backend/db-instance-dataset/data/db/dataset:/data/db"
     environment:
-      - MONGO_INITDB_DATABASE=nmrshiftdb-dataset
+      - MONGO_INITDB_DATABASE=dataset
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
 
-  webcase-db-instance-nmrshiftdb-hybridization:
+  webcase-db-instance-hybridization:
     image: mongo:4
     volumes:
-      - "./backend/db-instance-nmrshiftdb-hybridization/data/db/nmrshiftdb-hybridization:/data/db"
+      - "./backend/db-instance-hybridization/data/db/hybridization:/data/db"
     environment:
-      - MONGO_INITDB_DATABASE=nmrshiftdb-hybridization
+      - MONGO_INITDB_DATABASE=hybridization
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
 
