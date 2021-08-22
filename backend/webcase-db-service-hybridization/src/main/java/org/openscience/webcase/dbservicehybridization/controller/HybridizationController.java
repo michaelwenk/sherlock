@@ -15,6 +15,7 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.*;
 
@@ -29,24 +30,27 @@ public class HybridizationController {
                                                                                                     .maxInMemorySize(
                                                                                                             this.maxInMemorySizeMB
                                                                                                                     * 1024
+
                                                                                                                     * 1024))
                                                                     .build();
     private final HybridizationServiceImplementation hybridizationServiceImplementation;
-    @Autowired
-    private WebClient.Builder webClientBuilder;
+    private final WebClient.Builder webClientBuilder;
 
-    public HybridizationController(final HybridizationServiceImplementation hybridizationServiceImplementation) {
+    @Autowired
+    public HybridizationController(final HybridizationServiceImplementation hybridizationServiceImplementation,
+                                   final WebClient.Builder webClientBuilder) {
         this.hybridizationServiceImplementation = hybridizationServiceImplementation;
+        this.webClientBuilder = webClientBuilder;
     }
 
 
     @GetMapping(value = "/count", produces = "application/json")
-    public long getCount() {
+    public Mono<Long> getCount() {
         return this.hybridizationServiceImplementation.count();
     }
 
-    @GetMapping(value = "/getAll", produces = "application/json")
-    public List<HybridizationRecord> getAll() {
+    @GetMapping(value = "/getAll", produces = "application/stream+json")
+    public Flux<HybridizationRecord> getAll() {
         return this.hybridizationServiceImplementation.findAll();
     }
 
@@ -55,7 +59,9 @@ public class HybridizationController {
                                              @RequestParam final int maxShift, @RequestParam final String multiplicity,
                                              @RequestParam final float thrs) {
         final List<String> hybridizations = this.hybridizationServiceImplementation.aggregateHybridizationsByNucleusAndShiftAndMultiplicity(
-                nucleus, minShift, maxShift, multiplicity);
+                nucleus, minShift, maxShift, multiplicity)
+                                                                                   .collectList()
+                                                                                   .block();
         final Set<String> uniqueLabels = new HashSet<>(hybridizations);
         final Set<Integer> uniqueValues = new HashSet<>();
 
@@ -78,42 +84,35 @@ public class HybridizationController {
 
     @PostMapping(value = "/replaceAll")
     public void replaceAll(@RequestParam final String[] nuclei) {
-        this.hybridizationServiceImplementation.deleteAll();
+        this.hybridizationServiceImplementation.deleteAll()
+                                               .block();
 
-        String atomType, nucleus, hybridization, multiplicity;
-        Integer shift;
-        IAtomContainer structure;
-        int atomIndex;
-        int[][][] assignmentValues;
-        final List<DataSet> dataSetList = this.getByDataSetSpectrumNuclei(nuclei)
-                                              .map(DataSetRecord::getDataSet)
-                                              .collectList()
-                                              .block();
-        if (dataSetList
-                != null) {
-            for (final DataSet dataset : dataSetList) {
-                System.out.println(dataset);
-                System.out.println(dataset.getStructure());
-                nucleus = dataset.getSpectrum()
-                                 .getNuclei()[0];
-                atomType = Utils.getAtomTypeFromNucleus(nucleus);
-                structure = dataset.getStructure()
-                                   .toAtomContainer();
-                System.out.println(structure);
-                assignmentValues = dataset.getAssignment()
-                                          .getAssignments();
+
+        this.getByDataSetSpectrumNuclei(nuclei)
+            .doOnNext(dataSetRecord -> {
+                final DataSet dataSet = dataSetRecord.getDataSet();
+                final String nucleus = dataSet.getSpectrum()
+                                              .getNuclei()[0];
+                final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
+                final IAtomContainer structure = dataSet.getStructure()
+                                                        .toAtomContainer();
+                final int[][][] assignmentValues = dataSet.getAssignment()
+                                                          .getAssignments();
+                String multiplicity, hybridization;
+                Integer shift;
+                int atomIndex;
                 for (int signalIndex = 0; signalIndex
                         < assignmentValues[0].length; signalIndex++) {
-                    multiplicity = dataset.getSpectrum()
+                    multiplicity = dataSet.getSpectrum()
                                           .getSignal(signalIndex)
                                           .getMultiplicity();
                     shift = null;
-                    if (dataset.getSpectrum()
+                    if (dataSet.getSpectrum()
                                .getSignals()
                                .get(signalIndex)
                                .getShifts()[0]
                             != null) {
-                        shift = dataset.getSpectrum()
+                        shift = dataSet.getSpectrum()
                                        .getSignal(signalIndex)
                                        .getShift(0)
                                        .intValue();
@@ -124,7 +123,6 @@ public class HybridizationController {
                         hybridization = structure.getAtom(atomIndex)
                                                  .getHybridization()
                                                  .name();
-
                         if (shift
                                 == null
                                 || structure.getAtom(atomIndex)
@@ -137,11 +135,15 @@ public class HybridizationController {
                         }
 
                         this.hybridizationServiceImplementation.insert(
-                                new HybridizationRecord(null, nucleus, shift, multiplicity, hybridization));
+                                new HybridizationRecord(null, nucleus, shift, multiplicity, hybridization))
+                                                               .doOnSuccess(
+                                                                       insertedHybridizationRecord -> System.out.println(
+                                                                               "inserted hybridization record id: "
+                                                                                       + insertedHybridizationRecord.getId()));
                     }
                 }
-            }
-        }
+            })
+            .then();
     }
 
     public Flux<DataSetRecord> getByDataSetSpectrumNuclei(final String[] nuclei) {

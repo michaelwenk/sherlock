@@ -25,22 +25,21 @@
 package org.openscience.webcase.dbservicehybridization.service;
 
 import org.openscience.webcase.dbservicehybridization.service.model.HybridizationRecord;
-
-import java.util.List;
-import java.util.Optional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 public interface HybridizationService {
 
-    long count();
+    Mono<Long> count();
 
-    void insert(final HybridizationRecord hybridizationRecord);
+    Mono<HybridizationRecord> insert(final HybridizationRecord hybridizationRecord);
 
-    List<HybridizationRecord> findAll();
+    Flux<HybridizationRecord> findAll();
 
-    Optional<HybridizationRecord> findById(final String id);
+    Mono<HybridizationRecord> findById(final String id);
 
-    List<String> aggregateHybridizationsByNucleusAndShiftAndMultiplicity(final String nucleus, final int minShift,
+    Flux<String> aggregateHybridizationsByNucleusAndShiftAndMultiplicity(final String nucleus, final int minShift,
                                                                          final int maxShift, final String multiplicity);
 
-    void deleteAll();
+    Mono<Void> deleteAll();
 }
