@@ -25,7 +25,7 @@
 package org.openscience.webcase.dbservicehybridization.service;
 
 import org.openscience.webcase.dbservicehybridization.service.model.HybridizationRecord;
-import org.springframework.data.mongodb.repository.Aggregation;
+import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
@@ -38,8 +38,7 @@ public interface HybridizationRepository
     @Override
     Mono<HybridizationRecord> findById(final String id);
 
-    @Aggregation({"{$match: {\"nucleus\": \"?0\", \"shift\": {$gte: ?1, $lte: ?2}, \"multiplicity\": \"?3\"}}",
-                  "{$group: {\"_id\": null, \"set\": {$push: \"$hybridization\"}}}", "{$unwind: \"$set\"}"})
-    Flux<String> aggregateHybridizationsByNucleusAndShiftAndMultiplicity(final String nucleus, final int minShift,
-                                                                         final int maxShift, final String multiplicity);
+    @Query(value = "{\"nucleus\": \"?0\", \"multiplicity\": \"?1\", \"shift\": {$gte: ?2, $lte: ?3}}")
+    Flux<HybridizationRecord> findByNucleusAndMultiplicityAndShift(final String nucleus, final String multiplicity,
+                                                                   final int minShift, final int maxShift);
 }

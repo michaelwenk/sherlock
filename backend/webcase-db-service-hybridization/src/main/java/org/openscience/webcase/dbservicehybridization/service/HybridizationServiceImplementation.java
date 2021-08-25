@@ -63,12 +63,11 @@ public class HybridizationServiceImplementation
     }
 
     @Override
-    public Flux<String> aggregateHybridizationsByNucleusAndShiftAndMultiplicity(final String nucleus,
-                                                                                final int minShift, final int maxShift,
-                                                                                final String multiplicity) {
-        return this.hybridizationRepository.aggregateHybridizationsByNucleusAndShiftAndMultiplicity(nucleus, minShift,
-                                                                                                    maxShift,
-                                                                                                    multiplicity);
+    public Flux<HybridizationRecord> findByNucleusAndMultiplicityAndShift(final String nucleus,
+                                                                          final String multiplicity, final int minShift,
+                                                                          final int maxShift) {
+        return this.hybridizationRepository.findByNucleusAndMultiplicityAndShift(nucleus, multiplicity, minShift,
+                                                                                 maxShift);
     }
 
     @Override
