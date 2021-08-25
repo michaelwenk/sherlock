@@ -128,13 +128,11 @@ services:
     container_name: webcase-db-instance-dataset
     ports:
       - 27020:27017
-    restart: always
 
   webcase-db-instance-hybridization:
     container_name: webcase-db-instance-hybridization
     ports:
       - 27021:27017
-    restart: always
 
   webcase-db-instance-result:
     image: mongo:4
@@ -145,7 +143,6 @@ services:
       - MONGO_INITDB_DATABASE=result
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
-    restart: always
 
   webcase-db-instance-hosecode:
     image: mongo:4
@@ -156,4 +153,3 @@ services:
       - MONGO_INITDB_DATABASE=hosecode
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
-    restart: always
