@@ -79,8 +79,9 @@ public class DatabaseController {
     }
 
     @GetMapping(value = "/count")
-    public Mono<Long> getCount() {
-        return this.dataSetServiceImplementation.count();
+    public Long getCount() {
+        return this.dataSetServiceImplementation.count()
+                                                .block();
     }
 
     @GetMapping(value = "/getById", produces = "application/json")
@@ -124,44 +125,55 @@ public class DatabaseController {
     }
 
     @DeleteMapping(value = "/deleteAll")
-    public void deleteAll() {
-        this.dataSetServiceImplementation.deleteAll()
-                                         .block();
+    public Mono<Void> deleteAll() {
+        return this.dataSetServiceImplementation.deleteAll();
     }
 
     @PostMapping(value = "/replaceAll")
-    public void replaceAll(@RequestParam final String[] nuclei) {
-        this.deleteAll();
+    public void replaceAll(@RequestParam final String[] nuclei, @RequestParam final boolean setLimits) {
+        this.deleteAll()
+            .block();
 
         // detect bitset ranges and store in DB
         List<DataSet> dataSetList;
-        try {
-            dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(this.pathToNMRShiftDB, nuclei);
-            Map<String, Integer[]> limits = this.setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(dataSetList,
-                                                                                                     new HashMap<>());
-            System.out.println("dataset size NMRShiftDB -> "
-                                       + dataSetList.size());
-            System.out.println("limits NMRShiftDB: "
-                                       + Arrays.toString(limits.get("13C")));
-            for (int i = 0; i
-                    < this.pathsToCOCONUT.length; i++) {
-                System.out.println(" -> COCONUT "
-                                           + i
-                                           + " -> "
-                                           + this.pathsToCOCONUT[i]);
-                dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(this.pathsToCOCONUT[i], nuclei);
-                System.out.println("dataset size COCONUT "
-                                           + i
-                                           + " -> "
+        if (setLimits) {
+            try {
+                dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(this.pathToNMRShiftDB, nuclei);
+                Map<String, Integer[]> limits = this.setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(dataSetList,
+                                                                                                         new HashMap<>());
+                System.out.println("dataset size NMRShiftDB -> "
                                            + dataSetList.size());
-                limits = this.setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(dataSetList, limits);
-                System.out.println("limits COCONUT "
-                                           + i
-                                           + ": "
+                System.out.println("limits NMRShiftDB: "
                                            + Arrays.toString(limits.get("13C")));
+                for (int i = 0; i
+                        < this.pathsToCOCONUT.length; i++) {
+                    System.out.println(" -> COCONUT "
+                                               + i
+                                               + " -> "
+                                               + this.pathsToCOCONUT[i]);
+                    dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(this.pathsToCOCONUT[i], nuclei);
+                    System.out.println("dataset size COCONUT "
+                                               + i
+                                               + " -> "
+                                               + dataSetList.size());
+                    limits = this.setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(dataSetList, limits);
+                    System.out.println("limits COCONUT "
+                                               + i
+                                               + ": "
+                                               + Arrays.toString(limits.get("13C")));
+                }
+            } catch (final FileNotFoundException | CDKException e) {
+                e.printStackTrace();
             }
-        } catch (final FileNotFoundException | CDKException e) {
-            e.printStackTrace();
+        } else {
+            MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord;
+            for (final String nucleus : nuclei) {
+                multiplicitySectionsSettingsRecord = this.multiplicitySectionsSettingsServiceImplementation.findByNucleus(
+                        nucleus)
+                                                                                                           .block();
+                this.multiplicitySectionsSettings.put(multiplicitySectionsSettingsRecord.getNucleus(),
+                                                      multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings());
+            }
         }
 
         // store datasets in DB
@@ -170,45 +182,52 @@ public class DatabaseController {
             System.out.println("dataset size NMRShiftDB -> "
                                        + dataSetList.size());
             this.insertDataSetRecords(dataSetList);
-            for (int i = 0; i
-                    < this.pathsToCOCONUT.length; i++) {
-                System.out.println(" -> COCONUT "
-                                           + i
-                                           + " -> "
-                                           + this.pathsToCOCONUT[i]);
-                dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(this.pathsToCOCONUT[i], nuclei);
-                System.out.println("dataset size COCONUT "
-                                           + i
-                                           + " -> "
-                                           + dataSetList.size());
-                this.insertDataSetRecords(dataSetList);
-                System.out.println("storage for COCONUT "
-                                           + i
-                                           + " done!");
-            }
+            System.out.println("stored for NMRShiftDB done -> "
+                                       + this.getCount());
+            Flux.fromArray(this.pathsToCOCONUT)
+                .doOnNext(pathToCOCONUT -> {
+                    try {
+                        System.out.println("storing -> "
+                                                   + pathToCOCONUT);
+                        this.insertDataSetRecords(
+                                COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(pathToCOCONUT, nuclei));
+                        System.out.println(pathToCOCONUT
+                                                   + " -> done");
+                    } catch (final CDKException | FileNotFoundException e) {
+                        e.printStackTrace();
+                    }
+                })
+                .subscribe();
         } catch (final FileNotFoundException | CDKException e) {
             e.printStackTrace();
         }
     }
 
     private void insertDataSetRecords(final List<DataSet> dataSetList) {
-        BitSetFingerprint bitSetFingerprint;
-        String nucleus, setBitsString;
-        for (final DataSet dataSet : dataSetList) {
-            nucleus = dataSet.getSpectrum()
-                             .getNuclei()[0];
-            this.multiplicitySectionsBuilder.setMinLimit(this.multiplicitySectionsSettings.get(nucleus)[0]);
-            this.multiplicitySectionsBuilder.setMaxLimit(this.multiplicitySectionsSettings.get(nucleus)[1]);
-            this.multiplicitySectionsBuilder.setStepSize(this.multiplicitySectionsSettings.get(nucleus)[2]);
-            bitSetFingerprint = Similarity.getBitSetFingerprint(dataSet.getSpectrum(), 0,
-                                                                this.multiplicitySectionsBuilder);
-            setBitsString = Arrays.toString(bitSetFingerprint.getSetbits());
+        this.dataSetServiceImplementation.insertMany(Flux.fromIterable(dataSetList)
+                                                         .map(dataSet -> {
+                                                             final String nucleus = dataSet.getSpectrum()
+                                                                                           .getNuclei()[0];
+                                                             final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
+                                                             multiplicitySectionsBuilder.setMinLimit(
+                                                                     this.multiplicitySectionsSettings.get(nucleus)[0]);
+                                                             multiplicitySectionsBuilder.setMaxLimit(
+                                                                     this.multiplicitySectionsSettings.get(nucleus)[1]);
+                                                             multiplicitySectionsBuilder.setStepSize(
+                                                                     this.multiplicitySectionsSettings.get(nucleus)[2]);
+                                                             final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(
+                                                                     dataSet.getSpectrum(), 0,
+                                                                     multiplicitySectionsBuilder);
+                                                             final String setBitsString = Arrays.toString(
+                                                                     bitSetFingerprint.getSetbits());
 
-            dataSet.addMetaInfo("fpSize", String.valueOf(bitSetFingerprint.size()));
-            dataSet.addMetaInfo("setBits", setBitsString);
-            this.insert(new DataSetRecord(null, dataSet))
-                .block();
-        }
+                                                             dataSet.addMetaInfo("fpSize", String.valueOf(
+                                                                     bitSetFingerprint.size()));
+                                                             dataSet.addMetaInfo("setBits", setBitsString);
+
+                                                             return new DataSetRecord(null, dataSet);
+                                                         }))
+                                         .subscribe();
     }
 
     @GetMapping(value = "/getMultiplicitySectionsSettings", produces = "application/json")
