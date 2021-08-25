@@ -1,9 +1,10 @@
 package org.openscience.webcase.dbservice.hosecode.controller;
 
 import casekit.nmr.analysis.HOSECodeShiftStatistics;
-import casekit.nmr.model.DataSet;
+import casekit.nmr.utils.Statistics;
 import org.apache.http.HttpHeaders;
 import org.openscience.webcase.dbservice.hosecode.service.HOSECodeServiceImplementation;
+import org.openscience.webcase.dbservice.hosecode.service.model.DataSetRecord;
 import org.openscience.webcase.dbservice.hosecode.service.model.HOSECode;
 import org.openscience.webcase.dbservice.hosecode.service.model.HOSECodeRecord;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,9 +16,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 @RestController
 @RequestMapping(value = "/")
@@ -55,8 +56,9 @@ public class HOSECodeController {
     }
 
     @GetMapping(value = "/count")
-    public Mono<Long> getCount() {
-        return this.hoseCodeServiceImplementation.count();
+    public Long getCount() {
+        return this.hoseCodeServiceImplementation.count()
+                                                 .block();
     }
 
     @GetMapping(value = "/getAll", produces = "application/stream+json")
@@ -64,34 +66,63 @@ public class HOSECodeController {
         return this.hoseCodeServiceImplementation.findAll();
     }
 
-    @PostMapping(value = "/insert", consumes = "application/json")
-    public void insert(@RequestBody final HOSECodeRecord hoseCodeRecord) {
-        this.hoseCodeServiceImplementation.insert(hoseCodeRecord)
-                                          .block();
-    }
 
     @DeleteMapping(value = "/deleteAll")
-    public void deleteAll() {
-        this.hoseCodeServiceImplementation.deleteAll()
-                                          .block();
+    public Mono<Void> deleteAll() {
+        return this.hoseCodeServiceImplementation.deleteAll();
     }
 
     @PostMapping(value = "/replaceAll")
     public void replaceAll(@RequestParam final String[] nuclei, final int maxSphere) {
-        this.deleteAll();
+        this.deleteAll()
+            .block();
 
-        final List<DataSet> dataSetList = this.getByDataSetSpectrumNuclei(nuclei)
-                                              .collectList()
-                                              .block();
-        final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(
-                dataSetList, maxSphere, false);
-        hoseCodeShiftStatistics.keySet()
-                               .forEach(hoseCode -> this.insert(new HOSECodeRecord(hoseCode, new HOSECode(hoseCode,
-                                                                                                          hoseCodeShiftStatistics.get(
-                                                                                                                  hoseCode)))));
+        final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts = new ConcurrentHashMap<>();
+        this.getByDataSetSpectrumNuclei(nuclei)
+            .doOnNext(dataSetRecord -> HOSECodeShiftStatistics.insert(dataSetRecord.getDataSet(), maxSphere, false,
+                                                                      hoseCodeShifts))
+            .doOnTerminate(() -> {
+                final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = this.buildHOSECodeShiftStatistics(
+                        hoseCodeShifts);
+                System.out.println(" -> hoseCodeShiftStatistics size: "
+                                           + hoseCodeShiftStatistics.size());
+                hoseCodeShiftStatistics.keySet()
+                                       .forEach(hoseCode -> {
+                                           this.hoseCodeServiceImplementation.insert(new HOSECodeRecord(hoseCode,
+                                                                                                        new HOSECode(
+                                                                                                                hoseCode,
+                                                                                                                hoseCodeShiftStatistics.get(
+                                                                                                                        hoseCode))))
+                                                                             .subscribe();
+                                       });
+                System.out.println(" -> done");
+            })
+            .subscribe();
     }
 
-    public Flux<DataSet> getByDataSetSpectrumNuclei(final String[] nuclei) {
+    private Map<String, Map<String, Double[]>> buildHOSECodeShiftStatistics(
+            final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts) {
+
+        final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = new HashMap<>();
+        List<Double> values;
+        for (final Map.Entry<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodes : hoseCodeShifts.entrySet()) {
+            hoseCodeShiftStatistics.put(hoseCodes.getKey(), new HashMap<>());
+            for (final Map.Entry<String, ConcurrentLinkedQueue<Double>> solvents : hoseCodes.getValue()
+                                                                                            .entrySet()) {
+                values = new ArrayList<>(solvents.getValue());
+                Statistics.removeOutliers(values, 1.5);
+                hoseCodeShiftStatistics.get(hoseCodes.getKey())
+                                       .put(solvents.getKey(),
+                                            new Double[]{(double) values.size(), Collections.min(values),
+                                                         Statistics.getMean(values), Statistics.getMedian(values),
+                                                         Collections.max(values)});
+            }
+        }
+
+        return hoseCodeShiftStatistics;
+    }
+
+    public Flux<DataSetRecord> getByDataSetSpectrumNuclei(final String[] nuclei) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
                 "http://webcase-gateway:8080/webcase-db-service-dataset/")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
@@ -109,6 +140,6 @@ public class HOSECodeController {
         return webClient.get()
                         .uri(uriComponentsBuilder.toUriString())
                         .retrieve()
-                        .bodyToFlux(DataSet.class);
+                        .bodyToFlux(DataSetRecord.class);
     }
 }
