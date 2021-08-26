@@ -76,27 +76,38 @@ public class HOSECodeController {
     public void replaceAll(@RequestParam final String[] nuclei, final int maxSphere) {
         this.deleteAll()
             .block();
+        this.clearHOSECodeDBEntriesMap();
 
         final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts = new ConcurrentHashMap<>();
         this.getByDataSetSpectrumNuclei(nuclei)
             .doOnNext(dataSetRecord -> HOSECodeShiftStatistics.insert(dataSetRecord.getDataSet(), maxSphere, false,
                                                                       hoseCodeShifts))
             .doOnTerminate(() -> {
+                System.out.println(" -> hoseCodeShifts size: "
+                                           + hoseCodeShifts.size());
                 final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = this.buildHOSECodeShiftStatistics(
                         hoseCodeShifts);
                 System.out.println(" -> hoseCodeShiftStatistics size: "
                                            + hoseCodeShiftStatistics.size());
-                hoseCodeShiftStatistics.keySet()
-                                       .forEach(hoseCode -> {
-                                           this.hoseCodeServiceImplementation.insert(new HOSECodeRecord(hoseCode,
-                                                                                                        new HOSECode(
-                                                                                                                hoseCode,
-                                                                                                                hoseCodeShiftStatistics.get(
-                                                                                                                        hoseCode))))
-                                                                             .subscribe();
-                                       });
-                System.out.println(" -> done");
+
+                final Flux<HOSECodeRecord> hoseCodeRecordFlux = Flux.fromStream(hoseCodeShiftStatistics.keySet()
+                                                                                                       .stream()
+                                                                                                       .map(hoseCode -> new HOSECodeRecord(
+                                                                                                               hoseCode,
+                                                                                                               new HOSECode(
+                                                                                                                       hoseCode,
+                                                                                                                       hoseCodeShiftStatistics.get(
+                                                                                                                               hoseCode)))));
+
+                this.hoseCodeServiceImplementation.insertMany(hoseCodeRecordFlux)
+                                                  .doOnError(Throwable::printStackTrace)
+                                                  .doAfterTerminate(() -> {
+                                                      this.fillHOSECodeDBEntriesMap();
+                                                      System.out.println(" -> done");
+                                                  })
+                                                  .subscribe();
             })
+            .doOnError(Throwable::printStackTrace)
             .subscribe();
     }
 
@@ -141,5 +152,29 @@ public class HOSECodeController {
                         .uri(uriComponentsBuilder.toUriString())
                         .retrieve()
                         .bodyToFlux(DataSetRecord.class);
+    }
+
+    public void clearHOSECodeDBEntriesMap() {
+        final WebClient webClient = this.webClientBuilder.baseUrl(
+                "http://webcase-gateway:8080/webcase-db-service-dataset/clearHOSECodeDBEntriesMap")
+                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                        MediaType.APPLICATION_JSON_VALUE)
+                                                         .exchangeStrategies(this.exchangeStrategies)
+                                                         .build();
+
+        webClient.post()
+                 .retrieve();
+    }
+
+    public void fillHOSECodeDBEntriesMap() {
+        final WebClient webClient = this.webClientBuilder.baseUrl(
+                "http://webcase-gateway:8080/webcase-db-service-dataset/fillHOSECodeDBEntriesMap")
+                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                        MediaType.APPLICATION_JSON_VALUE)
+                                                         .exchangeStrategies(this.exchangeStrategies)
+                                                         .build();
+
+        webClient.post()
+                 .retrieve();
     }
 }

@@ -44,6 +44,16 @@ public class FileParserController {
         this.resultsParser = resultsParser;
     }
 
+    @PostMapping(value = "/clearHOSECodeDBEntriesMap")
+    public void clearHOSECodeDBEntriesMap() {
+        this.resultsParser.clearHOSECodeDBEntriesMap();
+    }
+
+    @PostMapping(value = "/fillHOSECodeDBEntriesMap")
+    public void fillHOSECodeDBEntriesMap() {
+        this.resultsParser.fillHOSECodeDBEntriesMap();
+    }
+
     @PostMapping(value = "/parseResultFile")
     public ResponseEntity<Transfer> parseResultFile(@RequestBody final Transfer requestTransfer) {
         final Transfer resultTransfer = new Transfer();
