@@ -2,6 +2,7 @@ package org.openscience.webcase.dbservicehybridization.controller;
 
 import casekit.nmr.lsd.Constants;
 import casekit.nmr.model.DataSet;
+import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.webcase.dbservicehybridization.service.HybridizationServiceImplementation;
@@ -107,8 +108,9 @@ public class HybridizationController {
         this.getByDataSetSpectrumNuclei(nuclei)
             .doOnNext(dataSetRecord -> {
                 final DataSet dataSet = dataSetRecord.getDataSet();
-                final String nucleus = dataSet.getSpectrum()
-                                              .getNuclei()[0];
+                final Spectrum spectrum = dataSet.getSpectrum()
+                                                 .toSpectrum();
+                final String nucleus = spectrum.getNuclei()[0];
                 final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
                 final IAtomContainer structure = dataSet.getStructure()
                                                         .toAtomContainer();
@@ -119,23 +121,20 @@ public class HybridizationController {
                 int atomIndex;
                 for (int signalIndex = 0; signalIndex
                         < assignmentValues[0].length; signalIndex++) {
-                    multiplicity = dataSet.getSpectrum()
-                                          .getSignal(signalIndex)
-                                          .getMultiplicity();
+                    multiplicity = spectrum.getSignal(signalIndex)
+                                           .getMultiplicity();
                     if (multiplicity
                             == null) {
                         continue;
                     }
                     shift = null;
-                    if (dataSet.getSpectrum()
-                               .getSignals()
-                               .get(signalIndex)
-                               .getShifts()[0]
+                    if (spectrum.getSignals()
+                                .get(signalIndex)
+                                .getShifts()[0]
                             != null) {
-                        shift = dataSet.getSpectrum()
-                                       .getSignal(signalIndex)
-                                       .getShift(0)
-                                       .intValue();
+                        shift = spectrum.getSignal(signalIndex)
+                                        .getShift(0)
+                                        .intValue();
                     }
                     for (int equivalenceIndex = 0; equivalenceIndex
                             < assignmentValues[0][signalIndex].length; equivalenceIndex++) {

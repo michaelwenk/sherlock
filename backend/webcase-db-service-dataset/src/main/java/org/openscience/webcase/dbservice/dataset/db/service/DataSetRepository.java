@@ -48,10 +48,11 @@ public interface DataSetRepository
 
     Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
 
+    @Query(value = "{\"dataSet.spectrum.nuclei\": ?0, \"dataSet.spectrum.signals\": {$size: ?1}}")
     Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei,
                                                                                  final int signalCount);
 
-    @Query(value = "{\"dataSet.spectrum.nuclei\": ?0, \"dataSet.spectrum.signalCount\": ?1, \"dataSet.meta.mf\": \"?2\"}")
+    @Query(value = "{\"dataSet.spectrum.nuclei\": ?0, \"dataSet.spectrum.signals\": {$size: ?1}, \"dataSet.meta.mf\": \"?2\"}")
     Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(final String[] nuclei,
                                                                                       final int signalCount,
                                                                                       final String mf);

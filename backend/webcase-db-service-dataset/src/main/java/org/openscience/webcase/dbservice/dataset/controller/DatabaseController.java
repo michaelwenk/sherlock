@@ -28,6 +28,7 @@ import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.dbservice.COCONUT;
 import casekit.nmr.dbservice.NMRShiftDB;
 import casekit.nmr.model.DataSet;
+import casekit.nmr.model.Spectrum;
 import casekit.nmr.similarity.Similarity;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
@@ -216,7 +217,8 @@ public class DatabaseController {
                                                              multiplicitySectionsBuilder.setStepSize(
                                                                      this.multiplicitySectionsSettings.get(nucleus)[2]);
                                                              final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(
-                                                                     dataSet.getSpectrum(), 0,
+                                                                     dataSet.getSpectrum()
+                                                                            .toSpectrum(), 0,
                                                                      multiplicitySectionsBuilder);
                                                              final String setBitsString = Arrays.toString(
                                                                      bitSetFingerprint.getSetbits());
@@ -255,15 +257,15 @@ public class DatabaseController {
         final Map<String, Integer[]> limits = new HashMap<>(prevLimits); // min/max limit per nucleus
         String nucleus;
         Double tempMin, tempMax;
+        Spectrum spectrum;
         for (final DataSet dataSet : dataSetList) {
-            nucleus = dataSet.getSpectrum()
-                             .getNuclei()[0];
+            spectrum = dataSet.getSpectrum()
+                              .toSpectrum();
+            nucleus = spectrum.getNuclei()[0];
             limits.putIfAbsent(nucleus, new Integer[]{null, null});
 
-            tempMin = Collections.min(dataSet.getSpectrum()
-                                             .getShifts(0));
-            tempMax = Collections.max(dataSet.getSpectrum()
-                                             .getShifts(0));
+            tempMin = Collections.min(spectrum.getShifts(0));
+            tempMax = Collections.max(spectrum.getShifts(0));
             if (limits.get(nucleus)[0]
                     == null
                     || tempMin
