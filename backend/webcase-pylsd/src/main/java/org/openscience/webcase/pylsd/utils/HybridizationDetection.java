@@ -21,11 +21,10 @@ public class HybridizationDetection {
         final Map<Integer, List<Integer>> detectedHybridizations = new HashMap<>();
 
         final WebClient webClient = webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-hybridization/")
+                "http://webcase-gateway:8080/webcase-db-service-statistics/hybridization/")
                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .build();
-
         UriComponentsBuilder uriComponentsBuilder;
         List<Integer> hybridizations;
         Correlation correlation;

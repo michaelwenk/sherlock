@@ -7,10 +7,10 @@ services:
       context: backend/db-instance-dataset
       dockerfile: Dockerfile.publish
 
-  webcase-db-instance-hybridization:
-    image: michaelwenk/webcase-db-instance-hybridization
+  webcase-db-instance-statistics:
+    image: michaelwenk/webcase-db-instance-statistics
     build:
-      context: backend/db-instance-hybridization
+      context: backend/db-instance-statistics
       dockerfile: Dockerfile.publish
 
   webcase-db-instance-hosecode:

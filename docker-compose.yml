@@ -88,17 +88,17 @@ services:
       - webcase-discovery-server
       - webcase-db-instance-dataset
 
-  webcase-db-service-hybridization:
-    container_name: webcase-db-service-hybridization
+  webcase-db-service-statistics:
+    container_name: webcase-db-service-statistics
     build:
-      context: ./backend/webcase-db-service-hybridization
+      context: ./backend/webcase-db-service-statistics
       dockerfile: Dockerfile
-    image: michaelwenk/webcase-db-service-hybridization
+    image: michaelwenk/webcase-db-service-statistics
     ports:
       - "8088:8080"
     depends_on:
       - webcase-discovery-server
-      - webcase-db-instance-hybridization
+      - webcase-db-instance-statistics
 
   webcase-db-service-result:
     container_name: webcase-db-service-result
@@ -129,8 +129,8 @@ services:
     ports:
       - 27020:27017
 
-  webcase-db-instance-hybridization:
-    container_name: webcase-db-instance-hybridization
+  webcase-db-instance-statistics:
+    container_name: webcase-db-instance-statistics
     ports:
       - 27021:27017
 

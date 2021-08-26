@@ -15,7 +15,7 @@ cd backend/webcase-result && mvn clean package
 cd ../..
 cd backend/webcase-db-service-dataset && mvn clean package
 cd ../..
-cd backend/webcase-db-service-hybridization && mvn clean package
+cd backend/webcase-db-service-statistics && mvn clean package
 cd ../..
 cd backend/webcase-db-service-result && mvn clean package
 cd ../..
