@@ -1,6 +1,6 @@
-package org.openscience.webcase.dbservice.dataset.nmrshiftdb.service;
+package org.openscience.webcase.dbservice.dataset.db.service;
 
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.MultiplicitySectionsSettingsRecord;
+import org.openscience.webcase.dbservice.dataset.db.model.MultiplicitySectionsSettingsRecord;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;

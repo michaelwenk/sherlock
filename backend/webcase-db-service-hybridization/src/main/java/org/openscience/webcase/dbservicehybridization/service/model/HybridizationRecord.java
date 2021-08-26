@@ -28,6 +28,8 @@ import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.Map;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
@@ -42,5 +44,5 @@ public class HybridizationRecord {
     private String nucleus;
     private int shift;
     private String multiplicity;
-    private String hybridization;
+    private Map<String, Integer> hybridizationCounts; // hybridization -> count
 }

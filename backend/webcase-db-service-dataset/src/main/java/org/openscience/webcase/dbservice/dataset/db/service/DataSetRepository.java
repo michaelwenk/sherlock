@@ -22,36 +22,38 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservice.dataset.nmrshiftdb.service;
+package org.openscience.webcase.dbservice.dataset.db.service;
 
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.DataSetRecord;
+
+import org.openscience.webcase.dbservice.dataset.db.model.DataSetRecord;
+import org.springframework.data.mongodb.repository.Query;
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-public interface DataSetService {
 
-    Mono<Long> count();
+@Repository
+public interface DataSetRepository
+        extends ReactiveMongoRepository<DataSetRecord, String> {
 
-    Flux<DataSetRecord> findAll();
-
+    @Override
     Mono<DataSetRecord> findById(final String id);
 
+    @Override
     Flux<DataSetRecord> findAllById(Iterable<String> iterable);
 
+    @Query(value = "{\"dataSet.meta.mf\": \"?0\"}")
     Flux<DataSetRecord> findByMf(final String mf);
 
     Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
 
+    @Query(value = "{\"dataSet.spectrum.nuclei\": ?0, \"dataSet.spectrum.signals\": {$size: ?1}}")
     Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei,
                                                                                  final int signalCount);
 
+    @Query(value = "{\"dataSet.spectrum.nuclei\": ?0, \"dataSet.spectrum.signals\": {$size: ?1}, \"dataSet.meta.mf\": \"?2\"}")
     Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(final String[] nuclei,
                                                                                       final int signalCount,
                                                                                       final String mf);
-
-    // insertions/deletions
-
-    Mono<DataSetRecord> insert(final DataSetRecord dataSetRecord);
-
-    Mono<Void> deleteAll();
 }

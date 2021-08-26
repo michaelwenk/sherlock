@@ -83,6 +83,8 @@ Download the "nmrshiftdb2withsignals.sd" from https://sourceforge.net/projects/n
 
     backend/webcase-db-service-dataset/data/nmrshiftdb/
 
+and rename the file to "nmrshiftdb.sdf". 
+
 ### Docker and Application Start/Stop
 This project uses Docker containers (https://www.docker.com) and starts them via docker-compose. Make sure that docker-compose is installed.
 
@@ -112,25 +114,25 @@ That enables the persistence of database content to access the data whenever the
 #### Dataset
 For dataset creation and insertion use:
 
-    curl -X POST -i 'http://localhost:8081/webcase-db-service-dataset/nmrshiftdb/replaceAll?nuclei=13C'
+    curl -X POST -i 'http://localhost:8081/webcase-db-service-dataset/replaceAll?nuclei=13C'
 
 This will fill-in datasets with 13C spectra only. If multiple nuclei are desired, 
 then this could be done by adding them separated by comma, e.g. 13C, 15N: 
 
-    curl -X POST -i 'http://localhost:8081/webcase-db-service-dataset/nmrshiftdb/replaceAll?nuclei=13C,15N'
+    curl -X POST -i 'http://localhost:8081/webcase-db-service-dataset/replaceAll?nuclei=13C,15N'
 
 One can then check the number of datasets:
 
-    curl -X GET -i 'http://localhost:8081/webcase-db-service-dataset/nmrshiftdb/count' 
+    curl -X GET -i 'http://localhost:8081/webcase-db-service-dataset/count' 
 
 #### Hybridizations
 As for datasets we need to insert the hybridization data and can decide which nuclei to consider:
 
-    curl -X POST -i 'http://localhost:8081/webcase-db-service-hybridization/nmrshiftdb/replaceAll?nuclei=13C'
+    curl -X POST -i 'http://localhost:8081/webcase-db-service-hybridization/replaceAll?nuclei=13C'
 
 To check the number of hybridization entries:
 
-    curl -X GET -i 'http://localhost:8081/webcase-db-service-hybridization/nmrshiftdb/count'
+    curl -X GET -i 'http://localhost:8081/webcase-db-service-hybridization/count'
 
 #### HOSE Codes
 One needs to insert the HOSE code information too:

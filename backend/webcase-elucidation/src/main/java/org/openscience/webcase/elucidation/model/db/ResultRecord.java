@@ -22,24 +22,26 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservicehybridization.service;
+package org.openscience.webcase.elucidation.model.db;
 
-import org.openscience.webcase.dbservicehybridization.service.model.HybridizationRecord;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+import casekit.nmr.model.DataSet;
+import lombok.*;
 
-public interface HybridizationService {
+import java.util.List;
 
-    Mono<Long> count();
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
+@Setter
+@ToString
 
-    Mono<HybridizationRecord> insert(final HybridizationRecord hybridizationRecord);
+public class ResultRecord {
 
-    Flux<HybridizationRecord> findAll();
-
-    Mono<HybridizationRecord> findById(final String id);
-
-    Flux<HybridizationRecord> findByNucleusAndMultiplicityAndShift(final String nucleus, final String multiplicity,
-                                                                   final int minShift, final int maxShift);
-
-    Mono<Void> deleteAll();
+    private String id;
+    private String queryType;
+    private String stage;
+    private String error;
+    private boolean stageIsComplete;
+    private boolean done;
+    private List<DataSet> dataSetList;
 }

@@ -72,6 +72,11 @@ public class HOSECodeServiceImplementation
     }
 
     @Override
+    public Flux<HOSECodeRecord> insertMany(final Flux<HOSECodeRecord> hoseCodeRecordFlux) {
+        return this.HOSECodeRepository.insert(hoseCodeRecordFlux);
+    }
+
+    @Override
     public Mono<Void> deleteAll() {
         return this.HOSECodeRepository.deleteAll();
     }

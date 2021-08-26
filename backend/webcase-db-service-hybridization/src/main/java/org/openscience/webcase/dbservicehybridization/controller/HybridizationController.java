@@ -2,8 +2,11 @@ package org.openscience.webcase.dbservicehybridization.controller;
 
 import casekit.nmr.lsd.Constants;
 import casekit.nmr.model.DataSet;
+import casekit.nmr.model.Spectrum;
+import casekit.nmr.utils.Utils;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.webcase.dbservicehybridization.service.HybridizationServiceImplementation;
+import org.openscience.webcase.dbservicehybridization.service.model.DataSetRecord;
 import org.openscience.webcase.dbservicehybridization.service.model.HybridizationRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -15,9 +18,11 @@ import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedDeque;
 
 @RestController
-@RequestMapping(value = "/nmrshiftdb")
+@RequestMapping(value = "/")
 public class HybridizationController {
 
     // set ExchangeSettings
@@ -27,126 +32,168 @@ public class HybridizationController {
                                                                                                     .maxInMemorySize(
                                                                                                             this.maxInMemorySizeMB
                                                                                                                     * 1024
+
                                                                                                                     * 1024))
                                                                     .build();
     private final HybridizationServiceImplementation hybridizationServiceImplementation;
+    private final WebClient.Builder webClientBuilder;
+
     @Autowired
-    private WebClient.Builder webClientBuilder;
-
-    public HybridizationController(final HybridizationServiceImplementation hybridizationServiceImplementation) {
+    public HybridizationController(final HybridizationServiceImplementation hybridizationServiceImplementation,
+                                   final WebClient.Builder webClientBuilder) {
         this.hybridizationServiceImplementation = hybridizationServiceImplementation;
+        this.webClientBuilder = webClientBuilder;
     }
 
-    public String getAtomTypeFromNucleus(final String nucleus) {
-        final String[] nucleusSplit = nucleus.split("\\d");
-        return nucleusSplit[nucleusSplit.length
-                - 1];
-    }
 
     @GetMapping(value = "/count", produces = "application/json")
-    public long getCount() {
-        return this.hybridizationServiceImplementation.count();
+    public Long getCount() {
+        return this.hybridizationServiceImplementation.count()
+                                                      .block();
     }
 
-    @GetMapping(value = "/getAll", produces = "application/json")
-    public List<HybridizationRecord> getHybridizationCollection() {
+    @GetMapping(value = "/getAll", produces = "application/stream+json")
+    public Flux<HybridizationRecord> getAll() {
         return this.hybridizationServiceImplementation.findAll();
     }
 
     @GetMapping(value = "/detectHybridizations", produces = "application/json")
-    public List<Integer> detectHybridization(@RequestParam final String nucleus, @RequestParam final int minShift,
-                                             @RequestParam final int maxShift, @RequestParam final String multiplicity,
-                                             @RequestParam final float thrs) {
-        final List<String> hybridizations = this.hybridizationServiceImplementation.aggregateHybridizationsByNucleusAndShiftAndMultiplicity(
-                nucleus, minShift, maxShift, multiplicity);
-        final Set<String> uniqueLabels = new HashSet<>(hybridizations);
-        final Set<Integer> uniqueValues = new HashSet<>();
+    public List<Integer> detectHybridization(@RequestParam final String nucleus,
+                                             @RequestParam final String multiplicity, @RequestParam final int minShift,
+                                             @RequestParam final int maxShift, @RequestParam final float thrs) {
+        if (!Constants.hybridizationConversionMap.containsKey(nucleus)) {
+            System.out.println("Unknown nucleus!!!");
+            return new ArrayList<>();
+        }
 
-        uniqueLabels.forEach(label -> {
-            if (Constants.hybridizationConversionMap.containsKey(nucleus)
-                    && Constants.hybridizationConversionMap.get(nucleus)
-                                                           .containsKey(label)
-                    && hybridizations.stream()
-                                     .filter(value -> value.equals(label))
-                                     .count()
-                    / (float) hybridizations.size()
-                    >= thrs) {
-                uniqueValues.add(Constants.hybridizationConversionMap.get(nucleus)
-                                                                     .get(label));
+        final List<HybridizationRecord> hybridizationRecordList = this.hybridizationServiceImplementation.findByNucleusAndMultiplicityAndShift(
+                nucleus, multiplicity, minShift, maxShift)
+                                                                                                         .collectList()
+                                                                                                         .block();
+        final Map<String, Integer> totalHybridizationCounts = new HashMap<>();
+        int totalCount = 0;
+        for (final HybridizationRecord hybridizationRecord : hybridizationRecordList) {
+            for (final String hybridization : hybridizationRecord.getHybridizationCounts()
+                                                                 .keySet()) {
+                if (Constants.hybridizationConversionMap.get(nucleus)
+                                                        .containsKey(hybridization)) {
+                    totalHybridizationCounts.putIfAbsent(hybridization, 0);
+                    totalHybridizationCounts.put(hybridization, totalHybridizationCounts.get(hybridization)
+                            + hybridizationRecord.getHybridizationCounts()
+                                                 .get(hybridization));
+                    totalCount += hybridizationRecord.getHybridizationCounts()
+                                                     .get(hybridization);
+                }
             }
-        });
+        }
+        final List<Integer> validHydridizations = new ArrayList<>();
+        for (final Map.Entry<String, Integer> entry : totalHybridizationCounts.entrySet()) {
+            if (((double) entry.getValue()
+                    / totalCount)
+                    >= thrs) {
+                validHydridizations.add(Constants.hybridizationConversionMap.get(nucleus)
+                                                                            .get(entry.getKey()));
+            }
+        }
 
-        return new ArrayList<>(uniqueValues);
+        return validHydridizations;
     }
 
     @PostMapping(value = "/replaceAll")
     public void replaceAll(@RequestParam final String[] nuclei) {
-        this.hybridizationServiceImplementation.deleteAll();
+        this.hybridizationServiceImplementation.deleteAll()
+                                               .block();
 
-        List<DataSet> dataSetList;
-        String atomType, hybridization, multiplicity;
-        Integer shift;
-        IAtomContainer structure;
-        int atomIndex;
-        int[][][] assignmentValues;
-        for (final String nucleus : nuclei) {
-            dataSetList = this.getByDataSetSpectrumNuclei(new String[]{nucleus})
-                              .collectList()
-                              .block();
-            if (dataSetList
-                    != null) {
-                atomType = this.getAtomTypeFromNucleus(nucleus);
-                for (final DataSet dataset : dataSetList) {
-                    structure = dataset.getStructure()
-                                       .toAtomContainer();
-                    assignmentValues = dataset.getAssignment()
-                                              .getAssignments();
-                    for (int signalIndex = 0; signalIndex
-                            < assignmentValues[0].length; signalIndex++) {
-                        multiplicity = dataset.getSpectrum()
-                                              .getSignal(signalIndex)
-                                              .getMultiplicity();
-                        shift = null;
-                        if (dataset.getSpectrum()
-                                   .getSignals()
-                                   .get(signalIndex)
-                                   .getShifts()[0]
-                                != null) {
-                            shift = dataset.getSpectrum()
-                                           .getSignal(signalIndex)
-                                           .getShift(0)
-                                           .intValue();
+        final ConcurrentHashMap<String, ConcurrentHashMap<Integer, ConcurrentHashMap<String, ConcurrentLinkedDeque<String>>>> entries = new ConcurrentHashMap<>(); // nucleus, shift, multiplicity, list of hybridizations
+        this.getByDataSetSpectrumNuclei(nuclei)
+            .doOnNext(dataSetRecord -> {
+                final DataSet dataSet = dataSetRecord.getDataSet();
+                final Spectrum spectrum = dataSet.getSpectrum()
+                                                 .toSpectrum();
+                final String nucleus = spectrum.getNuclei()[0];
+                final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
+                final IAtomContainer structure = dataSet.getStructure()
+                                                        .toAtomContainer();
+                final int[][][] assignmentValues = dataSet.getAssignment()
+                                                          .getAssignments();
+                String multiplicity, hybridization;
+                Integer shift;
+                int atomIndex;
+                for (int signalIndex = 0; signalIndex
+                        < assignmentValues[0].length; signalIndex++) {
+                    multiplicity = spectrum.getSignal(signalIndex)
+                                           .getMultiplicity();
+                    if (multiplicity
+                            == null) {
+                        continue;
+                    }
+                    shift = null;
+                    if (spectrum.getSignals()
+                                .get(signalIndex)
+                                .getShifts()[0]
+                            != null) {
+                        shift = spectrum.getSignal(signalIndex)
+                                        .getShift(0)
+                                        .intValue();
+                    }
+                    for (int equivalenceIndex = 0; equivalenceIndex
+                            < assignmentValues[0][signalIndex].length; equivalenceIndex++) {
+                        atomIndex = assignmentValues[0][signalIndex][equivalenceIndex];
+                        hybridization = structure.getAtom(atomIndex)
+                                                 .getHybridization()
+                                                 .name();
+                        if (shift
+                                == null
+                                || structure.getAtom(atomIndex)
+                                            .getSymbol()
+                                == null
+                                || !structure.getAtom(atomIndex)
+                                             .getSymbol()
+                                             .equals(atomType)) {
+                            continue;
                         }
-                        for (int equivalenceIndex = 0; equivalenceIndex
-                                < assignmentValues[0][signalIndex].length; equivalenceIndex++) {
-                            atomIndex = assignmentValues[0][signalIndex][equivalenceIndex];
-                            hybridization = structure.getAtom(atomIndex)
-                                                     .getHybridization()
-                                                     .name();
-
-                            if (shift
-                                    == null
-                                    || structure.getAtom(atomIndex)
-                                                .getSymbol()
-                                    == null
-                                    || !structure.getAtom(atomIndex)
-                                                 .getSymbol()
-                                                 .equals(atomType)) {
-                                continue;
+                        entries.putIfAbsent(nucleus, new ConcurrentHashMap<>());
+                        entries.get(nucleus)
+                               .putIfAbsent(shift, new ConcurrentHashMap<>());
+                        entries.get(nucleus)
+                               .get(shift)
+                               .putIfAbsent(multiplicity, new ConcurrentLinkedDeque<>());
+                        entries.get(nucleus)
+                               .get(shift)
+                               .get(multiplicity)
+                               .add(hybridization);
+                    }
+                }
+            })
+            .doAfterTerminate(() -> {
+                Map<String, Integer> hybridizationCounts;
+                for (final String nucleus : entries.keySet()) {
+                    for (final int shift : entries.get(nucleus)
+                                                  .keySet()) {
+                        for (final String multiplicity : entries.get(nucleus)
+                                                                .get(shift)
+                                                                .keySet()) {
+                            hybridizationCounts = new HashMap<>();
+                            for (final String hybridization : entries.get(nucleus)
+                                                                     .get(shift)
+                                                                     .get(multiplicity)) {
+                                hybridizationCounts.putIfAbsent(hybridization, 0);
+                                hybridizationCounts.put(hybridization, hybridizationCounts.get(hybridization)
+                                        + 1);
                             }
-
                             this.hybridizationServiceImplementation.insert(
-                                    new HybridizationRecord(null, nucleus, shift, multiplicity, hybridization));
+                                    new HybridizationRecord(null, nucleus, shift, multiplicity, hybridizationCounts))
+                                                                   .subscribe();
                         }
                     }
                 }
-            }
-        }
+            })
+            .subscribe();
     }
 
-    public Flux<DataSet> getByDataSetSpectrumNuclei(final String[] nuclei) {
+    public Flux<DataSetRecord> getByDataSetSpectrumNuclei(final String[] nuclei) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-dataset/nmrshiftdb")
+                "http://webcase-gateway:8080/webcase-db-service-dataset")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)
@@ -162,6 +209,6 @@ public class HybridizationController {
         return webClient.get()
                         .uri(uriComponentsBuilder.toUriString())
                         .retrieve()
-                        .bodyToFlux(DataSet.class);
+                        .bodyToFlux(DataSetRecord.class);
     }
 }

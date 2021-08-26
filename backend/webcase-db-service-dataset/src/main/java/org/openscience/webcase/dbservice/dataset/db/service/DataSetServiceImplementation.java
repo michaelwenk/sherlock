@@ -22,9 +22,9 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservice.dataset.nmrshiftdb.service;
+package org.openscience.webcase.dbservice.dataset.db.service;
 
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.DataSetRecord;
+import org.openscience.webcase.dbservice.dataset.db.model.DataSetRecord;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -89,6 +89,11 @@ public class DataSetServiceImplementation
     @Override
     public Mono<DataSetRecord> insert(final DataSetRecord dataSetRecord) {
         return this.dataSetRepository.insert(dataSetRecord);
+    }
+
+    @Override
+    public Flux<DataSetRecord> insertMany(final Flux<DataSetRecord> dataSetRecordFlux) {
+        return this.dataSetRepository.insert(dataSetRecordFlux);
     }
 
     @Override

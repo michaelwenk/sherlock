@@ -1,6 +1,6 @@
-package org.openscience.webcase.dbservice.dataset.nmrshiftdb.service;
+package org.openscience.webcase.dbservice.dataset.db.service;
 
-import org.openscience.webcase.dbservice.dataset.nmrshiftdb.model.MultiplicitySectionsSettingsRecord;
+import org.openscience.webcase.dbservice.dataset.db.model.MultiplicitySectionsSettingsRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

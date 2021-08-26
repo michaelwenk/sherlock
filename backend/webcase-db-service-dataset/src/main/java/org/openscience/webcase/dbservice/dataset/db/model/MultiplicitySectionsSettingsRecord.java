@@ -1,4 +1,4 @@
-package org.openscience.webcase.dbservice.dataset.nmrshiftdb.model;
+package org.openscience.webcase.dbservice.dataset.db.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

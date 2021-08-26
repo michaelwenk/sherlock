@@ -22,22 +22,26 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservice.dataset.nmrshiftdb.model;
-
+package org.openscience.webcase.core.model.db;
 
 import casekit.nmr.model.DataSet;
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
+import lombok.*;
 
+import java.util.List;
+
+@NoArgsConstructor
 @AllArgsConstructor
-@Data
+@Getter
+@Setter
+@ToString
 
-@Document(collection = "datasets")
-public class DataSetRecord {
+public class ResultRecord {
 
-    @Id
     private String id;
-    private DataSet dataSet;
+    private String queryType;
+    private String stage;
+    private String error;
+    private boolean stageIsComplete;
+    private boolean done;
+    private List<DataSet> dataSetList;
 }

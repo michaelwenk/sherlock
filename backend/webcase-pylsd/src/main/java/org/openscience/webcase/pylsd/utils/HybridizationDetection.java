@@ -4,7 +4,6 @@ import casekit.nmr.lsd.Constants;
 import casekit.nmr.model.nmrdisplayer.Correlation;
 import casekit.nmr.model.nmrdisplayer.Data;
 import casekit.nmr.utils.Utils;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -22,7 +21,7 @@ public class HybridizationDetection {
         final Map<Integer, List<Integer>> detectedHybridizations = new HashMap<>();
 
         final WebClient webClient = webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-hybridization/nmrshiftdb")
+                "http://webcase-gateway:8080/webcase-db-service-hybridization/")
                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .build();
@@ -52,13 +51,12 @@ public class HybridizationDetection {
                                             + shiftTol)
                                     .queryParam("multiplicity", multiplicity)
                                     .queryParam("thrs", thrs);
-                hybridizations = webClient //final Flux<DataSet> results = webClient
-                                           .get()
-                                           .uri(uriComponentsBuilder.toUriString())
-                                           .retrieve()
-                                           .bodyToMono(new ParameterizedTypeReference<List<Integer>>() {
-                                           })
-                                           .block();
+                hybridizations = webClient.get()
+                                          .uri(uriComponentsBuilder.toUriString())
+                                          .retrieve()
+                                          .bodyToFlux(Integer.class)
+                                          .collectList()
+                                          .block();
 
                 detectedHybridizations.put(i, hybridizations);
             }

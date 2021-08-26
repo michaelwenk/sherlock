@@ -22,24 +22,24 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dbservicehybridization.service;
+package org.openscience.webcase.dbservice.dataset.db.model;
 
-import org.openscience.webcase.dbservicehybridization.service.model.HybridizationRecord;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
-public interface HybridizationService {
+import casekit.nmr.model.DataSet;
+import lombok.*;
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
 
-    Mono<Long> count();
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@ToString
 
-    Mono<HybridizationRecord> insert(final HybridizationRecord hybridizationRecord);
+@Document(collection = "datasets")
+public class DataSetRecord {
 
-    Flux<HybridizationRecord> findAll();
-
-    Mono<HybridizationRecord> findById(final String id);
-
-    Flux<HybridizationRecord> findByNucleusAndMultiplicityAndShift(final String nucleus, final String multiplicity,
-                                                                   final int minShift, final int maxShift);
-
-    Mono<Void> deleteAll();
+    @Id
+    private String id;
+    private DataSet dataSet;
 }

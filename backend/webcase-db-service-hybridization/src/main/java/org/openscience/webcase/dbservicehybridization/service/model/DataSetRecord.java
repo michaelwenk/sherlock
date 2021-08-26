@@ -22,13 +22,18 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dereplication.model.nmrshiftdb;
+package org.openscience.webcase.dbservicehybridization.service.model;
 
 
 import casekit.nmr.model.DataSet;
-import lombok.Data;
+import lombok.*;
 
-@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@Getter
+@Setter
+@ToString
+
 public class DataSetRecord {
 
     private String id;

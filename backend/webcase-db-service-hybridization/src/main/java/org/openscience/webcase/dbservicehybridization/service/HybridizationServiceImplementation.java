@@ -27,9 +27,8 @@ package org.openscience.webcase.dbservicehybridization.service;
 import org.openscience.webcase.dbservicehybridization.service.model.HybridizationRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 
 @Service
@@ -44,36 +43,35 @@ public class HybridizationServiceImplementation
     }
 
     @Override
-    public long count() {
+    public Mono<Long> count() {
         return this.hybridizationRepository.count();
     }
 
     @Override
-    public void insert(final HybridizationRecord hybridizationRecord) {
-        this.hybridizationRepository.insert(hybridizationRecord);
+    public Mono<HybridizationRecord> insert(final HybridizationRecord hybridizationRecord) {
+        return this.hybridizationRepository.insert(hybridizationRecord);
     }
 
     @Override
-    public List<HybridizationRecord> findAll() {
+    public Flux<HybridizationRecord> findAll() {
         return this.hybridizationRepository.findAll();
     }
 
     @Override
-    public Optional<HybridizationRecord> findById(final String id) {
+    public Mono<HybridizationRecord> findById(final String id) {
         return this.hybridizationRepository.findById(id);
     }
 
     @Override
-    public List<String> aggregateHybridizationsByNucleusAndShiftAndMultiplicity(final String nucleus,
-                                                                                final int minShift, final int maxShift,
-                                                                                final String multiplicity) {
-        return this.hybridizationRepository.aggregateHybridizationsByNucleusAndShiftAndMultiplicity(nucleus, minShift,
-                                                                                                    maxShift,
-                                                                                                    multiplicity);
+    public Flux<HybridizationRecord> findByNucleusAndMultiplicityAndShift(final String nucleus,
+                                                                          final String multiplicity, final int minShift,
+                                                                          final int maxShift) {
+        return this.hybridizationRepository.findByNucleusAndMultiplicityAndShift(nucleus, multiplicity, minShift,
+                                                                                 maxShift);
     }
 
     @Override
-    public void deleteAll() {
-        this.hybridizationRepository.deleteAll();
+    public Mono<Void> deleteAll() {
+        return this.hybridizationRepository.deleteAll();
     }
 }

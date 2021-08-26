@@ -44,6 +44,16 @@ public class FileParserController {
         this.resultsParser = resultsParser;
     }
 
+    @PostMapping(value = "/clearHOSECodeDBEntriesMap")
+    public void clearHOSECodeDBEntriesMap() {
+        this.resultsParser.clearHOSECodeDBEntriesMap();
+    }
+
+    @PostMapping(value = "/fillHOSECodeDBEntriesMap")
+    public void fillHOSECodeDBEntriesMap() {
+        this.resultsParser.fillHOSECodeDBEntriesMap();
+    }
+
     @PostMapping(value = "/parseResultFile")
     public ResponseEntity<Transfer> parseResultFile(@RequestBody final Transfer requestTransfer) {
         final Transfer resultTransfer = new Transfer();
@@ -58,7 +68,7 @@ public class FileParserController {
 
     public Map<String, int[]> getMultiplicitySectionsSettings() {
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-dataset/nmrshiftdb/getMultiplicitySectionsSettings")
+                "http://webcase-gateway:8080/webcase-db-service-dataset/getMultiplicitySectionsSettings")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)

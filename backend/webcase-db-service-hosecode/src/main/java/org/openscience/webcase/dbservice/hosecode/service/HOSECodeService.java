@@ -43,5 +43,7 @@ public interface HOSECodeService {
 
     Mono<HOSECodeRecord> insert(final HOSECodeRecord hoseCodeRecord);
 
+    Flux<HOSECodeRecord> insertMany(final Flux<HOSECodeRecord> hoseCodeRecordFlux);
+
     Mono<Void> deleteAll();
 }

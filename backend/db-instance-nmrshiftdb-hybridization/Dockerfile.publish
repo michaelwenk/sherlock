@@ -1,5 +1,0 @@
-FROM mongo:4
-
-COPY data/db/nmrshiftdb-hybridization /data/db
-
-EXPOSE 27017

@@ -2,10 +2,7 @@ package org.openscience.webcase.dbservice.hosecode.utils;
 
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.hose.HOSECodeBuilder;
-import casekit.nmr.model.Assignment;
-import casekit.nmr.model.DataSet;
-import casekit.nmr.model.Signal;
-import casekit.nmr.model.Spectrum;
+import casekit.nmr.model.*;
 import casekit.nmr.model.nmrdisplayer.Correlation;
 import casekit.nmr.model.nmrdisplayer.Data;
 import casekit.nmr.similarity.Similarity;
@@ -33,30 +30,36 @@ public class ResultsParser {
     private final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
 
     private final HOSECodeController hoseCodeController;
-    private final Map<String, HOSECode> hoseCodeDBEntries;
+    private final Map<String, HOSECode> hoseCodeDBEntriesMap;
 
     @Autowired
-    public ResultsParser(final HOSECodeController hoseCodeController, final Map<String, HOSECode> hoseCodeDBEntries) {
+    public ResultsParser(final HOSECodeController hoseCodeController,
+                         final Map<String, HOSECode> hoseCodeDBEntriesMap) {
         this.hoseCodeController = hoseCodeController;
-        this.hoseCodeDBEntries = hoseCodeDBEntries;
+        this.hoseCodeDBEntriesMap = hoseCodeDBEntriesMap;
 
-        this.initHOSECodeDBEntries();
+        this.fillHOSECodeDBEntriesMap();
     }
 
-    private void initHOSECodeDBEntries() {
-        System.out.println("\nloading DB...");
+    public void clearHOSECodeDBEntriesMap() {
+        System.out.println("\nclearHOSECodeDBEntriesMap...");
+        this.hoseCodeDBEntriesMap.clear();
+    }
+
+    public void fillHOSECodeDBEntriesMap() {
+        System.out.println("\nloading DB content...");
         final List<HOSECode> hoseCodeList = this.hoseCodeController.getAll()
                                                                    .collectList()
                                                                    .block();
         if (hoseCodeList
                 != null) {
             for (final HOSECode hoseCodeObject : hoseCodeList) {
-                this.hoseCodeDBEntries.put(hoseCodeObject.getHOSECode(), hoseCodeObject);
+                this.hoseCodeDBEntriesMap.put(hoseCodeObject.getHOSECode(), hoseCodeObject);
             }
         }
 
         System.out.println(" -> "
-                                   + this.hoseCodeDBEntries.size());
+                                   + this.hoseCodeDBEntriesMap.size());
     }
 
     public List<DataSet> parseAndPredict(final Transfer requestTransfer,
@@ -148,9 +151,9 @@ public class ResultsParser {
                     while (sphere
                             >= 1) {
                         hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
-                        //                        hoseCodeObject = this.hoseCodeController.getByID(hoseCode) //getByHOSECode(hoseCode)
+                        //                        hoseCodeObject = this.hoseCodeController.getByID(hoseCode)
                         //                                                                .block();
-                        hoseCodeObject = this.hoseCodeDBEntries.get(hoseCode);
+                        hoseCodeObject = this.hoseCodeDBEntriesMap.get(hoseCode);
                         if (hoseCodeObject
                                 != null) {
                             for (final Map.Entry<String, Double[]> solventEntry : hoseCodeObject.getValues()
@@ -208,7 +211,7 @@ public class ResultsParser {
                 //                // to save space and time when (re-)converting structures delete the larger ExtendedAdjacencyList
                 //                // the SMILES was build by CDK and stored in Meta member anyway
                 //                dataSet.setStructure(null);
-                dataSet.setSpectrum(predictedSpectrum);
+                dataSet.setSpectrum(new SpectrumCompact(predictedSpectrum));
                 dataSet.setAssignment(assignment);
 
                 dataSet.addMetaInfo("querySpectrumSignalCount", String.valueOf(querySpectrum.getSignalCount()));
@@ -234,7 +237,7 @@ public class ResultsParser {
                         dataSet.addMetaInfo("averageDeviation", String.valueOf(averageDeviation));
                         rmsd = Statistics.calculateRMSD(deviations);
                         dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
-                        bitSetFingerprintDataSet = Similarity.getBitSetFingerprint(dataSet.getSpectrum(), 0,
+                        bitSetFingerprintDataSet = Similarity.getBitSetFingerprint(predictedSpectrum, 0,
                                                                                    this.multiplicitySectionsBuilder);
                         tanimotoCoefficient = Similarity.calculateTanimotoCoefficient(bitSetFingerprintQuerySpectrum,
                                                                                       bitSetFingerprintDataSet);
@@ -252,7 +255,7 @@ public class ResultsParser {
                         dataSet.addMetaInfo("averageDeviation", String.valueOf(averageDeviation));
                         rmsd = Statistics.calculateRMSD(deviations);
                         dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
-                        bitSetFingerprintDataSet = Similarity.getBitSetFingerprint(dataSet.getSpectrum(), 0,
+                        bitSetFingerprintDataSet = Similarity.getBitSetFingerprint(predictedSpectrum, 0,
                                                                                    this.multiplicitySectionsBuilder);
                         tanimotoCoefficient = Similarity.calculateTanimotoCoefficient(bitSetFingerprintQuerySpectrum,
                                                                                       bitSetFingerprintDataSet);
