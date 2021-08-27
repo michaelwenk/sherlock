@@ -56,9 +56,8 @@ public class HOSECodeController {
     }
 
     @GetMapping(value = "/count")
-    public Long getCount() {
-        return this.hoseCodeServiceImplementation.count()
-                                                 .block();
+    public Mono<Long> getCount() {
+        return this.hoseCodeServiceImplementation.count();
     }
 
     @GetMapping(value = "/getAll", produces = "application/stream+json")

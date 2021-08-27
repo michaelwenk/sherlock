@@ -80,9 +80,8 @@ public class DatabaseController {
     }
 
     @GetMapping(value = "/count")
-    public Long getCount() {
-        return this.dataSetServiceImplementation.count()
-                                                .block();
+    public Mono<Long> getCount() {
+        return this.dataSetServiceImplementation.count();
     }
 
     @GetMapping(value = "/getById", produces = "application/json")
@@ -184,7 +183,8 @@ public class DatabaseController {
                                        + dataSetList.size());
             this.insertDataSetRecords(dataSetList);
             System.out.println("stored for NMRShiftDB done -> "
-                                       + this.getCount());
+                                       + this.getCount()
+                                             .block());
             Flux.fromArray(this.pathsToCOCONUT)
                 .doOnNext(pathToCOCONUT -> {
                     try {
@@ -193,7 +193,10 @@ public class DatabaseController {
                         this.insertDataSetRecords(
                                 COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(pathToCOCONUT, nuclei));
                         System.out.println(pathToCOCONUT
-                                                   + " -> done");
+                                                   + " -> done -> "
+                                                   + this.getCount()
+                                                         .doOnNext(System.out::println)
+                                                         .subscribe());
                     } catch (final CDKException | FileNotFoundException e) {
                         e.printStackTrace();
                     }
