@@ -127,7 +127,7 @@ public class ConnectivityController {
                                                                                                       .block();
         System.out.println(extractedConnectivityCounts);
         for (final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivityCount : extractedConnectivityCounts) {
-            final List<String> extractedNeighborAtomTypes = ConnectivityStatistics.extractNeighbors(
+            final List<String> extractedNeighborAtomTypes = ConnectivityStatistics.extractNeighborAtomTypes(
                     extractedConnectivityCount, thresholdNeighborCount);
             for (final String extractedNeighborAtomType : extractedNeighborAtomTypes) {
                 final Map<String, Map<Integer, Integer>> extractedNeighborHybridizationMap = ConnectivityStatistics.extractNeighborHybridizations(
