@@ -12,6 +12,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -107,9 +108,32 @@ public class ConnectivityController {
                                                                                                                                                                                                                                   }))));
                      System.out.println(" -> done -> "
                                                 + this.getCount()
-                                                      .doOnNext(System.out::println)
                                                       .subscribe());
                  })
                  .subscribe();
+    }
+
+    @GetMapping(value = "/extractNeighborHybridizations", produces = "application/json")
+    public void extractNeighborHybridizations(@RequestParam final String nucleus,
+                                              @RequestParam final String hybridization,
+                                              @RequestParam final String multiplicity, @RequestParam final int minShift,
+                                              @RequestParam final int maxShift,
+                                              @RequestParam final double thresholdNeighborCount,
+                                              @RequestParam final double thresholdHybridizationCount) {
+        final List<Map<String, Map<String, Map<Integer, Integer>>>> extractedConnectivityCounts = this.findByNucleusAndHybridizationAndMultiplicityAndShift(
+                nucleus, hybridization, multiplicity, minShift, maxShift)
+                                                                                                      .map(ConnectivityRecord::getConnectivityCounts)
+                                                                                                      .collectList()
+                                                                                                      .block();
+        System.out.println(extractedConnectivityCounts);
+        for (final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivityCount : extractedConnectivityCounts) {
+            final List<String> extractedNeighborAtomTypes = ConnectivityStatistics.extractNeighbors(
+                    extractedConnectivityCount, thresholdNeighborCount);
+            for (final String extractedNeighborAtomType : extractedNeighborAtomTypes) {
+                final Map<String, Map<Integer, Integer>> extractedNeighborHybridizationMap = ConnectivityStatistics.extractNeighborHybridizations(
+                        extractedConnectivityCount, extractedNeighborAtomType, thresholdHybridizationCount);
+                System.out.println(extractedNeighborHybridizationMap);
+            }
+        }
     }
 }
