@@ -1,8 +1,7 @@
 package org.openscience.webcase.pylsd.utils;
 
 import casekit.nmr.lsd.Constants;
-import casekit.nmr.model.nmrdisplayer.Correlation;
-import casekit.nmr.model.nmrdisplayer.Data;
+import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.utils.Utils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;

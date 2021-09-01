@@ -4,6 +4,7 @@ import casekit.io.FileSystem;
 import casekit.nmr.lsd.PyLSDInputFileBuilder;
 import casekit.nmr.lsd.model.ElucidationOptions;
 import casekit.nmr.model.DataSet;
+import casekit.nmr.model.nmrium.Correlation;
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
 import org.openscience.webcase.pylsd.utils.HybridizationDetection;
 import org.springframework.beans.factory.annotation.Autowired;

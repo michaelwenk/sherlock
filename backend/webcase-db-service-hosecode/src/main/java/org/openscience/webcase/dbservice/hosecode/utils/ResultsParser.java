@@ -2,9 +2,12 @@ package org.openscience.webcase.dbservice.hosecode.utils;
 
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.hose.HOSECodeBuilder;
-import casekit.nmr.model.*;
-import casekit.nmr.model.nmrdisplayer.Correlation;
-import casekit.nmr.model.nmrdisplayer.Data;
+import casekit.nmr.model.Assignment;
+import casekit.nmr.model.DataSet;
+import casekit.nmr.model.Signal;
+import casekit.nmr.model.Spectrum;
+import casekit.nmr.model.nmrium.Correlation;
+import casekit.nmr.model.nmrium.Data;
 import casekit.nmr.similarity.Similarity;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
