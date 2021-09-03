@@ -26,31 +26,12 @@ public class Ranking {
                 return -1
                         * setAssignmentsCountComparison;
             }
+
             final int avgDevComparison = compareNumericDataSetMetaKey(dataSet1, dataSet2, "averageDeviation");
             if (avgDevComparison
                     != 0) {
                 return avgDevComparison;
             }
-
-            //            final boolean isCompleteSpectralMatchWithEquivalencesDataSet1 = Boolean.parseBoolean(dataSet1.getMeta()
-            //                                                                                                         .get("isCompleteSpectralMatchWithEquivalences"));
-            //            final boolean isCompleteSpectralMatchWithEquivalencesDataSet2 = Boolean.parseBoolean(dataSet2.getMeta()
-            //                                                                                                         .get("isCompleteSpectralMatchWithEquivalences"));
-            //            if (isCompleteSpectralMatchWithEquivalencesDataSet1
-            //                    && !isCompleteSpectralMatchWithEquivalencesDataSet2) {
-            //                return -1;
-            //            } else if (!isCompleteSpectralMatchWithEquivalencesDataSet1
-            //                    && isCompleteSpectralMatchWithEquivalencesDataSet2) {
-            //                return 1;
-            //            }
-            //
-            //            final int setAssignmentsCountWithEquivalencesComparison = compareNumericDataSetMetaKey(dataSet1, dataSet2,
-            //                                                                                                   "setAssignmentsCountWithEquivalences");
-            //            if (setAssignmentsCountWithEquivalencesComparison
-            //                    != 0) {
-            //                return -1
-            //                        * setAssignmentsCountWithEquivalencesComparison;
-            //            }
 
             return 0;
         });
