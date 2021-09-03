@@ -201,21 +201,20 @@ public class ResultsParser {
                     continue;
                 }
 
-                assignment = new Assignment();
-                assignment.setNuclei(predictedSpectrum.getNuclei());
-                assignment.initAssignments(predictedSpectrum.getSignalCount());
-
-                for (final Map.Entry<Integer, List<Integer>> entry : assignmentMap.entrySet()) {
-                    for (final int atomIndex : assignmentMap.get(entry.getKey())) {
-                        assignment.addAssignmentEquivalence(0, entry.getKey(), atomIndex);
-                    }
-                }
-
-                //                // to save space and time when (re-)converting structures delete the larger ExtendedAdjacencyList
-                //                // the SMILES was build by CDK and stored in Meta member anyway
-                //                dataSet.setStructure(null);
-                dataSet.setSpectrum(new SpectrumCompact(predictedSpectrum));
-                dataSet.setAssignment(assignment);
+                // to save space and time when (re-)converting datasets avoid the currently non-used information
+                // the SMILES was build by CDK and stored in meta information
+                dataSet.setStructure(null);
+                //                dataSet.setSpectrum(new SpectrumCompact(predictedSpectrum));
+                //                assignment = new Assignment();
+                //                assignment.setNuclei(predictedSpectrum.getNuclei());
+                //                assignment.initAssignments(predictedSpectrum.getSignalCount());
+                //
+                //                for (final Map.Entry<Integer, List<Integer>> entry : assignmentMap.entrySet()) {
+                //                    for (final int atomIndex : assignmentMap.get(entry.getKey())) {
+                //                        assignment.addAssignmentEquivalence(0, entry.getKey(), atomIndex);
+                //                    }
+                //                }
+                //                dataSet.setAssignment(assignment);
 
                 dataSet.addMetaInfo("querySpectrumSignalCount", String.valueOf(querySpectrum.getSignalCount()));
                 dataSet.addMetaInfo("querySpectrumSignalCountWithEquivalences",
