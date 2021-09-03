@@ -52,6 +52,7 @@ public class Transfer {
     private Boolean pyLSDRunWasSuccessful;
     private ElucidationOptions elucidationOptions;
     private Map<Integer, List<Integer>> detectedHybridizations;
+    private Map<Integer, Map<String, Map<String, Map<Integer, Integer>>>> detectedConnectivities;
 
     // for (ranked) SDF parsing
     private String fileContent;

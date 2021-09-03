@@ -3,6 +3,7 @@ package org.openscience.webcase.pylsd.utils;
 import casekit.nmr.lsd.Constants;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.utils.Utils;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -12,20 +13,20 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-public class HybridizationDetection {
+public class ConnectivityDetection {
 
-    public static Map<Integer, List<Integer>> detectHybridizations(final WebClient.Builder webClientBuilder,
-                                                                   final List<Correlation> correlationList,
-                                                                   final float threshold, final int shiftTol) {
-        final Map<Integer, List<Integer>> detectedHybridizations = new HashMap<>();
+    public static Map<Integer, Map<String, Map<String, Map<Integer, Integer>>>> detectConnectivities(
+            final WebClient.Builder webClientBuilder, final List<Correlation> correlationList, final int shiftTol,
+            final double thresholdHybridizationCount, final double thresholdProtonsCount, final String mf) {
+        final Map<Integer, Map<String, Map<String, Map<Integer, Integer>>>> detectedConnectivities = new HashMap<>();
 
         final WebClient webClient = webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-statistics/hybridization/")
+                "http://webcase-gateway:8080/webcase-db-service-statistics/connectivity/")
                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .build();
         UriComponentsBuilder uriComponentsBuilder;
-        List<Integer> hybridizations;
+        Map<String, Map<String, Map<Integer, Integer>>> detectedConnectivitiesTemp;
         Correlation correlation;
         String multiplicity;
         for (int i = 0; i
@@ -34,31 +35,34 @@ public class HybridizationDetection {
             multiplicity = Utils.getMultiplicityFromProtonsCount(correlation);
             if (!correlation.getAtomType()
                             .equals("H")
-                    && Constants.nucleiMap.containsKey(correlation.getAtomType())
                     && multiplicity
                     != null) {
                 uriComponentsBuilder = UriComponentsBuilder.newInstance();
-                uriComponentsBuilder.path("/detectHybridizations")
+                uriComponentsBuilder.path("/extractNeighborHybridizations")
                                     .queryParam("nucleus", Constants.nucleiMap.get(correlation.getAtomType()))
+                                    .queryParam("hybridization", correlation.getHybridization())
+                                    .queryParam("multiplicity", multiplicity)
                                     .queryParam("minShift", (int) correlation.getSignal()
                                                                              .getDelta()
                                             - shiftTol)
                                     .queryParam("maxShift", (int) correlation.getSignal()
                                                                              .getDelta()
                                             + shiftTol)
-                                    .queryParam("multiplicity", multiplicity)
-                                    .queryParam("threshold", threshold);
-                hybridizations = webClient.get()
-                                          .uri(uriComponentsBuilder.toUriString())
-                                          .retrieve()
-                                          .bodyToFlux(Integer.class)
-                                          .collectList()
-                                          .block();
+                                    .queryParam("thresholdHybridizationCount", thresholdHybridizationCount)
+                                    .queryParam("thresholdProtonsCount", thresholdProtonsCount)
+                                    .queryParam("mf", mf);
+                detectedConnectivitiesTemp = webClient.get()
+                                                      .uri(uriComponentsBuilder.toUriString())
+                                                      .retrieve()
+                                                      .bodyToMono(
+                                                              new ParameterizedTypeReference<Map<String, Map<String, Map<Integer, Integer>>>>() {
+                                                              })
+                                                      .block();
 
-                detectedHybridizations.put(i, hybridizations);
+                detectedConnectivities.put(i, detectedConnectivitiesTemp);
             }
         }
 
-        return detectedHybridizations;
+        return detectedConnectivities;
     }
 }

@@ -6,6 +6,7 @@ import casekit.nmr.lsd.model.ElucidationOptions;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.nmrium.Correlation;
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
+import org.openscience.webcase.pylsd.utils.ConnectivityDetection;
 import org.openscience.webcase.pylsd.utils.HybridizationDetection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -123,16 +124,45 @@ public class PyLSDController {
 
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
-    
+
     private String createPyLSDInputFile(final Transfer requestTransfer) {
-        final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.getDetectedHybridizations(
-                this.webClientBuilder, requestTransfer.getData(), requestTransfer.getElucidationOptions()
-                                                                                 .getHybridizationDetectionThreshold(),
-                2);
+        final int shiftTol = 0;
+        final double thresholdHybridizationCount = 0.0001;
+        final double thresholdProtonsCount = 0.01;
+
+        final List<Correlation> correlationList = requestTransfer.getData()
+                                                                 .getCorrelations()
+                                                                 .getValues();
+        final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.detectHybridizations(
+                this.webClientBuilder, correlationList, requestTransfer.getElucidationOptions()
+                                                                       .getHybridizationDetectionThreshold(), shiftTol);
+        // set hybridization of correlations in unique cases: detected hybridizations count equals one
+        for (final Map.Entry<Integer, List<Integer>> entry : detectedHybridizations.entrySet()) {
+            if ((correlationList.get(entry.getKey())
+                                .getHybridization()
+                    == null
+                    || correlationList.get(entry.getKey())
+                                      .getHybridization()
+                                      .trim()
+                                      .isEmpty())
+                    && entry.getValue()
+                            .size()
+                    == 1) {
+                correlationList.get(entry.getKey())
+                               .setHybridization("SP"
+                                                         + entry.getValue()
+                                                                .get(0));
+            }
+        }
+
+        final Map<Integer, Map<String, Map<String, Map<Integer, Integer>>>> detectedConnectivities = ConnectivityDetection.detectConnectivities(
+                this.webClientBuilder, correlationList, shiftTol, thresholdHybridizationCount, thresholdProtonsCount,
+                requestTransfer.getMf());
 
         final Transfer queryTransfer = new Transfer();
         queryTransfer.setData(requestTransfer.getData());
         queryTransfer.setDetectedHybridizations(detectedHybridizations);
+        queryTransfer.setDetectedConnectivities(detectedConnectivities);
         queryTransfer.setMf(requestTransfer.getMf());
         queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
 
@@ -160,9 +190,6 @@ public class PyLSDController {
         queryTransfer.getElucidationOptions()
                      .setFilterPaths(filterList.toArray(String[]::new));
 
-        queryTransfer.getElucidationOptions()
-                     .setUsePrediction(false);
-
         return this.createInputFile(queryTransfer);
     }
 
@@ -187,10 +214,10 @@ public class PyLSDController {
                                                     .getCosyP3());
         elucidationOptions.setCosyP4(requestTransfer.getElucidationOptions()
                                                     .getCosyP4());
-        elucidationOptions.setUsePrediction(false);
 
         return PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getData(), requestTransfer.getMf(),
                                                                 requestTransfer.getDetectedHybridizations(),
+                                                                requestTransfer.getDetectedConnectivities(),
                                                                 elucidationOptions);
     }
 

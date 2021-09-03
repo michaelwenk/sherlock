@@ -15,7 +15,9 @@ import reactor.core.publisher.Mono;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "/connectivity")
@@ -118,55 +120,70 @@ public class ConnectivityController {
     public Map<String, Map<String, Map<Integer, Integer>>> extractNeighborHybridizations(
             @RequestParam final String nucleus, @RequestParam final String hybridization,
             @RequestParam final String multiplicity, @RequestParam final int minShift, @RequestParam final int maxShift,
-            @RequestParam final double thresholdNeighborCount, @RequestParam final double thresholdHybridizationCount) {
+            @RequestParam final double thresholdHybridizationCount, @RequestParam final double thresholdProtonsCount,
+            @RequestParam final String mf) {
         final List<Map<String, Map<String, Map<Integer, Integer>>>> extractedConnectivityCounts = this.findByNucleusAndHybridizationAndMultiplicityAndShift(
                 nucleus, hybridization, multiplicity, minShift, maxShift)
                                                                                                       .map(ConnectivityRecord::getConnectivityCounts)
                                                                                                       .collectList()
                                                                                                       .block();
+
+        final Set<String> atomTypesByMf = Utils.getMolecularFormulaElementCounts(mf)
+                                               .keySet();
+        extractedConnectivityCounts.forEach(foundExtractedConnectivityCountsMap -> {
+            final Set<String> foundAtomTypesToIgnore = foundExtractedConnectivityCountsMap.keySet()
+                                                                                          .stream()
+                                                                                          .filter(foundAtomType -> !atomTypesByMf.contains(
+                                                                                                  foundAtomType))
+                                                                                          .collect(Collectors.toSet());
+            for (final String foundAtomTypeToIgnore : foundAtomTypesToIgnore) {
+                foundExtractedConnectivityCountsMap.remove(foundAtomTypeToIgnore);
+            }
+        });
+
         // atom type neighbor -> hybridization -> protons count -> occurrence
-        final Map<String, Map<String, Map<Integer, Integer>>> extractedNeighborHybridizationMapAll = new HashMap<>();
-        List<String> extractedNeighborAtomTypes;
+        final Map<String, Map<String, Map<Integer, Integer>>> filteredExtractedConnectivitiesAll = new HashMap<>();
+        // loop over all results from DB in case a chemical shift range is given (minShift != maxShift)
         for (final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivityCount : extractedConnectivityCounts) {
-            extractedNeighborAtomTypes = ConnectivityStatistics.extractNeighborAtomTypes(extractedConnectivityCount,
-                                                                                         thresholdNeighborCount);
-            for (final String extractedNeighborAtomType : extractedNeighborAtomTypes) {
-                final Map<String, Map<Integer, Integer>> extractedNeighborHybridizationMap = ConnectivityStatistics.extractNeighborHybridizations(
-                        extractedConnectivityCount, extractedNeighborAtomType, thresholdHybridizationCount);
-                extractedNeighborHybridizationMapAll.putIfAbsent(extractedNeighborAtomType, new HashMap<>());
-                extractedNeighborHybridizationMap.keySet()
-                                                 .forEach(hybridizationNeighbor -> {
-                                                     extractedNeighborHybridizationMapAll.get(extractedNeighborAtomType)
-                                                                                         .putIfAbsent(
-                                                                                                 hybridizationNeighbor,
-                                                                                                 new HashMap<>());
+            final Map<String, Map<String, Map<Integer, Integer>>> filteredExtractedConnectivities = ConnectivityStatistics.filterExtractedConnectivities(
+                    extractedConnectivityCount, thresholdHybridizationCount, thresholdProtonsCount);
+            for (final String extractedNeighborAtomType : filteredExtractedConnectivities.keySet()) {
+                filteredExtractedConnectivitiesAll.putIfAbsent(extractedNeighborAtomType, new HashMap<>());
+                filteredExtractedConnectivities.get(extractedNeighborAtomType)
+                                               .keySet()
+                                               .forEach(hybridizationNeighbor -> {
+                                                   filteredExtractedConnectivitiesAll.get(extractedNeighborAtomType)
+                                                                                     .putIfAbsent(hybridizationNeighbor,
+                                                                                                  new HashMap<>());
 
-                                                     extractedNeighborHybridizationMap.get(hybridizationNeighbor)
-                                                                                      .keySet()
-                                                                                      .forEach(protonsCount -> {
-                                                                                          extractedNeighborHybridizationMapAll.get(
-                                                                                                  extractedNeighborAtomType)
-                                                                                                                              .get(hybridizationNeighbor)
-                                                                                                                              .putIfAbsent(
-                                                                                                                                      protonsCount,
-                                                                                                                                      0);
-                                                                                          extractedNeighborHybridizationMapAll.get(
-                                                                                                  extractedNeighborAtomType)
-                                                                                                                              .get(hybridizationNeighbor)
-                                                                                                                              .put(protonsCount,
-                                                                                                                                   extractedNeighborHybridizationMapAll.get(
-                                                                                                                                           extractedNeighborAtomType)
-                                                                                                                                                                       .get(hybridizationNeighbor)
-                                                                                                                                                                       .get(protonsCount)
-                                                                                                                                           + extractedNeighborHybridizationMap.get(
-                                                                                                                                           hybridizationNeighbor)
-                                                                                                                                                                              .get(protonsCount));
-                                                                                      });
+                                                   filteredExtractedConnectivities.get(extractedNeighborAtomType)
+                                                                                  .get(hybridizationNeighbor)
+                                                                                  .keySet()
+                                                                                  .forEach(protonsCount -> {
+                                                                                      filteredExtractedConnectivitiesAll.get(
+                                                                                              extractedNeighborAtomType)
+                                                                                                                        .get(hybridizationNeighbor)
+                                                                                                                        .putIfAbsent(
+                                                                                                                                protonsCount,
+                                                                                                                                0);
+                                                                                      filteredExtractedConnectivitiesAll.get(
+                                                                                              extractedNeighborAtomType)
+                                                                                                                        .get(hybridizationNeighbor)
+                                                                                                                        .put(protonsCount,
+                                                                                                                             filteredExtractedConnectivitiesAll.get(
+                                                                                                                                     extractedNeighborAtomType)
+                                                                                                                                                               .get(hybridizationNeighbor)
+                                                                                                                                                               .get(protonsCount)
+                                                                                                                                     + filteredExtractedConnectivities.get(
+                                                                                                                                     extractedNeighborAtomType)
+                                                                                                                                                                      .get(hybridizationNeighbor)
+                                                                                                                                                                      .get(protonsCount));
+                                                                                  });
 
-                                                 });
+                                               });
             }
         }
 
-        return extractedNeighborHybridizationMapAll;
+        return filteredExtractedConnectivitiesAll;
     }
 }
