@@ -61,12 +61,6 @@ public class HybridizationController {
     public List<Integer> detectHybridization(@RequestParam final String nucleus,
                                              @RequestParam final String multiplicity, @RequestParam final int minShift,
                                              @RequestParam final int maxShift, @RequestParam final float threshold) {
-        final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
-        if (!Constants.hybridizationConversionMap.containsKey(atomType)) {
-            System.out.println("Unknown nucleus!!!");
-            return new ArrayList<>();
-        }
-
         final List<HybridizationRecord> hybridizationRecordList = this.hybridizationServiceImplementation.findByNucleusAndMultiplicityAndShift(
                 nucleus, multiplicity, minShift, maxShift)
                                                                                                          .collectList()
@@ -76,8 +70,7 @@ public class HybridizationController {
         for (final HybridizationRecord hybridizationRecord : hybridizationRecordList) {
             for (final String hybridization : hybridizationRecord.getHybridizationCounts()
                                                                  .keySet()) {
-                if (Constants.hybridizationConversionMap.get(atomType)
-                                                        .containsKey(hybridization)) {
+                if (Constants.hybridizationConversionMap.containsKey(hybridization)) {
                     totalHybridizationCounts.putIfAbsent(hybridization, 0);
                     totalHybridizationCounts.put(hybridization, totalHybridizationCounts.get(hybridization)
                             + hybridizationRecord.getHybridizationCounts()
@@ -92,8 +85,7 @@ public class HybridizationController {
             if (((double) entry.getValue()
                     / totalCount)
                     >= threshold) {
-                validHydridizations.add(Constants.hybridizationConversionMap.get(atomType)
-                                                                            .get(entry.getKey()));
+                validHydridizations.add(Constants.hybridizationConversionMap.get(entry.getKey()));
             }
         }
 

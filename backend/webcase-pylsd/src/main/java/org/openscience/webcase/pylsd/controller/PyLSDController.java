@@ -29,6 +29,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -127,7 +128,7 @@ public class PyLSDController {
 
     private String createPyLSDInputFile(final Transfer requestTransfer) {
         final int shiftTol = 0;
-        final double thresholdHybridizationCount = 0.0001;
+        final double thresholdHybridizationCount = 0.001;
         final double thresholdProtonsCount = 0.01;
 
         final List<Correlation> correlationList = requestTransfer.getData()
@@ -136,28 +137,29 @@ public class PyLSDController {
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.detectHybridizations(
                 this.webClientBuilder, correlationList, requestTransfer.getElucidationOptions()
                                                                        .getHybridizationDetectionThreshold(), shiftTol);
-        // set hybridization of correlations in unique cases: detected hybridizations count equals one
+        // set hybridization of correlations from detection if there was nothing set before
         for (final Map.Entry<Integer, List<Integer>> entry : detectedHybridizations.entrySet()) {
-            if ((correlationList.get(entry.getKey())
-                                .getHybridization()
+            if (correlationList.get(entry.getKey())
+                               .getHybridization()
                     == null
                     || correlationList.get(entry.getKey())
                                       .getHybridization()
-                                      .trim()
-                                      .isEmpty())
-                    && entry.getValue()
-                            .size()
-                    == 1) {
+                                      .isEmpty()) {
                 correlationList.get(entry.getKey())
-                               .setHybridization("SP"
-                                                         + entry.getValue()
-                                                                .get(0));
+                               .setHybridization(new ArrayList<>(entry.getValue()
+                                                                      .stream()
+                                                                      .map(numericHybridization -> "SP"
+                                                                              + numericHybridization)
+                                                                      .collect(Collectors.toList())));
             }
         }
 
-        final Map<Integer, Map<String, Map<String, Map<Integer, Integer>>>> detectedConnectivities = ConnectivityDetection.detectConnectivities(
+        final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities = ConnectivityDetection.detectConnectivities(
                 this.webClientBuilder, correlationList, shiftTol, thresholdHybridizationCount, thresholdProtonsCount,
                 requestTransfer.getMf());
+
+        System.out.println("detectedConnectivities: "
+                                   + detectedConnectivities);
 
         final Transfer queryTransfer = new Transfer();
         queryTransfer.setData(requestTransfer.getData());

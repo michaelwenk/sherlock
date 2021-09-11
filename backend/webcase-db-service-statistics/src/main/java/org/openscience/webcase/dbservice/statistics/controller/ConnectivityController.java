@@ -116,21 +116,24 @@ public class ConnectivityController {
                  .subscribe();
     }
 
-    @GetMapping(value = "/extractNeighborHybridizations", produces = "application/json")
-    public Map<String, Map<String, Map<Integer, Integer>>> extractNeighborHybridizations(
-            @RequestParam final String nucleus, @RequestParam final String hybridization,
-            @RequestParam final String multiplicity, @RequestParam final int minShift, @RequestParam final int maxShift,
-            @RequestParam final double thresholdHybridizationCount, @RequestParam final double thresholdProtonsCount,
-            @RequestParam final String mf) {
-        final List<Map<String, Map<String, Map<Integer, Integer>>>> extractedConnectivityCounts = this.findByNucleusAndHybridizationAndMultiplicityAndShift(
+    @GetMapping(value = "/detectConnectivities", produces = "application/json")
+    public Map<String, Map<String, Map<Integer, Integer>>> detectConnectivities(@RequestParam final String nucleus,
+                                                                                @RequestParam final String hybridization,
+                                                                                @RequestParam final String multiplicity,
+                                                                                @RequestParam final int minShift,
+                                                                                @RequestParam final int maxShift,
+                                                                                @RequestParam final double thresholdHybridizationCount,
+                                                                                @RequestParam final double thresholdProtonsCount,
+                                                                                @RequestParam final String mf) {
+        final List<Map<String, Map<String, Map<Integer, Integer>>>> detectedConnectivities = this.findByNucleusAndHybridizationAndMultiplicityAndShift(
                 nucleus, hybridization, multiplicity, minShift, maxShift)
-                                                                                                      .map(ConnectivityRecord::getConnectivityCounts)
-                                                                                                      .collectList()
-                                                                                                      .block();
+                                                                                                 .map(ConnectivityRecord::getConnectivityCounts)
+                                                                                                 .collectList()
+                                                                                                 .block();
 
         final Set<String> atomTypesByMf = Utils.getMolecularFormulaElementCounts(mf)
                                                .keySet();
-        extractedConnectivityCounts.forEach(foundExtractedConnectivityCountsMap -> {
+        detectedConnectivities.forEach(foundExtractedConnectivityCountsMap -> {
             final Set<String> foundAtomTypesToIgnore = foundExtractedConnectivityCountsMap.keySet()
                                                                                           .stream()
                                                                                           .filter(foundAtomType -> !atomTypesByMf.contains(
@@ -144,7 +147,7 @@ public class ConnectivityController {
         // atom type neighbor -> hybridization -> protons count -> occurrence
         final Map<String, Map<String, Map<Integer, Integer>>> filteredExtractedConnectivitiesAll = new HashMap<>();
         // loop over all results from DB in case a chemical shift range is given (minShift != maxShift)
-        for (final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivityCount : extractedConnectivityCounts) {
+        for (final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivityCount : detectedConnectivities) {
             final Map<String, Map<String, Map<Integer, Integer>>> filteredExtractedConnectivities = ConnectivityStatistics.filterExtractedConnectivities(
                     extractedConnectivityCount, thresholdHybridizationCount, thresholdProtonsCount);
             for (final String extractedNeighborAtomType : filteredExtractedConnectivities.keySet()) {
