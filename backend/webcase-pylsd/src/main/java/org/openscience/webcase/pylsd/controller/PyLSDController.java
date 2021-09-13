@@ -2,6 +2,7 @@ package org.openscience.webcase.pylsd.controller;
 
 import casekit.io.FileSystem;
 import casekit.nmr.lsd.PyLSDInputFileBuilder;
+import casekit.nmr.lsd.Utilities;
 import casekit.nmr.lsd.model.ElucidationOptions;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.nmrium.Correlation;
@@ -160,6 +161,12 @@ public class PyLSDController {
 
         System.out.println("detectedConnectivities: "
                                    + detectedConnectivities);
+
+        // in case of no hetero hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
+        if (!requestTransfer.getElucidationOptions()
+                            .isAllowHeteroHeteroBonds()) {
+            Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(correlationList, detectedConnectivities);
+        }
 
         final Transfer queryTransfer = new Transfer();
         queryTransfer.setData(requestTransfer.getData());
