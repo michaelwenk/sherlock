@@ -44,9 +44,7 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @RestController
@@ -129,7 +127,21 @@ public class CoreController {
                                                                .block();
                 final List<DataSet> dataSetList = queryResultTransfer.getDataSetList();
                 Ranking.rankDataSetList(dataSetList);
-                responseTransfer.setDataSetList(dataSetList);
+
+                // unique the dereplication result
+                final List<DataSet> uniqueDataSetList = new ArrayList<>();
+                final Set<String> uniqueDataSetIDs = new HashSet<>();
+                String id;
+                for (final DataSet dataSet : dataSetList) {
+                    id = dataSet.getMeta()
+                                .get("id");
+                    if (!uniqueDataSetIDs.contains(id)) {
+                        uniqueDataSetIDs.add(id);
+                        uniqueDataSetList.add(dataSet);
+                    }
+                }
+
+                responseTransfer.setDataSetList(uniqueDataSetList);
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
 
