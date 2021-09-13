@@ -10,12 +10,12 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
 
-  webcase-db-instance-hybridization:
+  webcase-db-instance-statistics:
     image: mongo:4
     volumes:
-      - "./backend/db-instance-hybridization/data/db/hybridization:/data/db"
+      - "./backend/db-instance-statistics/data/db/statistics:/data/db"
     environment:
-      - MONGO_INITDB_DATABASE=hybridization
+      - MONGO_INITDB_DATABASE=statistics
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
 

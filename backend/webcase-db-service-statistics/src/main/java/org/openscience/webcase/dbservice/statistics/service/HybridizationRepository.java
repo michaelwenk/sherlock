@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021 Michael Wenk (https://github.com/michaelwenk)
+ * Copyright (c) 2020 Michael Wenk (https://github.com/michaelwenk)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,34 +22,23 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.core.model.exchange;
+package org.openscience.webcase.dbservice.statistics.service;
 
-import casekit.nmr.model.DataSet;
-import casekit.nmr.model.Spectrum;
-import casekit.nmr.model.nmrium.Data;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.*;
-import org.openscience.webcase.core.model.DereplicationOptions;
-import org.openscience.webcase.core.model.ElucidationOptions;
+import org.openscience.webcase.dbservice.statistics.service.model.HybridizationRecord;
+import org.springframework.data.mongodb.repository.Query;
+import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
-import java.util.List;
+@Repository
+public interface HybridizationRepository
+        extends ReactiveMongoRepository<HybridizationRecord, String> {
 
+    @Override
+    Mono<HybridizationRecord> findById(final String id);
 
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-@ToString
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class Transfer {
-    private List<DataSet> dataSetList;
-    private Data data;
-    private Spectrum querySpectrum;
-    private String mf;
-    private String queryType;
-    private DereplicationOptions dereplicationOptions;
-    private ElucidationOptions elucidationOptions;
-    private String requestID;
-    private Boolean pyLSDRunWasSuccessful;
-    private String resultID;
+    @Query(value = "{\"nucleus\": \"?0\", \"multiplicity\": \"?1\", \"shift\": {$gte: ?2, $lte: ?3}}")
+    Flux<HybridizationRecord> findByNucleusAndMultiplicityAndShift(final String nucleus, final String multiplicity,
+                                                                   final int minShift, final int maxShift);
 }

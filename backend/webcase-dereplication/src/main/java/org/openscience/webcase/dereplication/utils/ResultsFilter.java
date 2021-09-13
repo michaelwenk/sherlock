@@ -31,9 +31,14 @@ public class ResultsFilter {
                                                                                                      multiplicitySectionsBuilder);
             dataSetList = dataSetList.stream()
                                      .filter(dataSet -> {
-                                         final Assignment matchAssignment = Similarity.matchSpectra(
-                                                 dataSet.getSpectrum(), querySpectrum, 0, 0, shiftTolerance,
-                                                 checkMultiplicity, checkEquivalencesCount, false);
+                                         final Spectrum spectrum = dataSet.getSpectrum()
+                                                                          .toSpectrum();
+                                         final Assignment matchAssignment = Similarity.matchSpectra(spectrum,
+                                                                                                    querySpectrum, 0, 0,
+                                                                                                    shiftTolerance,
+                                                                                                    checkMultiplicity,
+                                                                                                    checkEquivalencesCount,
+                                                                                                    false);
 
                                          dataSet.addMetaInfo("querySpectrumSignalCount",
                                                              String.valueOf(querySpectrum.getSignalCount()));
@@ -59,20 +64,19 @@ public class ResultsFilter {
                                              : isCompleteSpectralMatch) {
 
                                              final Double averageDeviation = Similarity.calculateAverageDeviation(
-                                                     dataSet.getSpectrum(), querySpectrum, 0, 0, matchAssignment);
+                                                     spectrum, querySpectrum, 0, 0, matchAssignment);
                                              if (averageDeviation
                                                      != null
                                                      && averageDeviation
                                                      <= maxAverageDeviation) {
                                                  dataSet.addMetaInfo("averageDeviation",
                                                                      String.valueOf(averageDeviation));
-                                                 final Double rmsd = Similarity.calculateRMSD(dataSet.getSpectrum(),
-                                                                                              querySpectrum, 0, 0,
-                                                                                              matchAssignment);
+                                                 final Double rmsd = Similarity.calculateRMSD(spectrum, querySpectrum,
+                                                                                              0, 0, matchAssignment);
                                                  dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
 
                                                  final BitSetFingerprint bitSetFingerprintDataSet = Similarity.getBitSetFingerprint(
-                                                         dataSet.getSpectrum(), 0, multiplicitySectionsBuilder);
+                                                         spectrum, 0, multiplicitySectionsBuilder);
                                                  final Double tanimotoCoefficient = Similarity.calculateTanimotoCoefficient(
                                                          bitSetFingerprintQuerySpectrum, bitSetFingerprintDataSet);
                                                  dataSet.addMetaInfo("tanimoto", String.valueOf(tanimotoCoefficient));

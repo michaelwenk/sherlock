@@ -1,7 +1,7 @@
 /*
  * MIT License
  *
- * Copyright (c) 2021 Michael Wenk (https://github.com/michaelwenk)
+ * Copyright (c) 2020 Michael Wenk (https://github.com/michaelwenk)
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,34 +22,20 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.core.model.exchange;
+package org.openscience.webcase.dbservice.statistics.service.model;
+
 
 import casekit.nmr.model.DataSet;
-import casekit.nmr.model.Spectrum;
-import casekit.nmr.model.nmrium.Data;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
-import org.openscience.webcase.core.model.DereplicationOptions;
-import org.openscience.webcase.core.model.ElucidationOptions;
-
-import java.util.List;
-
 
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 @ToString
-@JsonIgnoreProperties(ignoreUnknown = true)
-public class Transfer {
-    private List<DataSet> dataSetList;
-    private Data data;
-    private Spectrum querySpectrum;
-    private String mf;
-    private String queryType;
-    private DereplicationOptions dereplicationOptions;
-    private ElucidationOptions elucidationOptions;
-    private String requestID;
-    private Boolean pyLSDRunWasSuccessful;
-    private String resultID;
+
+public class DataSetRecord {
+
+    private String id;
+    private DataSet dataSet;
 }

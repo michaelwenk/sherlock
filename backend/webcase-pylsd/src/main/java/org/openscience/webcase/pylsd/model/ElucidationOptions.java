@@ -11,6 +11,8 @@ public class ElucidationOptions
         extends casekit.nmr.lsd.model.ElucidationOptions {
     // PyLSD options
     private float hybridizationDetectionThreshold;
+    private float hybridizationCountThreshold;
+    private float protonsCountThreshold;
     private boolean useFilterLsdRing3;
     private boolean useFilterLsdRing4;
     // elucidation process

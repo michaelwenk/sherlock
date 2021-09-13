@@ -1,7 +1,7 @@
 package org.openscience.webcase.dbservice.hosecode.model.exchange;
 
 import casekit.nmr.model.DataSet;
-import casekit.nmr.model.nmrdisplayer.Data;
+import casekit.nmr.model.nmrium.Data;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

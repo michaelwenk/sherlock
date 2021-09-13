@@ -8,11 +8,6 @@ public class Ranking {
 
     public static void rankDataSetList(final List<DataSet> dataSetList) {
         dataSetList.sort((dataSet1, dataSet2) -> {
-            final int avgDevComparison = compareNumericDataSetMetaKey(dataSet1, dataSet2, "averageDeviation");
-            if (avgDevComparison
-                    != 0) {
-                return avgDevComparison;
-            }
             final boolean isCompleteSpectralMatchDataSet1 = Boolean.parseBoolean(dataSet1.getMeta()
                                                                                          .get("isCompleteSpectralMatch"));
             final boolean isCompleteSpectralMatchDataSet2 = Boolean.parseBoolean(dataSet2.getMeta()
@@ -32,31 +27,11 @@ public class Ranking {
                         * setAssignmentsCountComparison;
             }
 
-            //            final int rmsdComparison = compareNumericDataSetMetaKey(dataSet1, dataSet2, "rmsd");
-            //            if (rmsdComparison
-            //                    != 0) {
-            //                return rmsdComparison;
-            //            }
-            //
-            //            final boolean isCompleteSpectralMatchWithEquivalencesDataSet1 = Boolean.parseBoolean(dataSet1.getMeta()
-            //                                                                                                         .get("isCompleteSpectralMatchWithEquivalences"));
-            //            final boolean isCompleteSpectralMatchWithEquivalencesDataSet2 = Boolean.parseBoolean(dataSet2.getMeta()
-            //                                                                                                         .get("isCompleteSpectralMatchWithEquivalences"));
-            //            if (isCompleteSpectralMatchWithEquivalencesDataSet1
-            //                    && !isCompleteSpectralMatchWithEquivalencesDataSet2) {
-            //                return -1;
-            //            } else if (!isCompleteSpectralMatchWithEquivalencesDataSet1
-            //                    && isCompleteSpectralMatchWithEquivalencesDataSet2) {
-            //                return 1;
-            //            }
-            //
-            //            final int setAssignmentsCountWithEquivalencesComparison = compareNumericDataSetMetaKey(dataSet1, dataSet2,
-            //                                                                                                   "setAssignmentsCountWithEquivalences");
-            //            if (setAssignmentsCountWithEquivalencesComparison
-            //                    != 0) {
-            //                return -1
-            //                        * setAssignmentsCountWithEquivalencesComparison;
-            //            }
+            final int avgDevComparison = compareNumericDataSetMetaKey(dataSet1, dataSet2, "averageDeviation");
+            if (avgDevComparison
+                    != 0) {
+                return avgDevComparison;
+            }
 
             return 0;
         });

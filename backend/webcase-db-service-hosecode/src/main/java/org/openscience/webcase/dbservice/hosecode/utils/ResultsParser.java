@@ -2,9 +2,12 @@ package org.openscience.webcase.dbservice.hosecode.utils;
 
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.hose.HOSECodeBuilder;
-import casekit.nmr.model.*;
-import casekit.nmr.model.nmrdisplayer.Correlation;
-import casekit.nmr.model.nmrdisplayer.Data;
+import casekit.nmr.model.Assignment;
+import casekit.nmr.model.DataSet;
+import casekit.nmr.model.Signal;
+import casekit.nmr.model.Spectrum;
+import casekit.nmr.model.nmrium.Correlation;
+import casekit.nmr.model.nmrium.Data;
 import casekit.nmr.similarity.Similarity;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
@@ -198,21 +201,20 @@ public class ResultsParser {
                     continue;
                 }
 
-                assignment = new Assignment();
-                assignment.setNuclei(predictedSpectrum.getNuclei());
-                assignment.initAssignments(predictedSpectrum.getSignalCount());
-
-                for (final Map.Entry<Integer, List<Integer>> entry : assignmentMap.entrySet()) {
-                    for (final int atomIndex : assignmentMap.get(entry.getKey())) {
-                        assignment.addAssignmentEquivalence(0, entry.getKey(), atomIndex);
-                    }
-                }
-
-                //                // to save space and time when (re-)converting structures delete the larger ExtendedAdjacencyList
-                //                // the SMILES was build by CDK and stored in Meta member anyway
-                //                dataSet.setStructure(null);
-                dataSet.setSpectrum(new SpectrumCompact(predictedSpectrum));
-                dataSet.setAssignment(assignment);
+                // to save space and time when (re-)converting datasets avoid the currently non-used information
+                // the SMILES was build by CDK and stored in meta information
+                dataSet.setStructure(null);
+                //                dataSet.setSpectrum(new SpectrumCompact(predictedSpectrum));
+                //                assignment = new Assignment();
+                //                assignment.setNuclei(predictedSpectrum.getNuclei());
+                //                assignment.initAssignments(predictedSpectrum.getSignalCount());
+                //
+                //                for (final Map.Entry<Integer, List<Integer>> entry : assignmentMap.entrySet()) {
+                //                    for (final int atomIndex : assignmentMap.get(entry.getKey())) {
+                //                        assignment.addAssignmentEquivalence(0, entry.getKey(), atomIndex);
+                //                    }
+                //                }
+                //                dataSet.setAssignment(assignment);
 
                 dataSet.addMetaInfo("querySpectrumSignalCount", String.valueOf(querySpectrum.getSignalCount()));
                 dataSet.addMetaInfo("querySpectrumSignalCountWithEquivalences",

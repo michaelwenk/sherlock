@@ -25,7 +25,7 @@
 package org.openscience.webcase.pylsd.model.exchange;
 
 import casekit.nmr.model.DataSet;
-import casekit.nmr.model.nmrdisplayer.Data;
+import casekit.nmr.model.nmrium.Data;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -35,6 +35,7 @@ import org.openscience.webcase.pylsd.model.ElucidationOptions;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 
 @AllArgsConstructor
@@ -52,6 +53,7 @@ public class Transfer {
     private Boolean pyLSDRunWasSuccessful;
     private ElucidationOptions elucidationOptions;
     private Map<Integer, List<Integer>> detectedHybridizations;
+    private Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities;
 
     // for (ranked) SDF parsing
     private String fileContent;

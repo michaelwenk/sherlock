@@ -1,8 +1,7 @@
 package org.openscience.webcase.pylsd.utils;
 
 import casekit.nmr.lsd.Constants;
-import casekit.nmr.model.nmrdisplayer.Correlation;
-import casekit.nmr.model.nmrdisplayer.Data;
+import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.utils.Utils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -15,30 +14,28 @@ import java.util.Map;
 
 public class HybridizationDetection {
 
-    public static Map<Integer, List<Integer>> getDetectedHybridizations(final WebClient.Builder webClientBuilder,
-                                                                        final Data data, final float thrs,
-                                                                        final int shiftTol) {
+    public static Map<Integer, List<Integer>> detectHybridizations(final WebClient.Builder webClientBuilder,
+                                                                   final List<Correlation> correlationList,
+                                                                   final float threshold, final int shiftTol) {
         final Map<Integer, List<Integer>> detectedHybridizations = new HashMap<>();
 
         final WebClient webClient = webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-hybridization/")
+                "http://webcase-gateway:8080/webcase-db-service-statistics/hybridization/")
                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .build();
-
         UriComponentsBuilder uriComponentsBuilder;
         List<Integer> hybridizations;
         Correlation correlation;
         String multiplicity;
         for (int i = 0; i
-                < data.getCorrelations()
-                      .getValues()
-                      .size(); i++) {
-            correlation = data.getCorrelations()
-                              .getValues()
-                              .get(i);
+                < correlationList.size(); i++) {
+            correlation = correlationList.get(i);
             multiplicity = Utils.getMultiplicityFromProtonsCount(correlation);
-            if (multiplicity
+            if (!correlation.getAtomType()
+                            .equals("H")
+                    && Constants.nucleiMap.containsKey(correlation.getAtomType())
+                    && multiplicity
                     != null) {
                 uriComponentsBuilder = UriComponentsBuilder.newInstance();
                 uriComponentsBuilder.path("/detectHybridizations")
@@ -50,7 +47,7 @@ public class HybridizationDetection {
                                                                              .getDelta()
                                             + shiftTol)
                                     .queryParam("multiplicity", multiplicity)
-                                    .queryParam("thrs", thrs);
+                                    .queryParam("threshold", threshold);
                 hybridizations = webClient.get()
                                           .uri(uriComponentsBuilder.toUriString())
                                           .retrieve()
