@@ -125,25 +125,25 @@ One can then check the number of datasets:
 
     curl -X GET -i 'http://localhost:8081/webcase-db-service-dataset/count' 
 
-#### Hybridizations
-As for datasets we need to insert the hybridization data and can decide which nuclei to consider:
+#### Statistics
+As for datasets we need to build the hybridization and connectivity statistics and can decide which nuclei to consider:
 
-    curl -X POST -i 'http://localhost:8081/webcase-db-service-hybridization/replaceAll?nuclei=13C'
+    curl -X POST -i 'http://localhost:8081/webcase-db-service-statistics/hybridization/replaceAll?nuclei=13C'
+    curl -X POST -i 'http://localhost:8081/webcase-db-service-statistics/connectivity/replaceAll?nuclei=13C'
 
-To check the number of hybridization entries:
 
-    curl -X GET -i 'http://localhost:8081/webcase-db-service-hybridization/count'
+To check the number of hybridization/connectivity entries:
+
+    curl -X GET -i 'http://localhost:8081/webcase-db-service-statistics/hybridization/count'
+    curl -X GET -i 'http://localhost:8081/webcase-db-service-statistics/connectivity/count'
 
 #### HOSE Codes
-One needs to insert the HOSE code information too:
+One needs to insert the HOSE code information as well:
 
     curl -X POST -i 'http://localhost:8081/webcase-db-service-hosecode/replaceAll?nuclei=13C&maxSphere=6'
 
 To check the number of HOSE code entries:
 
     curl -X GET -i 'http://localhost:8081/webcase-db-service-hosecode/count'
-
-
-All services and database contents should be available now.
 
 
