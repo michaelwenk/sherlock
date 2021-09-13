@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -47,9 +48,8 @@ public class HybridizationController {
 
 
     @GetMapping(value = "/count", produces = "application/json")
-    public Long getCount() {
-        return this.hybridizationServiceImplementation.count()
-                                                      .block();
+    public Mono<Long> getCount() {
+        return this.hybridizationServiceImplementation.count();
     }
 
     @GetMapping(value = "/getAll", produces = "application/stream+json")
