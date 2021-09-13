@@ -129,9 +129,6 @@ public class PyLSDController {
 
     private String createPyLSDInputFile(final Transfer requestTransfer) {
         final int shiftTol = 0;
-        final double thresholdHybridizationCount = 0.001;
-        final double thresholdProtonsCount = 0.01;
-
         final List<Correlation> correlationList = requestTransfer.getData()
                                                                  .getCorrelations()
                                                                  .getValues();
@@ -156,11 +153,19 @@ public class PyLSDController {
         }
 
         final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities = ConnectivityDetection.detectConnectivities(
-                this.webClientBuilder, correlationList, shiftTol, thresholdHybridizationCount, thresholdProtonsCount,
-                requestTransfer.getMf());
+                this.webClientBuilder, correlationList, shiftTol, requestTransfer.getElucidationOptions()
+                                                                                 .getHybridizationCountThreshold(),
+                requestTransfer.getElucidationOptions()
+                               .getProtonsCountThreshold(), requestTransfer.getMf());
 
         System.out.println("detectedConnectivities: "
                                    + detectedConnectivities);
+        System.out.println("allowedNeighborAtomHybridizations: "
+                                   + Utilities.buildAllowedNeighborAtomHybridizations(correlationList,
+                                                                                      detectedConnectivities));
+        System.out.println("allowedNeighborAtomProtonCounts: "
+                                   + Utilities.buildAllowedNeighborAtomProtonCounts(correlationList,
+                                                                                    detectedConnectivities));
 
         // in case of no hetero hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
         if (!requestTransfer.getElucidationOptions()
