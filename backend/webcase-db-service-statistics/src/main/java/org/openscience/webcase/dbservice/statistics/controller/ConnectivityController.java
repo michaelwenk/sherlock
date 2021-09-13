@@ -111,7 +111,7 @@ public class ConnectivityController {
                                                                                                                                                                                                                                   }))));
                      System.out.println(" -> done -> "
                                                 + this.getCount()
-                                                      .subscribe());
+                                                      .block());
                  })
                  .subscribe();
     }
