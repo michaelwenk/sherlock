@@ -177,26 +177,27 @@ public class DatabaseController {
         }
 
         // store datasets in DB
+        // with checks whether a dataset with identical spectrum already exists
         try {
             dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(this.pathToNMRShiftDB, nuclei);
             System.out.println("dataset size NMRShiftDB -> "
                                        + dataSetList.size());
-            this.insertDataSetRecords(dataSetList);
+            this.filterAndInsertDataSetRecords(dataSetList, new HashMap<>());
             System.out.println("stored for NMRShiftDB done -> "
                                        + this.getCount()
                                              .block());
+            final Map<String, Map<String, List<Spectrum>>> inserted = new HashMap<>(); // molecule id -> nucleus -> spectra list
             Flux.fromArray(this.pathsToCOCONUT)
                 .doOnNext(pathToCOCONUT -> {
                     try {
                         System.out.println("storing -> "
                                                    + pathToCOCONUT);
-                        this.insertDataSetRecords(
-                                COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(pathToCOCONUT, nuclei));
+                        this.filterAndInsertDataSetRecords(
+                                COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(pathToCOCONUT, nuclei), inserted);
                         System.out.println(pathToCOCONUT
                                                    + " -> done -> "
                                                    + this.getCount()
-                                                         .doOnNext(System.out::println)
-                                                         .subscribe());
+                                                         .block());
                     } catch (final CDKException | FileNotFoundException e) {
                         e.printStackTrace();
                     }
@@ -207,18 +208,74 @@ public class DatabaseController {
         }
     }
 
-    private void insertDataSetRecords(final List<DataSet> dataSetList) {
+    private void filterAndInsertDataSetRecords(final List<DataSet> dataSetList,
+                                               final Map<String, Map<String, List<Spectrum>>> insertedMap) {
+        String id, nucleus;
+        Spectrum spectrum;
+        Double averageDeviation;
+        final Set<String> insertedKeys = new HashSet<>();
+        for (final DataSet dataSet : new ArrayList<>(dataSetList)) {
+            id = dataSet.getMeta()
+                        .get("id");
+            if (id
+                    == null) {
+                continue;
+            }
+            spectrum = dataSet.getSpectrum()
+                              .toSpectrum();
+            nucleus = spectrum.getNuclei()[0];
+            insertedMap.putIfAbsent(id, new HashMap<>());
+            insertedMap.get(id)
+                       .putIfAbsent(nucleus, new ArrayList<>());
+            if (insertedMap.get(id)
+                           .get(nucleus)
+                           .isEmpty()) {
+                insertedMap.get(id)
+                           .get(nucleus)
+                           .add(spectrum);
+                insertedKeys.add(id);
+                continue;
+            }
+            for (final Spectrum insertedSpectrum : new ArrayList<>(insertedMap.get(id)
+                                                                              .get(nucleus))) {
+                averageDeviation = Similarity.calculateAverageDeviation(insertedSpectrum, spectrum, 0, 0, 0.0, true,
+                                                                        true, false);
+                if (averageDeviation
+                        != null
+                        && averageDeviation
+                        == 0.0) {
+                    dataSetList.remove(dataSet);
+                } else {
+                    insertedMap.get(id)
+                               .get(nucleus)
+                               .add(spectrum);
+                    insertedKeys.add(id);
+                    break;
+                }
+            }
+        }
+        // we here assume that each spectrum of the same compound should appear in one row
+        // so we keep the keys from this insertion for next time to know the last inserted keys and check it
+        for (final String insertedMapKey : new HashSet<>(insertedMap.keySet())) {
+            if (!insertedKeys.contains(insertedMapKey)) {
+                insertedMap.remove(insertedMapKey);
+            }
+        }
+
         this.dataSetServiceImplementation.insertMany(Flux.fromIterable(dataSetList)
                                                          .map(dataSet -> {
-                                                             final String nucleus = dataSet.getSpectrum()
-                                                                                           .getNuclei()[0];
+                                                             final String nucleusTemp = dataSet.getSpectrum()
+                                                                                               .getNuclei()[0];
                                                              final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
                                                              multiplicitySectionsBuilder.setMinLimit(
-                                                                     this.multiplicitySectionsSettings.get(nucleus)[0]);
+                                                                     this.multiplicitySectionsSettings.get(
+                                                                             nucleusTemp)[0]);
                                                              multiplicitySectionsBuilder.setMaxLimit(
-                                                                     this.multiplicitySectionsSettings.get(nucleus)[1]);
+                                                                     this.multiplicitySectionsSettings.get(
+                                                                             nucleusTemp)[1]);
                                                              multiplicitySectionsBuilder.setStepSize(
-                                                                     this.multiplicitySectionsSettings.get(nucleus)[2]);
+                                                                     this.multiplicitySectionsSettings.get(
+                                                                             nucleusTemp)[2]);
                                                              final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(
                                                                      dataSet.getSpectrum()
                                                                             .toSpectrum(), 0,
