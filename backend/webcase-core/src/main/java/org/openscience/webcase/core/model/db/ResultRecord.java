@@ -34,14 +34,8 @@ import java.util.List;
 @Getter
 @Setter
 @ToString
-
 public class ResultRecord {
 
     private String id;
-    private String queryType;
-    private String stage;
-    private String error;
-    private boolean stageIsComplete;
-    private boolean done;
     private List<DataSet> dataSetList;
 }

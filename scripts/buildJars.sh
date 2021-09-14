@@ -11,8 +11,6 @@ cd backend/webcase-elucidation && mvn clean package
 cd ../..
 cd backend/webcase-pylsd && mvn clean package
 cd ../..
-cd backend/webcase-result && mvn clean package
-cd ../..
 cd backend/webcase-db-service-dataset && mvn clean package
 cd ../..
 cd backend/webcase-db-service-statistics && mvn clean package

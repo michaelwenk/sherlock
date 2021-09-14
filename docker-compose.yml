@@ -65,17 +65,6 @@ services:
     depends_on:
       - webcase-discovery-server
 
-  webcase-result:
-    container_name: webcase-result
-    build:
-      context: ./backend/webcase-result
-      dockerfile: Dockerfile
-    image: michaelwenk/webcase-result
-    ports:
-      - "8086:8080"
-    depends_on:
-      - webcase-discovery-server
-
   webcase-db-service-dataset:
     container_name: webcase-db-service-dataset
     build:
