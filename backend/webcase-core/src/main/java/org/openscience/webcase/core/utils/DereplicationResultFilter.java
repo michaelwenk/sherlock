@@ -1,4 +1,4 @@
-package org.openscience.webcase.dereplication.utils;
+package org.openscience.webcase.core.utils;
 
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.model.Assignment;
@@ -6,12 +6,12 @@ import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.similarity.Similarity;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
-import org.openscience.webcase.dereplication.model.DereplicationOptions;
+import org.openscience.webcase.core.model.DereplicationOptions;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
-public class ResultsFilter {
+public class DereplicationResultFilter {
 
 
     public static List<DataSet> filterBySpectralSimilarity(List<DataSet> dataSetList, final Spectrum querySpectrum,

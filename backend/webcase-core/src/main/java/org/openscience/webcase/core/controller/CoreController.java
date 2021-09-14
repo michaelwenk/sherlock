@@ -31,9 +31,7 @@ import casekit.nmr.utils.Utils;
 import org.openscience.webcase.core.model.exchange.Transfer;
 import org.openscience.webcase.core.utils.Ranking;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -51,6 +49,7 @@ public class CoreController {
 
     private final WebClient.Builder webClientBuilder;
     private final ExchangeStrategies exchangeStrategies;
+    private final DereplicationController dereplicationController;
     private final ElucidationController elucidationController;
     private final ResultController resultController;
 
@@ -58,6 +57,7 @@ public class CoreController {
     public CoreController(final WebClient.Builder webClientBuilder, final ExchangeStrategies exchangeStrategies) {
         this.webClientBuilder = webClientBuilder;
         this.exchangeStrategies = exchangeStrategies;
+        this.dereplicationController = new DereplicationController(this.webClientBuilder, this.exchangeStrategies);
         this.elucidationController = new ElucidationController(this.webClientBuilder, this.exchangeStrategies);
         this.resultController = new ResultController(this.webClientBuilder, this.exchangeStrategies);
     }
@@ -105,24 +105,14 @@ public class CoreController {
             // DEREPLICATION
             if (requestTransfer.getQueryType()
                                .equals("Dereplication")) {
-                final WebClient webClient = this.webClientBuilder.baseUrl(
-                        "http://webcase-gateway:8080/webcase-dereplication/dereplication")
-                                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                                MediaType.APPLICATION_JSON_VALUE)
-                                                                 .exchangeStrategies(this.exchangeStrategies)
-                                                                 .build();
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setData(requestTransfer.getData());
                 queryTransfer.setDereplicationOptions(requestTransfer.getDereplicationOptions());
                 queryTransfer.setQueryType(requestTransfer.getQueryType());
                 queryTransfer.setQuerySpectrum(querySpectrum);
                 queryTransfer.setMf(mf);
-                final Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
-                                                               .post()
-                                                               .bodyValue(queryTransfer)
-                                                               .retrieve()
-                                                               .bodyToMono(Transfer.class)
-                                                               .block();
+                final Transfer queryResultTransfer = this.dereplicationController.dereplicate(queryTransfer)
+                                                                                 .getBody();
                 final List<DataSet> dataSetList = queryResultTransfer.getDataSetList();
                 Ranking.rankDataSetList(dataSetList);
 

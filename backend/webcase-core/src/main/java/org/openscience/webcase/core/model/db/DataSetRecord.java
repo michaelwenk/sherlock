@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dereplication.model.db;
+package org.openscience.webcase.core.model.db;
 
 
 import casekit.nmr.model.DataSet;
