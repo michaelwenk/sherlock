@@ -7,8 +7,6 @@ cd backend/webcase-core && mvn clean package -DskipTests
 cd ../..
 cd backend/webcase-dereplication && mvn clean package -DskipTests
 cd ../..
-cd backend/webcase-elucidation && mvn clean package -DskipTests
-cd ../..
 cd backend/webcase-pylsd && mvn clean package -DskipTests
 cd ../..
 cd backend/webcase-db-service-dataset && mvn clean package -DskipTests

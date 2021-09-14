@@ -1,6 +1,6 @@
-package org.openscience.webcase.elucidation.controller;
+package org.openscience.webcase.core.controller;
 
-import org.openscience.webcase.elucidation.model.exchange.Transfer;
+import org.openscience.webcase.core.model.exchange.Transfer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -14,23 +14,20 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @RestController
-@RequestMapping(value = "/")
+@RequestMapping(value = "/elucidation")
 public class ElucidationController {
 
-    // set ExchangeSettings
-    final int maxInMemorySizeMB = 1000;
-    final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
-                                                                    .codecs(configurer -> configurer.defaultCodecs()
-                                                                                                    .maxInMemorySize(
-                                                                                                            this.maxInMemorySizeMB
-                                                                                                                    * 1024
-                                                                                                                    * 1024))
-                                                                    .build();
+    private final WebClient.Builder webClientBuilder;
+    private final ExchangeStrategies exchangeStrategies;
 
     @Autowired
-    private WebClient.Builder webClientBuilder;
+    public ElucidationController(final WebClient.Builder webClientBuilder,
+                                 final ExchangeStrategies exchangeStrategies) {
+        this.webClientBuilder = webClientBuilder;
+        this.exchangeStrategies = exchangeStrategies;
+    }
 
-    @PostMapping(value = "elucidation")
+    @PostMapping(value = "/elucidate")
     public ResponseEntity<Transfer> elucidate(@RequestBody final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
 

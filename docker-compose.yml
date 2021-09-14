@@ -43,17 +43,6 @@ services:
     depends_on:
       - webcase-discovery-server
 
-  webcase-elucidation:
-    container_name: webcase-elucidation
-    build:
-      context: ./backend/webcase-elucidation
-      dockerfile: Dockerfile
-    image: michaelwenk/webcase-elucidation
-    ports:
-      - "8084:8080"
-    depends_on:
-      - webcase-discovery-server
-
   webcase-pylsd:
     container_name: webcase-pylsd
     build:
@@ -61,7 +50,7 @@ services:
       dockerfile: Dockerfile
     image: michaelwenk/webcase-pylsd
     ports:
-      - "8085:8080"
+      - "8084:8080"
     depends_on:
       - webcase-discovery-server
 

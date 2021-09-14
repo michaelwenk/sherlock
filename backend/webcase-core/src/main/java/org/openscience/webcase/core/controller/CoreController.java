@@ -51,12 +51,14 @@ public class CoreController {
 
     private final WebClient.Builder webClientBuilder;
     private final ExchangeStrategies exchangeStrategies;
+    private final ElucidationController elucidationController;
     private final ResultController resultController;
 
     @Autowired
     public CoreController(final WebClient.Builder webClientBuilder, final ExchangeStrategies exchangeStrategies) {
         this.webClientBuilder = webClientBuilder;
         this.exchangeStrategies = exchangeStrategies;
+        this.elucidationController = new ElucidationController(this.webClientBuilder, this.exchangeStrategies);
         this.resultController = new ResultController(this.webClientBuilder, this.exchangeStrategies);
     }
 
@@ -151,24 +153,15 @@ public class CoreController {
                 final String requestID = UUID.randomUUID()
                                              .toString();
                 // PyLSD RUN
-                final WebClient webClient = this.webClientBuilder.baseUrl(
-                        "http://webcase-gateway:8080/webcase-elucidation/elucidation")
-                                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                                MediaType.APPLICATION_JSON_VALUE)
-                                                                 .exchangeStrategies(this.exchangeStrategies)
-                                                                 .build();
+
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setData(requestTransfer.getData());
                 queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
                 queryTransfer.setRequestID(requestID);
                 queryTransfer.setMf(mf);
 
-                Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
-                                                         .post()
-                                                         .bodyValue(queryTransfer)
-                                                         .retrieve()
-                                                         .bodyToMono(Transfer.class)
-                                                         .block();
+                Transfer queryResultTransfer = this.elucidationController.elucidate(queryTransfer)
+                                                                         .getBody();
                 final List<DataSet> dataSetList = queryResultTransfer.getDataSetList();
                 Ranking.rankDataSetList(dataSetList);
                 responseTransfer.setDataSetList(dataSetList);
