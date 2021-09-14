@@ -22,15 +22,15 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.dereplication.controller;
+package org.openscience.webcase.core.controller;
 
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
-import org.openscience.webcase.dereplication.model.db.DataSetRecord;
-import org.openscience.webcase.dereplication.model.exchange.Transfer;
-import org.openscience.webcase.dereplication.utils.ResultsFilter;
+import org.openscience.webcase.core.model.db.DataSetRecord;
+import org.openscience.webcase.core.model.exchange.Transfer;
+import org.openscience.webcase.core.utils.DereplicationResultFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
@@ -53,29 +53,23 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping(value = "/")
+@RequestMapping(value = "/dereplication")
 public class DereplicationController {
 
-    // set ExchangeSettings
-    final int maxInMemorySizeMB = 1000;
-    final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
-                                                                    .codecs(configurer -> configurer.defaultCodecs()
-                                                                                                    .maxInMemorySize(
-                                                                                                            this.maxInMemorySizeMB
-                                                                                                                    * 1024
-                                                                                                                    * 1024))
-                                                                    .build();
     private final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
     private final WebClient.Builder webClientBuilder;
+    private final ExchangeStrategies exchangeStrategies;
 
     @Autowired
-    public DereplicationController(final WebClient.Builder webClientBuilder) {
+    public DereplicationController(final WebClient.Builder webClientBuilder,
+                                   final ExchangeStrategies exchangeStrategies) {
         this.webClientBuilder = webClientBuilder;
+        this.exchangeStrategies = exchangeStrategies;
     }
 
-    @PostMapping(value = "dereplication", consumes = "application/json", produces = "application/json")
+    @PostMapping(value = "/dereplicate", consumes = "application/json", produces = "application/json")
     //, produces = "application/stream+json")
-    public ResponseEntity<Transfer> dereplication(@RequestBody final Transfer requestTransfer) {
+    public ResponseEntity<Transfer> dereplicate(@RequestBody final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
 
         final Spectrum querySpectrum = requestTransfer.getQuerySpectrum();
@@ -103,9 +97,9 @@ public class DereplicationController {
                                                .map(DataSetRecord::getDataSet)
                                                .collect(Collectors.toList());
             }
-            dataSetList = ResultsFilter.filterBySpectralSimilarity(dataSetList, querySpectrum,
-                                                                   requestTransfer.getDereplicationOptions(),
-                                                                   this.multiplicitySectionsBuilder);
+            dataSetList = DereplicationResultFilter.filterBySpectralSimilarity(dataSetList, querySpectrum,
+                                                                               requestTransfer.getDereplicationOptions(),
+                                                                               this.multiplicitySectionsBuilder);
 
             responseTransfer.setDataSetList(dataSetList);
             return new ResponseEntity<>(responseTransfer, HttpStatus.OK);

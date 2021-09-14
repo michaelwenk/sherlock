@@ -25,23 +25,13 @@
 package org.openscience.webcase.core.model.db;
 
 import casekit.nmr.model.DataSet;
-import lombok.*;
+import lombok.Data;
 
 import java.util.List;
 
-@NoArgsConstructor
-@AllArgsConstructor
-@Getter
-@Setter
-@ToString
-
+@Data
 public class ResultRecord {
 
     private String id;
-    private String queryType;
-    private String stage;
-    private String error;
-    private boolean stageIsComplete;
-    private boolean done;
     private List<DataSet> dataSetList;
 }

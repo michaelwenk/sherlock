@@ -22,21 +22,15 @@
  * SOFTWARE.
  */
 
-package org.openscience.webcase.result.model.db;
+package org.openscience.webcase.core.model.db;
+
 
 import casekit.nmr.model.DataSet;
-import lombok.*;
+import lombok.Data;
 
-import java.util.List;
-
-@NoArgsConstructor
-@AllArgsConstructor
-@Getter
-@Setter
-@ToString
-
-public class ResultRecord {
+@Data
+public class DataSetRecord {
 
     private String id;
-    private List<DataSet> dataSetList;
+    private DataSet dataSet;
 }

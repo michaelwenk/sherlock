@@ -31,10 +31,7 @@ import casekit.nmr.utils.Utils;
 import org.openscience.webcase.core.model.exchange.Transfer;
 import org.openscience.webcase.core.utils.Ranking;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -42,7 +39,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -51,18 +47,20 @@ import java.util.stream.Collectors;
 @RequestMapping(value = "/")
 public class CoreController {
 
-    // set ExchangeSettings
-    final int maxInMemorySizeMB = 1000;
-    final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
-                                                                    .codecs(configurer -> configurer.defaultCodecs()
-                                                                                                    .maxInMemorySize(
-                                                                                                            this.maxInMemorySizeMB
-                                                                                                                    * 1024
-                                                                                                                    * 1024))
-                                                                    .build();
+    private final WebClient.Builder webClientBuilder;
+    private final ExchangeStrategies exchangeStrategies;
+    private final DereplicationController dereplicationController;
+    private final ElucidationController elucidationController;
+    private final ResultController resultController;
 
     @Autowired
-    private WebClient.Builder webClientBuilder;
+    public CoreController(final WebClient.Builder webClientBuilder, final ExchangeStrategies exchangeStrategies) {
+        this.webClientBuilder = webClientBuilder;
+        this.exchangeStrategies = exchangeStrategies;
+        this.dereplicationController = new DereplicationController(this.webClientBuilder, this.exchangeStrategies);
+        this.elucidationController = new ElucidationController(this.webClientBuilder, this.exchangeStrategies);
+        this.resultController = new ResultController(this.webClientBuilder, this.exchangeStrategies);
+    }
 
     @PostMapping(value = "/core", consumes = "application/json", produces = "application/json")
     public ResponseEntity<Transfer> core(@RequestBody final Transfer requestTransfer) {
@@ -107,24 +105,14 @@ public class CoreController {
             // DEREPLICATION
             if (requestTransfer.getQueryType()
                                .equals("Dereplication")) {
-                final WebClient webClient = this.webClientBuilder.baseUrl(
-                        "http://webcase-gateway:8080/webcase-dereplication/dereplication")
-                                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                                MediaType.APPLICATION_JSON_VALUE)
-                                                                 .exchangeStrategies(this.exchangeStrategies)
-                                                                 .build();
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setData(requestTransfer.getData());
                 queryTransfer.setDereplicationOptions(requestTransfer.getDereplicationOptions());
                 queryTransfer.setQueryType(requestTransfer.getQueryType());
                 queryTransfer.setQuerySpectrum(querySpectrum);
                 queryTransfer.setMf(mf);
-                final Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
-                                                               .post()
-                                                               .bodyValue(queryTransfer)
-                                                               .retrieve()
-                                                               .bodyToMono(Transfer.class)
-                                                               .block();
+                final Transfer queryResultTransfer = this.dereplicationController.dereplicate(queryTransfer)
+                                                                                 .getBody();
                 final List<DataSet> dataSetList = queryResultTransfer.getDataSetList();
                 Ranking.rankDataSetList(dataSetList);
 
@@ -155,40 +143,22 @@ public class CoreController {
                 final String requestID = UUID.randomUUID()
                                              .toString();
                 // PyLSD RUN
-                WebClient webClient = this.webClientBuilder.baseUrl(
-                        "http://webcase-gateway:8080/webcase-elucidation/elucidation")
-                                                           .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                          MediaType.APPLICATION_JSON_VALUE)
-                                                           .exchangeStrategies(this.exchangeStrategies)
-                                                           .build();
+
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setData(requestTransfer.getData());
                 queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
                 queryTransfer.setRequestID(requestID);
                 queryTransfer.setMf(mf);
 
-                Transfer queryResultTransfer = webClient //final Flux<DataSet> results = webClient
-                                                         .post()
-                                                         .bodyValue(queryTransfer)
-                                                         .retrieve()
-                                                         .bodyToMono(Transfer.class)
-                                                         .block();
+                Transfer queryResultTransfer = this.elucidationController.elucidate(queryTransfer)
+                                                                         .getBody();
                 final List<DataSet> dataSetList = queryResultTransfer.getDataSetList();
                 Ranking.rankDataSetList(dataSetList);
                 responseTransfer.setDataSetList(dataSetList);
                 // store results in DB if not empty
                 if (!dataSetList.isEmpty()) {
-                    webClient = this.webClientBuilder.baseUrl(
-                            "http://webcase-gateway:8080/webcase-result/store/storeResult")
-                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                    MediaType.APPLICATION_JSON_VALUE)
-                                                     .exchangeStrategies(this.exchangeStrategies)
-                                                     .build();
-                    queryResultTransfer = webClient.post()
-                                                   .bodyValue(responseTransfer)
-                                                   .retrieve()
-                                                   .bodyToMono(Transfer.class)
-                                                   .block();
+                    queryResultTransfer = this.resultController.store(responseTransfer)
+                                                               .getBody();
                     if (queryResultTransfer.getResultID()
                             != null) {
                         System.out.println("resultID: "
@@ -204,24 +174,11 @@ public class CoreController {
                                .equals("Retrieval")) {
                 System.out.println("RETRIEVAL: "
                                            + requestTransfer.getResultID());
-                final WebClient webClient = this.webClientBuilder.baseUrl(
-                        "http://webcase-gateway:8080/webcase-result/retrieve")
-                                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                                MediaType.APPLICATION_JSON_VALUE)
-                                                                 .build();
-                final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-                uriComponentsBuilder.path("/retrieveResultFromDatabase")
-                                    .queryParam("resultID", requestTransfer.getResultID());
-
                 // retrieve results
-                final List<DataSet> dataSetList = webClient.get()
-                                                           .uri(uriComponentsBuilder.toUriString())
-                                                           .retrieve()
-                                                           .bodyToMono(new ParameterizedTypeReference<List<DataSet>>() {
-                                                           })
-                                                           .block();
+                final List<DataSet> dataSetList = this.resultController.retrieve(requestTransfer.getResultID());
                 responseTransfer.setDataSetList(dataSetList);
                 responseTransfer.setResultID(requestTransfer.getResultID());
+
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
         } catch (final Exception e) {
