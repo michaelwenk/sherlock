@@ -8,6 +8,7 @@ import org.openscience.webcase.dbservice.statistics.service.model.DataSetRecord;
 import org.openscience.webcase.dbservice.statistics.utils.Utilities;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -24,12 +25,14 @@ import java.util.stream.Collectors;
 public class ConnectivityController {
 
     private final WebClient.Builder webClientBuilder;
+    private final ExchangeStrategies exchangeStrategies;
     private final ConnectivityServiceImplementation connectivityServiceImplementation;
 
     @Autowired
-    public ConnectivityController(final WebClient.Builder webClientBuilder,
+    public ConnectivityController(final WebClient.Builder webClientBuilder, final ExchangeStrategies exchangeStrategies,
                                   final ConnectivityServiceImplementation connectivityServiceImplementation) {
         this.webClientBuilder = webClientBuilder;
+        this.exchangeStrategies = exchangeStrategies;
         this.connectivityServiceImplementation = connectivityServiceImplementation;
     }
 
@@ -67,7 +70,7 @@ public class ConnectivityController {
 
         // nucleus -> multiplicity -> hybridization -> shift (int) -> connected atom symbol -> connected atom hybridization -> connected atom protons count -> occurrence
         final Map<String, Map<String, Map<String, Map<Integer, Map<String, Map<String, Map<Integer, Integer>>>>>>> connectivityStatisticsPerNucleus = new ConcurrentHashMap<>();
-        Utilities.getByDataSetSpectrumNuclei(this.webClientBuilder, nuclei)
+        Utilities.getByDataSetSpectrumNuclei(this.webClientBuilder, this.exchangeStrategies, nuclei)
                  .map(DataSetRecord::getDataSet)
                  .doOnNext(dataSet -> {
                      final String nucleus = dataSet.getSpectrum()

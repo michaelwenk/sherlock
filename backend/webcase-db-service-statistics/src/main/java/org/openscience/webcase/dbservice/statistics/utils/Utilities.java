@@ -12,18 +12,8 @@ import java.util.Arrays;
 
 public class Utilities {
 
-    // set ExchangeSettings
-    final static int maxInMemorySizeMB = 1000;
-    final static ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
-                                                                           .codecs(configurer -> configurer.defaultCodecs()
-                                                                                                           .maxInMemorySize(
-                                                                                                                   maxInMemorySizeMB
-                                                                                                                           * 1024
-
-                                                                                                                           * 1024))
-                                                                           .build();
-
     public static Flux<DataSetRecord> getByDataSetSpectrumNuclei(final WebClient.Builder webClientBuilder,
+                                                                 final ExchangeStrategies exchangeStrategies,
                                                                  final String[] nuclei) {
         final WebClient webClient = webClientBuilder.baseUrl("http://webcase-gateway:8080/webcase-db-service-dataset")
                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,

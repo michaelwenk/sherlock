@@ -25,25 +25,18 @@ import java.util.concurrent.ConcurrentLinkedDeque;
 @RestController
 @RequestMapping(value = "/hybridization")
 public class HybridizationController {
-
-    // set ExchangeSettings
-    final int maxInMemorySizeMB = 1000;
-    final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
-                                                                    .codecs(configurer -> configurer.defaultCodecs()
-                                                                                                    .maxInMemorySize(
-                                                                                                            this.maxInMemorySizeMB
-                                                                                                                    * 1024
-
-                                                                                                                    * 1024))
-                                                                    .build();
-    private final HybridizationServiceImplementation hybridizationServiceImplementation;
+    
     private final WebClient.Builder webClientBuilder;
+    private final ExchangeStrategies exchangeStrategies;
+    private final HybridizationServiceImplementation hybridizationServiceImplementation;
 
     @Autowired
-    public HybridizationController(final HybridizationServiceImplementation hybridizationServiceImplementation,
-                                   final WebClient.Builder webClientBuilder) {
-        this.hybridizationServiceImplementation = hybridizationServiceImplementation;
+    public HybridizationController(final WebClient.Builder webClientBuilder,
+                                   final ExchangeStrategies exchangeStrategies,
+                                   final HybridizationServiceImplementation hybridizationServiceImplementation) {
         this.webClientBuilder = webClientBuilder;
+        this.exchangeStrategies = exchangeStrategies;
+        this.hybridizationServiceImplementation = hybridizationServiceImplementation;
     }
 
 
@@ -98,7 +91,7 @@ public class HybridizationController {
                                                .block();
 
         final ConcurrentHashMap<String, ConcurrentHashMap<Integer, ConcurrentHashMap<String, ConcurrentLinkedDeque<String>>>> entries = new ConcurrentHashMap<>(); // nucleus, shift, multiplicity, list of hybridizations
-        Utilities.getByDataSetSpectrumNuclei(this.webClientBuilder, nuclei)
+        Utilities.getByDataSetSpectrumNuclei(this.webClientBuilder, this.exchangeStrategies, nuclei)
                  .doOnNext(dataSetRecord -> {
                      final DataSet dataSet = dataSetRecord.getDataSet();
                      final Spectrum spectrum = dataSet.getSpectrum()
