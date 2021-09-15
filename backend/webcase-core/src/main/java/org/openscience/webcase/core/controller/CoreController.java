@@ -28,6 +28,7 @@ import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
+import org.openscience.webcase.core.model.db.ResultRecord;
 import org.openscience.webcase.core.model.exchange.Transfer;
 import org.openscience.webcase.core.utils.Ranking;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -66,6 +67,21 @@ public class CoreController {
     public ResponseEntity<Transfer> core(@RequestBody final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
         responseTransfer.setQueryType(requestTransfer.getQueryType());
+
+        if (requestTransfer.getQueryType()
+                           .equals("Retrieval")) {
+            System.out.println("RETRIEVAL: "
+                                       + requestTransfer.getResultID());
+            // retrieve results
+            final ResultRecord resultRecord = this.resultController.retrieve(requestTransfer.getResultID());
+            if (resultRecord
+                    != null) {
+                responseTransfer.setDataSetList(resultRecord.getDataSetList());
+            }
+            responseTransfer.setResultID(requestTransfer.getResultID());
+
+            return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
+        }
 
         final Spectrum querySpectrum = new Spectrum();
         querySpectrum.setNuclei(new String[]{"13C"});
@@ -167,18 +183,6 @@ public class CoreController {
                     }
                 }
                 responseTransfer.setResultID(queryResultTransfer.getResultID());
-                return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
-            }
-
-            if (requestTransfer.getQueryType()
-                               .equals("Retrieval")) {
-                System.out.println("RETRIEVAL: "
-                                           + requestTransfer.getResultID());
-                // retrieve results
-                final List<DataSet> dataSetList = this.resultController.retrieve(requestTransfer.getResultID());
-                responseTransfer.setDataSetList(dataSetList);
-                responseTransfer.setResultID(requestTransfer.getResultID());
-
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
         } catch (final Exception e) {
