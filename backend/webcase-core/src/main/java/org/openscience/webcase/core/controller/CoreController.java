@@ -28,7 +28,6 @@ import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
-import org.openscience.webcase.core.model.db.ResultRecord;
 import org.openscience.webcase.core.model.exchange.Transfer;
 import org.openscience.webcase.core.utils.Ranking;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -69,14 +68,28 @@ public class CoreController {
         responseTransfer.setQueryType(requestTransfer.getQueryType());
 
         if (requestTransfer.getQueryType()
-                           .equals("Retrieval")) {
+                           .equals("retrieval")) {
             System.out.println("RETRIEVAL: "
                                        + requestTransfer.getResultID());
-            // retrieve results
-            final ResultRecord resultRecord = this.resultController.retrieve(requestTransfer.getResultID());
-            if (resultRecord
+            final ResponseEntity<Transfer> transferResponseEntity = this.resultController.retrieve(
+                    requestTransfer.getResultID());
+            if (transferResponseEntity.getStatusCode()
+                                      .isError()) {
+                System.out.println("RETRIEVAL request failed: "
+                                           + Objects.requireNonNull(transferResponseEntity.getBody())
+                                                    .getErrorMessage());
+
+                return transferResponseEntity;
+            }
+
+            if (transferResponseEntity.getBody()
+                    != null
+                    && transferResponseEntity.getBody()
+                                             .getDataSetList()
                     != null) {
-                responseTransfer.setDataSetList(resultRecord.getDataSetList());
+                // DB contained an entry for given resultID
+                responseTransfer.setDataSetList(transferResponseEntity.getBody()
+                                                                      .getDataSetList());
             }
             responseTransfer.setResultID(requestTransfer.getResultID());
 
@@ -120,16 +133,25 @@ public class CoreController {
         try {
             // DEREPLICATION
             if (requestTransfer.getQueryType()
-                               .equals("Dereplication")) {
+                               .equals("dereplication")) {
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setData(requestTransfer.getData());
                 queryTransfer.setDereplicationOptions(requestTransfer.getDereplicationOptions());
                 queryTransfer.setQueryType(requestTransfer.getQueryType());
                 queryTransfer.setQuerySpectrum(querySpectrum);
                 queryTransfer.setMf(mf);
-                final Transfer queryResultTransfer = this.dereplicationController.dereplicate(queryTransfer)
-                                                                                 .getBody();
-                final List<DataSet> dataSetList = queryResultTransfer.getDataSetList();
+                final ResponseEntity<Transfer> transferResponseEntity = this.dereplicationController.dereplicate(
+                        queryTransfer);
+                if (transferResponseEntity.getStatusCode()
+                                          .isError()) {
+                    System.out.println("DEREPLICATION request failed: "
+                                               + Objects.requireNonNull(transferResponseEntity.getBody())
+                                                        .getErrorMessage());
+
+                    return transferResponseEntity;
+                }
+                final List<DataSet> dataSetList = Objects.requireNonNull(transferResponseEntity.getBody())
+                                                         .getDataSetList();
                 Ranking.rankDataSetList(dataSetList);
 
                 // unique the dereplication result
@@ -154,27 +176,43 @@ public class CoreController {
             // @TODO SUBSTRUCTURE SEARCH
 
             if (requestTransfer.getQueryType()
-                               .equals("Elucidation")) {
+                               .equals("elucidation")) {
                 // NEW UUID CREATION
                 final String requestID = UUID.randomUUID()
                                              .toString();
                 // PyLSD RUN
-
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setData(requestTransfer.getData());
                 queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
                 queryTransfer.setRequestID(requestID);
                 queryTransfer.setMf(mf);
 
-                Transfer queryResultTransfer = this.elucidationController.elucidate(queryTransfer)
-                                                                         .getBody();
+                ResponseEntity<Transfer> transferResponseEntity = this.elucidationController.elucidate(queryTransfer);
+                if (transferResponseEntity.getStatusCode()
+                                          .isError()) {
+                    System.out.println("ELUCIDATION request failed: "
+                                               + transferResponseEntity.getBody()
+                                                                       .getErrorMessage());
+
+                    return transferResponseEntity;
+                }
+                Transfer queryResultTransfer = transferResponseEntity.getBody();
                 final List<DataSet> dataSetList = queryResultTransfer.getDataSetList();
                 Ranking.rankDataSetList(dataSetList);
                 responseTransfer.setDataSetList(dataSetList);
+
                 // store results in DB if not empty
                 if (!dataSetList.isEmpty()) {
-                    queryResultTransfer = this.resultController.store(responseTransfer)
-                                                               .getBody();
+                    transferResponseEntity = this.resultController.store(responseTransfer);
+                    if (transferResponseEntity.getStatusCode()
+                                              .isError()) {
+                        System.out.println("RESULT storage request failed: "
+                                                   + Objects.requireNonNull(transferResponseEntity.getBody())
+                                                            .getErrorMessage());
+
+                        return transferResponseEntity;
+                    }
+                    queryResultTransfer = transferResponseEntity.getBody();
                     if (queryResultTransfer.getResultID()
                             != null) {
                         System.out.println("resultID: "
@@ -182,6 +220,7 @@ public class CoreController {
                         responseTransfer.setResultID(queryResultTransfer.getResultID());
                     }
                 }
+
                 responseTransfer.setResultID(queryResultTransfer.getResultID());
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }

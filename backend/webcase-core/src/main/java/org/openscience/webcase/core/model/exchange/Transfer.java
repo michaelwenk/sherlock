@@ -50,6 +50,9 @@ public class Transfer {
     private DereplicationOptions dereplicationOptions;
     private ElucidationOptions elucidationOptions;
     private String requestID;
-    private Boolean pyLSDRunWasSuccessful;
     private String resultID;
+    // internal only
+    private Boolean pyLSDRunWasSuccessful;
+    // error message
+    private String errorMessage;
 }

@@ -45,6 +45,7 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -68,15 +69,22 @@ public class DereplicationController {
     }
 
     @PostMapping(value = "/dereplicate", consumes = "application/json", produces = "application/json")
-    //, produces = "application/stream+json")
     public ResponseEntity<Transfer> dereplicate(@RequestBody final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
 
         final Spectrum querySpectrum = requestTransfer.getQuerySpectrum();
 
+        // accept a 1D query spectrum only
         if (querySpectrum.getNuclei().length
                 == 1) {
-            final Map<String, int[]> multiplicitySectionsSettings = this.getMultiplicitySectionsSettings();
+            final Map<String, int[]> multiplicitySectionsSettings;
+            try {
+                final Mono<Map<String, int[]>> multiplicitySectionsSettingsMono = this.getMultiplicitySectionsSettings();
+                multiplicitySectionsSettings = multiplicitySectionsSettingsMono.block();
+            } catch (final Exception e) {
+                responseTransfer.setErrorMessage(e.getMessage());
+                return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
+            }
             this.multiplicitySectionsBuilder.setMinLimit(
                     multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[0]);
             this.multiplicitySectionsBuilder.setMaxLimit(
@@ -84,24 +92,27 @@ public class DereplicationController {
             this.multiplicitySectionsBuilder.setStepSize(
                     multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[2]);
 
-            final List<DataSetRecord> dataSetRecordList = this.getDataSetRecordFlux(querySpectrum,
-                                                                                    requestTransfer.getMf(),
-                                                                                    requestTransfer.getDereplicationOptions()
-                                                                                                   .isUseMF())
-                                                              .collectList()
-                                                              .block();
-            List<DataSet> dataSetList = new ArrayList<>();
-            if (dataSetRecordList
-                    != null) {
-                dataSetList = dataSetRecordList.stream()
-                                               .map(DataSetRecord::getDataSet)
-                                               .collect(Collectors.toList());
+            try {
+                final List<DataSetRecord> dataSetRecordList = this.getDataSetRecordFlux(querySpectrum,
+                                                                                        requestTransfer.getMf(),
+                                                                                        requestTransfer.getDereplicationOptions()
+                                                                                                       .isUseMF())
+                                                                  .collectList()
+                                                                  .block();
+                if (dataSetRecordList
+                        != null) {
+                    final List<DataSet> dataSetList = DereplicationResultFilter.filterBySpectralSimilarity(
+                            dataSetRecordList.stream()
+                                             .map(DataSetRecord::getDataSet)
+                                             .collect(Collectors.toList()), querySpectrum,
+                            requestTransfer.getDereplicationOptions(), this.multiplicitySectionsBuilder);
+                    responseTransfer.setDataSetList(dataSetList);
+                }
+            } catch (final Exception e) {
+                responseTransfer.setErrorMessage(e.getMessage());
+                return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
             }
-            dataSetList = DereplicationResultFilter.filterBySpectralSimilarity(dataSetList, querySpectrum,
-                                                                               requestTransfer.getDereplicationOptions(),
-                                                                               this.multiplicitySectionsBuilder);
 
-            responseTransfer.setDataSetList(dataSetList);
             return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
         }
 
@@ -109,7 +120,7 @@ public class DereplicationController {
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
-    public Map<String, int[]> getMultiplicitySectionsSettings() {
+    public Mono<Map<String, int[]>> getMultiplicitySectionsSettings() {
         final WebClient webClient = this.webClientBuilder.baseUrl(
                 "http://webcase-gateway:8080/webcase-db-service-dataset/getMultiplicitySectionsSettings")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
@@ -120,8 +131,7 @@ public class DereplicationController {
         return webClient.get()
                         .retrieve()
                         .bodyToMono(new ParameterizedTypeReference<Map<String, int[]>>() {
-                        })
-                        .block();
+                        });
     }
 
     public Flux<DataSetRecord> getDataSetRecordFlux(final Spectrum querySpectrum, final String mf,

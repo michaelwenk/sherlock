@@ -43,15 +43,20 @@ public class ElucidationController {
         queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
         queryTransfer.setRequestID(requestTransfer.getRequestID());
         queryTransfer.setMf(requestTransfer.getMf());
-        final Transfer queryResultTransfer = webClient.post()
-                                                      .bodyValue(queryTransfer)
-                                                      .retrieve()
-                                                      .bodyToMono(Transfer.class)
-                                                      .block();
-        responseTransfer.setPyLSDRunWasSuccessful(queryResultTransfer.getPyLSDRunWasSuccessful());
-        responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
-        responseTransfer.setResultID(queryResultTransfer.getResultID());
-
+        final Transfer queryResultTransfer;
+        try {
+            queryResultTransfer = webClient.post()
+                                           .bodyValue(queryTransfer)
+                                           .retrieve()
+                                           .bodyToMono(Transfer.class)
+                                           .block();
+            responseTransfer.setPyLSDRunWasSuccessful(queryResultTransfer.getPyLSDRunWasSuccessful());
+            responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
+            responseTransfer.setResultID(queryResultTransfer.getResultID());
+        } catch (final Exception e) {
+            responseTransfer.setErrorMessage(e.getMessage());
+            return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
+        }
 
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }

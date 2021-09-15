@@ -36,19 +36,23 @@ public class ResultController {
                                                          .build();
         final ResultRecord requestResultRecord = new ResultRecord();
         requestResultRecord.setDataSetList(requestTransfer.getDataSetList());
-        final ResultRecord responseResultRecord = webClient.post()
-                                                           .bodyValue(requestResultRecord)
-                                                           .retrieve()
-                                                           .bodyToMono(ResultRecord.class)
-                                                           .block();
-        System.out.println(responseResultRecord.getId());
+        try {
+            final ResultRecord responseResultRecord = webClient.post()
+                                                               .bodyValue(requestResultRecord)
+                                                               .retrieve()
+                                                               .bodyToMono(ResultRecord.class)
+                                                               .block();
+            responseTransfer.setResultID(responseResultRecord.getId());
+        } catch (final Exception e) {
+            responseTransfer.setErrorMessage(e.getMessage());
+            return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
+        }
 
-        responseTransfer.setResultID(responseResultRecord.getId());
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
     @GetMapping(value = "/retrieve")
-    public ResultRecord retrieve(@RequestParam final String resultID) {
+    public ResponseEntity<Transfer> retrieve(@RequestParam final String resultID) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
                 "http://webcase-gateway:8080/webcase-db-service-result")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
@@ -58,10 +62,23 @@ public class ResultController {
         uriComponentsBuilder.path("/getById")
                             .queryParam("id", resultID);
 
-        return webClient.get()
-                        .uri(uriComponentsBuilder.toUriString())
-                        .retrieve()
-                        .bodyToMono(ResultRecord.class)
-                        .block();
+        final Transfer responseTransfer = new Transfer();
+        try {
+            final ResultRecord resultRecord = webClient.get()
+                                                       .uri(uriComponentsBuilder.toUriString())
+                                                       .retrieve()
+                                                       .bodyToMono(ResultRecord.class)
+                                                       .block();
+            if (resultRecord
+                    != null) {
+                // nothing found for given resultID
+                responseTransfer.setDataSetList(resultRecord.getDataSetList());
+            }
+        } catch (final Exception e) {
+            responseTransfer.setErrorMessage(e.getMessage());
+            return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
+        }
+
+        return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 }
