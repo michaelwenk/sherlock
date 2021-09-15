@@ -1,6 +1,12 @@
 version: "3"
 
 services:
+  webcase-db-service-dataset:
+    build:
+      context: ./backend/webcase-db-service-dataset
+      dockerfile: Dockerfile.production
+    image: webcase-db-service-dataset-production
+
   webcase-db-instance-dataset:
     image: mongo:4
     volumes:

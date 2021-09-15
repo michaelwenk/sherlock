@@ -1,6 +1,13 @@
 version: "3"
 
 services:
+
+  webcase-db-service-dataset:
+    build:
+      context: ./backend/webcase-db-service-dataset
+      dockerfile: Dockerfile.publish
+    image: michaelwenk/webcase-db-service-dataset
+
   webcase-db-instance-dataset:
     image: michaelwenk/webcase-db-instance-dataset
     build:

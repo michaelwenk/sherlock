@@ -45,10 +45,6 @@ services:
 
   webcase-db-service-dataset:
     container_name: webcase-db-service-dataset
-    build:
-      context: ./backend/webcase-db-service-dataset
-      dockerfile: Dockerfile
-    image: michaelwenk/webcase-db-service-dataset
     ports:
       - "8087:8080"
     depends_on:
