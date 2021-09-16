@@ -1,5 +1,9 @@
 version: "3"
 
+volumes:
+  hosecode-vol:
+    driver: local
+
 services:
   webcase-discovery-server:
     container_name: webcase-discovery-server
@@ -42,6 +46,8 @@ services:
       - "8083:8080"
     depends_on:
       - webcase-discovery-server
+    volumes:
+    - hosecode-vol:/data/hosecode
 
   webcase-db-service-dataset:
     container_name: webcase-db-service-dataset
@@ -86,6 +92,8 @@ services:
     depends_on:
       - webcase-discovery-server
       - webcase-db-instance-hosecode
+    volumes:
+    - hosecode-vol:/data/hosecode
 
   webcase-db-instance-dataset:
     container_name: webcase-db-instance-dataset

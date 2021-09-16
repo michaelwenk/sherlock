@@ -3,8 +3,8 @@ package org.openscience.webcase.pylsd.controller;
 import casekit.io.FileSystem;
 import casekit.nmr.model.DataSet;
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
-import org.openscience.webcase.pylsd.utils.PyLSDInputFileBuilder;
-import org.openscience.webcase.pylsd.utils.RetrieveAndRank;
+import org.openscience.webcase.pylsd.utils.InputFileBuilder;
+import org.openscience.webcase.pylsd.utils.ParserAndPrediction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -26,21 +26,15 @@ public class PyLSDController {
     final String pathToPyLSDInputFileFolder = "/data/lsd/PyLSD/Variant/";
     final String pathToPyLSDResultFileFolder = "/data/lsd/PyLSD/Variant/";
 
-    // set ExchangeSettings
-    final int maxInMemorySizeMB = 1000;
-    final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
-                                                                    .codecs(configurer -> configurer.defaultCodecs()
-                                                                                                    .maxInMemorySize(
-                                                                                                            this.maxInMemorySizeMB
-                                                                                                                    * 1024
-                                                                                                                    * 1024))
-                                                                    .build();
-
     private final WebClient.Builder webClientBuilder;
+    private final ExchangeStrategies exchangeStrategies;
+    private final ParserAndPrediction parserAndPrediction;
 
     @Autowired
-    public PyLSDController(final WebClient.Builder webClientBuilder) {
+    public PyLSDController(final WebClient.Builder webClientBuilder, final ExchangeStrategies exchangeStrategies) {
         this.webClientBuilder = webClientBuilder;
+        this.exchangeStrategies = exchangeStrategies;
+        this.parserAndPrediction = new ParserAndPrediction(this.webClientBuilder, this.exchangeStrategies);
     }
 
 
@@ -49,8 +43,8 @@ public class PyLSDController {
         final Transfer responseTransfer = new Transfer();
 
         // build PyLSD input file
-        final String pyLSDInputFileContent = PyLSDInputFileBuilder.createPyLSDInputFile(this.webClientBuilder,
-                                                                                        requestTransfer);
+        final String pyLSDInputFileContent = InputFileBuilder.createPyLSDInputFile(this.webClientBuilder,
+                                                                                   requestTransfer);
         System.out.println("file content:\n"
                                    + pyLSDInputFileContent);
         final String pathToPyLSDInputFile = this.pathToPyLSDInputFileFolder
@@ -79,13 +73,20 @@ public class PyLSDController {
                                                                       TimeUnit.MINUTES);
                 if (pyLSDRunWasSuccessful) {
                     System.out.println("-> run was successful");
-                    final String pathToResultsFile = this.pathToPyLSDResultFileFolder
+                    final String pathToSmilesFile = this.pathToPyLSDResultFileFolder
                             + requestTransfer.getRequestID()
                             + "_0.smiles";
-                    System.out.println(pathToResultsFile);
+                    System.out.println(pathToSmilesFile);
+                    requestTransfer.setPathToSmilesFile(pathToSmilesFile);
 
-                    final List<DataSet> dataSetList = RetrieveAndRank.retrieveAndRankResultsFromPyLSDOutputFile(
-                            this.webClientBuilder, this.exchangeStrategies, pathToResultsFile, requestTransfer);
+                    final ResponseEntity<Transfer> transferResponseEntity = this.parserAndPrediction.parseAndPredictFromSmilesFile(
+                            requestTransfer);
+                    if (transferResponseEntity.getStatusCode()
+                                              .isError()) {
+                        return transferResponseEntity;
+                    }
+                    final List<DataSet> dataSetList = transferResponseEntity.getBody()
+                                                                            .getDataSetList();
                     System.out.println("--> number of parsed and ranked structures: "
                                                + dataSetList.size());
 

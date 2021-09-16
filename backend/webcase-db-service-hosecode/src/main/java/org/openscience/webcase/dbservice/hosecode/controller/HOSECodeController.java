@@ -1,7 +1,10 @@
 package org.openscience.webcase.dbservice.hosecode.controller;
 
+import casekit.io.FileSystem;
 import casekit.nmr.analysis.HOSECodeShiftStatistics;
 import casekit.nmr.utils.Statistics;
+import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import org.apache.http.HttpHeaders;
 import org.openscience.webcase.dbservice.hosecode.service.HOSECodeServiceImplementation;
 import org.openscience.webcase.dbservice.hosecode.service.model.DataSetRecord;
@@ -16,6 +19,9 @@ import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.io.UnsupportedEncodingException;
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -24,35 +30,36 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 @RequestMapping(value = "/")
 public class HOSECodeController {
 
-    // set ExchangeSettings
-    final int maxInMemorySizeMB = 1000;
-    final ExchangeStrategies exchangeStrategies = ExchangeStrategies.builder()
-                                                                    .codecs(configurer -> configurer.defaultCodecs()
-                                                                                                    .maxInMemorySize(
-                                                                                                            this.maxInMemorySizeMB
-                                                                                                                    * 1024
-                                                                                                                    * 1024))
-                                                                    .build();
-
-    private final HOSECodeServiceImplementation hoseCodeServiceImplementation;
     private final WebClient.Builder webClientBuilder;
+    private final ExchangeStrategies exchangeStrategies;
+    private final HOSECodeServiceImplementation hoseCodeServiceImplementation;
 
     @Autowired
-    public HOSECodeController(final WebClient.Builder webClientBuilder,
+    public HOSECodeController(final WebClient.Builder webClientBuilder, final ExchangeStrategies exchangeStrategies,
                               final HOSECodeServiceImplementation hoseCodeServiceImplementation) {
         this.webClientBuilder = webClientBuilder;
+        this.exchangeStrategies = exchangeStrategies;
         this.hoseCodeServiceImplementation = hoseCodeServiceImplementation;
     }
 
+    private String decode(final String value) {
+        try {
+            return URLDecoder.decode(value, StandardCharsets.UTF_8.toString());
+        } catch (final UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        return "";
+    }
 
     @GetMapping(value = "/getByID")
     public Mono<HOSECode> getByID(@RequestParam final String id) {
-        return this.hoseCodeServiceImplementation.findById(id);
+        return this.hoseCodeServiceImplementation.findById(this.decode(id));
     }
 
     @GetMapping(value = "/getByHOSECode", produces = "application/json")
     public Mono<HOSECode> getByHOSECode(@RequestParam final String HOSECode) {
-        return this.hoseCodeServiceImplementation.findByHoseCodeObjectHOSECode(HOSECode);
+        return this.hoseCodeServiceImplementation.findByHoseCodeObjectHOSECode(this.decode(HOSECode));
     }
 
     @GetMapping(value = "/count")
@@ -75,13 +82,12 @@ public class HOSECodeController {
     public void replaceAll(@RequestParam final String[] nuclei, final int maxSphere) {
         this.deleteAll()
             .block();
-        this.clearHOSECodeDBEntriesMap();
 
         final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts = new ConcurrentHashMap<>();
         this.getByDataSetSpectrumNuclei(nuclei)
             .doOnNext(dataSetRecord -> HOSECodeShiftStatistics.insert(dataSetRecord.getDataSet(), maxSphere, false,
                                                                       hoseCodeShifts))
-            .doOnTerminate(() -> {
+            .doAfterTerminate(() -> {
                 System.out.println(" -> hoseCodeShifts size: "
                                            + hoseCodeShifts.size());
                 final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = this.buildHOSECodeShiftStatistics(
@@ -101,8 +107,8 @@ public class HOSECodeController {
                 this.hoseCodeServiceImplementation.insertMany(hoseCodeRecordFlux)
                                                   .doOnError(Throwable::printStackTrace)
                                                   .doAfterTerminate(() -> {
-                                                      this.fillHOSECodeDBEntriesMap();
                                                       System.out.println(" -> done");
+                                                      this.saveAllAsMap();
                                                   })
                                                   .subscribe();
             })
@@ -153,27 +159,30 @@ public class HOSECodeController {
                         .bodyToFlux(DataSetRecord.class);
     }
 
-    public void clearHOSECodeDBEntriesMap() {
-        final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-dataset/clearHOSECodeDBEntriesMap")
-                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                        MediaType.APPLICATION_JSON_VALUE)
-                                                         .exchangeStrategies(this.exchangeStrategies)
-                                                         .build();
+    @GetMapping(value = "/saveAllAsMap")
+    public void saveAllAsMap() {
 
-        webClient.post()
-                 .retrieve();
-    }
+        final Gson gson = new GsonBuilder().create();
+        final String pathToHOSECodesFile = "/data/hosecode/hosecodes.json";
+        System.out.println("-> store json file in shared volume under \""
+                                   + pathToHOSECodesFile
+                                   + "\"");
 
-    public void fillHOSECodeDBEntriesMap() {
-        final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-dataset/fillHOSECodeDBEntriesMap")
-                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                        MediaType.APPLICATION_JSON_VALUE)
-                                                         .exchangeStrategies(this.exchangeStrategies)
-                                                         .build();
+        final StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("[");
 
-        webClient.post()
-                 .retrieve();
+        this.getAll()
+            .doOnNext(hoseCodeObject -> {
+                stringBuilder.append(gson.toJson(hoseCodeObject))
+                             .append(",");
+            })
+            .doAfterTerminate(() -> {
+                stringBuilder.deleteCharAt(stringBuilder.length()
+                                                   - 1);
+                stringBuilder.append("]");
+                FileSystem.writeFile(pathToHOSECodesFile, stringBuilder.toString());
+                System.out.println("-> done");
+            })
+            .subscribe();
     }
 }

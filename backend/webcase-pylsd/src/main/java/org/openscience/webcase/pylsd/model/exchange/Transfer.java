@@ -54,7 +54,9 @@ public class Transfer {
     private ElucidationOptions elucidationOptions;
     private Map<Integer, List<Integer>> detectedHybridizations;
     private Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities;
-
     // for (ranked) SDF parsing
-    private String fileContent;
+    private String pathToSmilesFile;
+    private List<String> smilesList;
+    // error message
+    private String errorMessage;
 }

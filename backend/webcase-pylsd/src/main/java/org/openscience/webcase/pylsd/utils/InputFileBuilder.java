@@ -1,7 +1,7 @@
 package org.openscience.webcase.pylsd.utils;
 
+import casekit.nmr.lsd.PyLSDInputFileBuilder;
 import casekit.nmr.lsd.Utilities;
-import casekit.nmr.lsd.model.ElucidationOptions;
 import casekit.nmr.model.nmrium.Correlation;
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-public class PyLSDInputFileBuilder {
+public class InputFileBuilder {
 
     public static String createPyLSDInputFile(final WebClient.Builder webClientBuilder,
                                               final Transfer requestTransfer) {
@@ -65,13 +65,7 @@ public class PyLSDInputFileBuilder {
             Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(correlationList, detectedConnectivities);
         }
 
-        final Transfer queryTransfer = new Transfer();
-        queryTransfer.setData(requestTransfer.getData());
-        queryTransfer.setDetectedHybridizations(detectedHybridizations);
-        queryTransfer.setDetectedConnectivities(detectedConnectivities);
-        queryTransfer.setMf(requestTransfer.getMf());
-        queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
-
+        // add (custom) filters to elucidation options
         final String pathToFilterRing3 = "/data/lsd/PyLSD/LSD/Filters/ring3";
         final String pathToFilterRing4 = "/data/lsd/PyLSD/LSD/Filters/ring4";
         final Path pathToCustomFilters = Paths.get("/data/lsd/filters/");
@@ -93,38 +87,12 @@ public class PyLSDInputFileBuilder {
                            .isUseFilterLsdRing4()) {
             filterList.add(pathToFilterRing4);
         }
-        queryTransfer.getElucidationOptions()
-                     .setFilterPaths(filterList.toArray(String[]::new));
+        requestTransfer.getElucidationOptions()
+                       .setFilterPaths(filterList.toArray(String[]::new));
 
-        return PyLSDInputFileBuilder.createInputFile(queryTransfer);
-    }
 
-    public static String createInputFile(final Transfer requestTransfer) {
-        final ElucidationOptions elucidationOptions = new ElucidationOptions();
-
-        elucidationOptions.setFilterPaths(requestTransfer.getElucidationOptions()
-                                                         .getFilterPaths());
-        elucidationOptions.setAllowHeteroHeteroBonds(requestTransfer.getElucidationOptions()
-                                                                    .isAllowHeteroHeteroBonds());
-        elucidationOptions.setUseElim(requestTransfer.getElucidationOptions()
-                                                     .isUseElim());
-        elucidationOptions.setElimP1(requestTransfer.getElucidationOptions()
-                                                    .getElimP1());
-        elucidationOptions.setElimP2(requestTransfer.getElucidationOptions()
-                                                    .getElimP2());
-        elucidationOptions.setHmbcP3(requestTransfer.getElucidationOptions()
-                                                    .getHmbcP3());
-        elucidationOptions.setHmbcP4(requestTransfer.getElucidationOptions()
-                                                    .getHmbcP4());
-        elucidationOptions.setCosyP3(requestTransfer.getElucidationOptions()
-                                                    .getCosyP3());
-        elucidationOptions.setCosyP4(requestTransfer.getElucidationOptions()
-                                                    .getCosyP4());
-
-        return casekit.nmr.lsd.PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getData(),
-                                                                                requestTransfer.getMf(),
-                                                                                requestTransfer.getDetectedHybridizations(),
-                                                                                requestTransfer.getDetectedConnectivities(),
-                                                                                elucidationOptions);
+        return PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getData(), requestTransfer.getMf(),
+                                                                detectedHybridizations, detectedConnectivities,
+                                                                requestTransfer.getElucidationOptions());
     }
 }
