@@ -25,7 +25,6 @@ import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 public class Prediction {
 
@@ -89,9 +88,7 @@ public class Prediction {
                 }
             };
             MultiThreading.processTasks(callables, consumer, 2, 5);
-            dataSetList = dataSetConcurrentLinkedQueue.stream()
-                                                      .filter(Objects::nonNull)
-                                                      .collect(Collectors.toList());
+            dataSetList = new ArrayList<>(dataSetConcurrentLinkedQueue);
         } catch (final Exception e) {
             e.printStackTrace();
         }
