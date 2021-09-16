@@ -25,7 +25,6 @@
 package org.openscience.webcase.core.controller;
 
 import casekit.nmr.model.DataSet;
-import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
 import org.openscience.webcase.core.model.exchange.Transfer;
@@ -41,7 +40,6 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "/")
@@ -96,27 +94,9 @@ public class CoreController {
             return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
         }
 
-        final Spectrum querySpectrum = new Spectrum();
-        querySpectrum.setNuclei(new String[]{"13C"});
-        querySpectrum.setSignals(requestTransfer.getData()
-                                                .getCorrelations()
-                                                .getValues()
-                                                .stream()
-                                                .filter(correlation -> correlation.getAtomType()
-                                                                                  .equals("C"))
-                                                .map(correlation -> new Signal(querySpectrum.getNuclei(), new Double[]{
-                                                        correlation.getSignal().getDelta()},
-                                                                               Utils.getMultiplicityFromProtonsCount(
-                                                                                       correlation),
-                                                                               correlation.getSignal()
-                                                                                          .getKind(), null,
-                                                                               correlation.getEquivalence(),
-                                                                               correlation.getSignal()
-                                                                                          .getSign()))
-                                                .collect(Collectors.toList()));
-        querySpectrum.setSignalCount(querySpectrum.getSignals()
-                                                  .size());
-
+        final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(requestTransfer.getData()
+                                                                                        .getCorrelations()
+                                                                                        .getValues(), "13C");
         // check whether each signal has a multiplicity; if not stop here
         if (querySpectrum.getSignals()
                          .stream()
