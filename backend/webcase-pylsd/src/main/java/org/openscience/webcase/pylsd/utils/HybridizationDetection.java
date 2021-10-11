@@ -1,6 +1,7 @@
 package org.openscience.webcase.pylsd.utils;
 
 import casekit.nmr.lsd.Constants;
+import casekit.nmr.model.Signal;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.utils.Utils;
 import org.springframework.http.HttpHeaders;
@@ -20,7 +21,7 @@ public class HybridizationDetection {
         final Map<Integer, List<Integer>> detectedHybridizations = new HashMap<>();
 
         final WebClient webClient = webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-statistics/hybridization/")
+                                                            "http://webcase-gateway:8080/webcase-db-service-statistics/hybridization/")
                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .build();
@@ -28,23 +29,27 @@ public class HybridizationDetection {
         List<Integer> hybridizations;
         Correlation correlation;
         String multiplicity;
+        Signal signal;
         for (int i = 0; i
                 < correlationList.size(); i++) {
             correlation = correlationList.get(i);
             multiplicity = Utils.getMultiplicityFromProtonsCount(correlation);
+            signal = Utils.extractSignalFromCorrelation(correlation);
             if (!correlation.getAtomType()
                             .equals("H")
                     && Constants.nucleiMap.containsKey(correlation.getAtomType())
                     && multiplicity
+                    != null
+                    && signal
                     != null) {
                 uriComponentsBuilder = UriComponentsBuilder.newInstance();
                 uriComponentsBuilder.path("/detectHybridizations")
                                     .queryParam("nucleus", Constants.nucleiMap.get(correlation.getAtomType()))
-                                    .queryParam("minShift", (int) correlation.getSignal()
-                                                                             .getDelta()
+                                    .queryParam("minShift", signal.getShift(0)
+                                                                  .intValue()
                                             - shiftTol)
-                                    .queryParam("maxShift", (int) correlation.getSignal()
-                                                                             .getDelta()
+                                    .queryParam("maxShift", signal.getShift(0)
+                                                                  .intValue()
                                             + shiftTol)
                                     .queryParam("multiplicity", multiplicity)
                                     .queryParam("threshold", threshold);

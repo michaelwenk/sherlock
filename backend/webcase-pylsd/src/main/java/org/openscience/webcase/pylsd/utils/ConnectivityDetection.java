@@ -1,6 +1,7 @@
 package org.openscience.webcase.pylsd.utils;
 
 import casekit.nmr.lsd.Constants;
+import casekit.nmr.model.Signal;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.utils.Utils;
 import org.springframework.core.ParameterizedTypeReference;
@@ -19,7 +20,7 @@ public class ConnectivityDetection {
         final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities = new HashMap<>();
 
         final WebClient webClient = webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-statistics/connectivity/")
+                                                            "http://webcase-gateway:8080/webcase-db-service-statistics/connectivity/")
                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .build();
@@ -27,13 +28,17 @@ public class ConnectivityDetection {
         Map<String, Map<String, Map<Integer, Integer>>> detectedConnectivitiesTemp;
         Correlation correlation;
         String multiplicity;
+        Signal signal;
         for (int i = 0; i
                 < correlationList.size(); i++) {
             correlation = correlationList.get(i);
             multiplicity = Utils.getMultiplicityFromProtonsCount(correlation);
+            signal = Utils.extractSignalFromCorrelation(correlation);
             if (!correlation.getAtomType()
                             .equals("H")
                     && multiplicity
+                    != null
+                    && signal
                     != null) {
                 for (final String hybridizationString : correlation.getHybridization()) {
                     uriComponentsBuilder = UriComponentsBuilder.newInstance();
@@ -41,11 +46,11 @@ public class ConnectivityDetection {
                                         .queryParam("nucleus", Constants.nucleiMap.get(correlation.getAtomType()))
                                         .queryParam("hybridization", hybridizationString)
                                         .queryParam("multiplicity", multiplicity)
-                                        .queryParam("minShift", (int) correlation.getSignal()
-                                                                                 .getDelta()
+                                        .queryParam("minShift", signal.getShift(0)
+                                                                      .intValue()
                                                 - shiftTol)
-                                        .queryParam("maxShift", (int) correlation.getSignal()
-                                                                                 .getDelta()
+                                        .queryParam("maxShift", signal.getShift(0)
+                                                                      .intValue()
                                                 + shiftTol)
                                         .queryParam("thresholdHybridizationCount", thresholdHybridizationCount)
                                         .queryParam("thresholdProtonsCount", thresholdProtonsCount)
