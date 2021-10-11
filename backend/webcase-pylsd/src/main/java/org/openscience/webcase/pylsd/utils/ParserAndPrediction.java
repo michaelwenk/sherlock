@@ -39,18 +39,55 @@ public class ParserAndPrediction {
         this.fillHOSECodeDBEntriesMap();
     }
 
+    public String loopMethod(final String pathToHOSECodesFile, final int waitingDuration,
+                             final int totalWaitingDuration, int currentWaitingDuration) {
+        final String fileContent = FileSystem.getFileContent(pathToHOSECodesFile);
+        if (fileContent
+                == null) {
+            try {
+                System.out.println(" -> could not read HOSE codes from file: \""
+                                           + pathToHOSECodesFile
+                                           + "\" -> trying again in "
+                                           + waitingDuration
+                                           + " ms");
+                Thread.sleep(waitingDuration);
+                currentWaitingDuration += waitingDuration;
+            } catch (final InterruptedException e) {
+                e.printStackTrace();
+            }
+            if (currentWaitingDuration
+                    < totalWaitingDuration) {
+                return this.loopMethod(pathToHOSECodesFile, waitingDuration, totalWaitingDuration,
+                                       currentWaitingDuration);
+            }
+        }
+
+        return fileContent;
+    }
+
     private void fillHOSECodeDBEntriesMap() {
         System.out.println("\nloading DB entries map...");
         this.hoseCodeDBEntriesMap = new HashMap<>();
         final String pathToHOSECodesFile = "/data/hosecode/hosecodes.json";
-        final List<HOSECode> hoseCodeObjectList = this.gson.fromJson(FileSystem.getFileContent(pathToHOSECodesFile),
-                                                                     new TypeToken<List<HOSECode>>() {
-                                                                     }.getType());
-        for (final HOSECode hoseCodeObject : hoseCodeObjectList) {
-            this.hoseCodeDBEntriesMap.put(hoseCodeObject.getHOSECode(), hoseCodeObject.getValues());
+        final int waitingDuration = 30; // seconds
+        final int totalWaitingDuration = 300; // seconds
+        final String fileContent = this.loopMethod(pathToHOSECodesFile, waitingDuration
+                * 1000, totalWaitingDuration
+                                                           * 1000, 0);
+        if (fileContent
+                != null) {
+            final List<HOSECode> hoseCodeObjectList = this.gson.fromJson(fileContent, new TypeToken<List<HOSECode>>() {
+            }.getType());
+            for (final HOSECode hoseCodeObject : hoseCodeObjectList) {
+                this.hoseCodeDBEntriesMap.put(hoseCodeObject.getHOSECode(), hoseCodeObject.getValues());
+            }
+            System.out.println(" -> done: "
+                                       + this.hoseCodeDBEntriesMap.size());
+        } else {
+            System.out.println(" -> could not read HOSE codes from file: \""
+                                       + pathToHOSECodesFile
+                                       + "\" !!!");
         }
-        System.out.println(" -> done: "
-                                   + this.hoseCodeDBEntriesMap.size());
     }
 
     public ResponseEntity<Transfer> parseAndPredictFromSmilesFile(final Transfer requestTransfer) {
@@ -77,7 +114,7 @@ public class ParserAndPrediction {
 
     private Mono<Map<String, int[]>> getMultiplicitySectionsSettings() {
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-dataset/getMultiplicitySectionsSettings")
+                                                "http://webcase-gateway:8080/webcase-db-service-dataset/getMultiplicitySectionsSettings")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)

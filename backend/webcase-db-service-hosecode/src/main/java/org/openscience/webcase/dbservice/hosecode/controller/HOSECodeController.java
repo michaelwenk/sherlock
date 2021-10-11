@@ -40,6 +40,8 @@ public class HOSECodeController {
         this.webClientBuilder = webClientBuilder;
         this.exchangeStrategies = exchangeStrategies;
         this.hoseCodeServiceImplementation = hoseCodeServiceImplementation;
+
+        this.saveAllAsMap();
     }
 
     private String decode(final String value) {
@@ -140,7 +142,7 @@ public class HOSECodeController {
 
     public Flux<DataSetRecord> getByDataSetSpectrumNuclei(final String[] nuclei) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                "http://webcase-gateway:8080/webcase-db-service-dataset/")
+                                                "http://webcase-gateway:8080/webcase-db-service-dataset/")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)
