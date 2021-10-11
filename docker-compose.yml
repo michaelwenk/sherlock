@@ -100,6 +100,8 @@ services:
     container_name: webcase-db-instance-dataset
     ports:
       - 27020:27017
+    command:
+      --wiredTigerCacheSizeGB 2
 
   webcase-db-instance-statistics:
     container_name: webcase-db-instance-statistics
