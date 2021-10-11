@@ -103,7 +103,8 @@ public class CoreController {
                          .anyMatch(signal -> signal.getMultiplicity()
                                  == null)) {
             responseTransfer.setDataSetList(new ArrayList<>());
-            return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
+            responseTransfer.setErrorMessage("At least for one carbon the number of attached protons is missing!!!");
+            return new ResponseEntity<>(responseTransfer, HttpStatus.BAD_REQUEST);
         }
         final String mf = (String) requestTransfer.getData()
                                                   .getCorrelations()
