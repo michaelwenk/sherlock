@@ -27,6 +27,8 @@ public class InputFileBuilder {
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.detectHybridizations(
                 webClientBuilder, correlationList, requestTransfer.getElucidationOptions()
                                                                   .getHybridizationDetectionThreshold(), shiftTol);
+        System.out.println("detectedHybridizations: "
+                                   + detectedHybridizations);
         // set hybridization of correlations from detection if there was nothing set before
         for (final Map.Entry<Integer, List<Integer>> entry : detectedHybridizations.entrySet()) {
             if (correlationList.get(entry.getKey())
@@ -58,6 +60,10 @@ public class InputFileBuilder {
         System.out.println("allowedNeighborAtomProtonCounts: "
                                    + Utilities.buildAllowedNeighborAtomProtonCounts(correlationList,
                                                                                     detectedConnectivities));
+        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors = ForbiddenNeighborDetection.detectForbiddenNeighbors(
+                detectedConnectivities, requestTransfer.getMf());
+        System.out.println("-> forbiddenNeighbors: "
+                                   + forbiddenNeighbors);
 
         // in case of no hetero hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
         if (!requestTransfer.getElucidationOptions()
@@ -93,6 +99,7 @@ public class InputFileBuilder {
 
         return PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getData(), requestTransfer.getMf(),
                                                                 detectedHybridizations, detectedConnectivities,
+                                                                forbiddenNeighbors,
                                                                 requestTransfer.getElucidationOptions());
     }
 }
