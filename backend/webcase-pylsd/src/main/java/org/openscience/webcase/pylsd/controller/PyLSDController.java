@@ -8,10 +8,7 @@ import org.openscience.webcase.pylsd.utils.ParserAndPrediction;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -94,7 +91,8 @@ public class PyLSDController {
                                                + dataSetList.size());
                     responseTransfer.setDataSetList(dataSetList);
                 } else {
-                    System.out.println("run was NOT successful");
+                    System.out.println("run was NOT successful -> killing PyLSD run if it still exist");
+                    this.cancelPyLSD();
                 }
             } catch (final Exception e) {
                 e.printStackTrace();
@@ -111,5 +109,37 @@ public class PyLSDController {
         }
 
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/cancelPyLSD")
+    public void cancelPyLSD() {
+        while (ProcessHandle.allProcesses()
+                            .anyMatch(processHandle -> processHandle.isAlive()
+                                    && processHandle.info()
+                                                    .command()
+                                                    .orElse("unknown")
+                                                    .contains("LSD/lsd"))) {
+            ProcessHandle.allProcesses()
+                         .filter(processHandle -> processHandle.isAlive()
+                                 && processHandle.info()
+                                                 .command()
+                                                 .orElse("unknown")
+                                                 .contains("LSD/lsd"))
+                         .findFirst()
+                         .ifPresent(processHandleLSD -> {
+                             System.out.println("-> killing PID "
+                                                        + processHandleLSD.pid()
+                                                        + ": "
+                                                        + processHandleLSD.info()
+                                                                          .command()
+                                                                          .orElse("unknown"));
+                             processHandleLSD.destroy();
+                         });
+            try {
+                TimeUnit.SECONDS.sleep(1);
+            } catch (final InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }
