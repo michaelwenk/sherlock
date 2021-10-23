@@ -31,6 +31,7 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.openscience.webcase.pylsd.model.DetectionOptions;
 import org.openscience.webcase.pylsd.model.ElucidationOptions;
 
 import java.util.List;
@@ -52,8 +53,10 @@ public class Transfer {
     private String mf;
     private Boolean pyLSDRunWasSuccessful;
     private ElucidationOptions elucidationOptions;
+    private DetectionOptions detectionOptions;
     private Map<Integer, List<Integer>> detectedHybridizations;
     private Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities;
+    private Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors;
     // for (ranked) SDF parsing
     private String pathToSmilesFile;
     private List<String> smilesList;

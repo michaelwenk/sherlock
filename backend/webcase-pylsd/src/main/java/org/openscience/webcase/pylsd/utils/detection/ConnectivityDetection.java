@@ -1,4 +1,4 @@
-package org.openscience.webcase.pylsd.utils;
+package org.openscience.webcase.pylsd.utils.detection;
 
 import casekit.nmr.lsd.Constants;
 import casekit.nmr.model.Signal;

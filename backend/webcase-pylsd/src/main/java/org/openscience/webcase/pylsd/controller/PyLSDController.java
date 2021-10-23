@@ -5,6 +5,7 @@ import casekit.nmr.model.DataSet;
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
 import org.openscience.webcase.pylsd.utils.InputFileBuilder;
 import org.openscience.webcase.pylsd.utils.ParserAndPrediction;
+import org.openscience.webcase.pylsd.utils.detection.Detection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -104,15 +105,23 @@ public class PyLSDController {
             System.out.println("cleaned ? -> "
                                        + FileSystem.cleanup(directoriesToCheck, requestTransfer.getRequestID()));
         } else {
-            System.out.println("--> file creation failed: "
+            System.out.println("--> input file creation failed at "
                                        + pathToPyLSDInputFile);
+            responseTransfer.setErrorMessage("PyLSD input file creation failed at "
+                                                     + pathToPyLSDInputFile);
+            return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
+    @PostMapping(value = "/detect")
+    public ResponseEntity<Transfer> detection(@RequestBody final Transfer requestTransfer) {
+        return new ResponseEntity<>(Detection.detect(this.webClientBuilder, requestTransfer), HttpStatus.OK);
+    }
+
     @GetMapping(value = "/cancelPyLSD")
-    public void cancelPyLSD() {
+    public ResponseEntity<Boolean> cancelPyLSD() {
         while (ProcessHandle.allProcesses()
                             .anyMatch(processHandle -> processHandle.isAlive()
                                     && processHandle.info()
@@ -139,7 +148,11 @@ public class PyLSDController {
                 TimeUnit.SECONDS.sleep(1);
             } catch (final InterruptedException e) {
                 e.printStackTrace();
+
+                return new ResponseEntity<>(false, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         }
+
+        return new ResponseEntity<>(true, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 }

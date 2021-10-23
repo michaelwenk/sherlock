@@ -40,6 +40,7 @@ public class ElucidationController {
         // run PyLSD
         final Transfer queryTransfer = new Transfer();
         queryTransfer.setData(requestTransfer.getData());
+        queryTransfer.setDetectionOptions(requestTransfer.getDetectionOptions());
         queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
         queryTransfer.setRequestID(requestTransfer.getRequestID());
         queryTransfer.setMf(requestTransfer.getMf());

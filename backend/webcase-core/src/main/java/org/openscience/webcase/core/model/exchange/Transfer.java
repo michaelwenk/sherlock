@@ -30,9 +30,12 @@ import casekit.nmr.model.nmrium.Data;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 import org.openscience.webcase.core.model.DereplicationOptions;
+import org.openscience.webcase.core.model.DetectionOptions;
 import org.openscience.webcase.core.model.ElucidationOptions;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 @AllArgsConstructor
@@ -49,6 +52,10 @@ public class Transfer {
     private String queryType;
     private DereplicationOptions dereplicationOptions;
     private ElucidationOptions elucidationOptions;
+    private DetectionOptions detectionOptions;
+    private Map<Integer, List<Integer>> detectedHybridizations;
+    private Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities;
+    private Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors;
     private String requestID;
     private String resultID;
     // internal only

@@ -12,9 +12,6 @@ public class ElucidationOptions
     // PyLSD input file creation
     private boolean useFilterLsdRing3;
     private boolean useFilterLsdRing4;
-    private float hybridizationDetectionThreshold;
-    private float hybridizationCountThreshold;
-    private float protonsCountThreshold;
     // elucidation process
     private int timeLimitTotal;
     // generated structures filter

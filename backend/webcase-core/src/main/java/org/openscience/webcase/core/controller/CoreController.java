@@ -30,7 +30,9 @@ import casekit.nmr.utils.Utils;
 import org.openscience.webcase.core.model.exchange.Transfer;
 import org.openscience.webcase.core.utils.Ranking;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -164,6 +166,7 @@ public class CoreController {
                 // PyLSD RUN
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setData(requestTransfer.getData());
+                queryTransfer.setDetectionOptions(requestTransfer.getDetectionOptions());
                 queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
                 queryTransfer.setRequestID(requestID);
                 queryTransfer.setMf(mf);
@@ -203,6 +206,36 @@ public class CoreController {
                 }
 
                 responseTransfer.setResultID(queryResultTransfer.getResultID());
+                return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
+            }
+
+            // DETECTION
+            if (requestTransfer.getQueryType()
+                               .equals("detection")) {
+                final WebClient webClient = this.webClientBuilder.baseUrl(
+                                                        "http://webcase-gateway:8080/webcase-pylsd/detect")
+                                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                                MediaType.APPLICATION_JSON_VALUE)
+                                                                 .build();
+                final Transfer queryTransfer = new Transfer();
+                queryTransfer.setData(requestTransfer.getData());
+                queryTransfer.setDetectionOptions(requestTransfer.getDetectionOptions());
+                queryTransfer.setMf(mf);
+
+                final Transfer queryResultTransfer = webClient.post()
+                                                              .bodyValue(queryTransfer)
+                                                              .retrieve()
+                                                              .bodyToMono(Transfer.class)
+                                                              .block();
+                if (queryResultTransfer
+                        == null) {
+                    responseTransfer.setErrorMessage("Could not detect connectivities!");
+                    return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+
+                responseTransfer.setDetectedHybridizations(queryResultTransfer.getDetectedHybridizations());
+                responseTransfer.setDetectedConnectivities(queryResultTransfer.getDetectedConnectivities());
+                responseTransfer.setForbiddenNeighbors(queryResultTransfer.getForbiddenNeighbors());
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
         } catch (final Exception e) {

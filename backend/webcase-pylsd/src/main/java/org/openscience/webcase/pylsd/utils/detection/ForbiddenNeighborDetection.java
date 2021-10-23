@@ -1,4 +1,4 @@
-package org.openscience.webcase.pylsd.utils;
+package org.openscience.webcase.pylsd.utils.detection;
 
 import casekit.nmr.lsd.Utilities;
 import casekit.nmr.utils.Utils;
