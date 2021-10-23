@@ -93,7 +93,7 @@ public class PyLSDController {
                     responseTransfer.setDataSetList(dataSetList);
                 } else {
                     System.out.println("run was NOT successful -> killing PyLSD run if it still exist");
-                    this.cancelPyLSD();
+                    this.cancel();
                 }
             } catch (final Exception e) {
                 e.printStackTrace();
@@ -120,8 +120,10 @@ public class PyLSDController {
         return new ResponseEntity<>(Detection.detect(this.webClientBuilder, requestTransfer), HttpStatus.OK);
     }
 
-    @GetMapping(value = "/cancelPyLSD")
-    public ResponseEntity<Boolean> cancelPyLSD() {
+    @GetMapping(value = "/cancel")
+    public ResponseEntity<Transfer> cancel() {
+        final Transfer responseTransfer = new Transfer();
+
         while (ProcessHandle.allProcesses()
                             .anyMatch(processHandle -> processHandle.isAlive()
                                     && processHandle.info()
@@ -143,16 +145,22 @@ public class PyLSDController {
                                                                           .command()
                                                                           .orElse("unknown"));
                              processHandleLSD.destroy();
-                         });
-            try {
-                TimeUnit.SECONDS.sleep(1);
-            } catch (final InterruptedException e) {
-                e.printStackTrace();
 
-                return new ResponseEntity<>(false, HttpStatus.INTERNAL_SERVER_ERROR);
+                             while (processHandleLSD.isAlive()) {
+                                 try {
+                                     TimeUnit.SECONDS.sleep(1);
+                                 } catch (final InterruptedException e) {
+                                     e.printStackTrace();
+                                     responseTransfer.setErrorMessage(e.getMessage());
+                                 }
+                             }
+                         });
+            if (responseTransfer.getErrorMessage()
+                    != null) {
+                return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         }
 
-        return new ResponseEntity<>(true, HttpStatus.INTERNAL_SERVER_ERROR);
+        return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 }

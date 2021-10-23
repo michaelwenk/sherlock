@@ -106,7 +106,7 @@ public class ParserAndPrediction {
             responseTransfer.setDataSetList(dataSetList);
         } catch (final Exception e) {
             responseTransfer.setErrorMessage(e.getMessage());
-            return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
+            return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);

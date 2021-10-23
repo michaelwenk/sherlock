@@ -34,10 +34,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -181,7 +178,10 @@ public class CoreController {
                     return transferResponseEntity;
                 }
                 Transfer queryResultTransfer = transferResponseEntity.getBody();
-                final List<DataSet> dataSetList = queryResultTransfer.getDataSetList();
+                final List<DataSet> dataSetList = queryResultTransfer.getDataSetList()
+                                                          != null
+                                                  ? queryResultTransfer.getDataSetList()
+                                                  : new ArrayList<>();
                 Ranking.rankDataSetList(dataSetList);
                 responseTransfer.setDataSetList(dataSetList);
 
@@ -241,9 +241,24 @@ public class CoreController {
         } catch (final Exception e) {
             System.err.println("An error occurred: ");
             e.printStackTrace();
+
+            responseTransfer.setErrorMessage(e.getMessage());
+            return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         responseTransfer.setDataSetList(new ArrayList<>());
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/cancel")
+    public ResponseEntity<Transfer> cancel() {
+        final WebClient webClient = this.webClientBuilder.baseUrl("http://webcase-gateway:8080/webcase-pylsd/cancel")
+                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                        MediaType.APPLICATION_JSON_VALUE)
+                                                         .build();
+        return webClient.get()
+                        .retrieve()
+                        .toEntity(Transfer.class)
+                        .block();
     }
 }
