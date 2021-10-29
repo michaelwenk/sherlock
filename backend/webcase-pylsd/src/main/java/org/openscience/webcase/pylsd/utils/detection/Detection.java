@@ -2,6 +2,7 @@ package org.openscience.webcase.pylsd.utils.detection;
 
 import casekit.nmr.lsd.Utilities;
 import casekit.nmr.model.nmrium.Correlation;
+import org.openscience.webcase.pylsd.model.Detections;
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -60,10 +61,9 @@ public class Detection {
                                    + forbiddenNeighbors);
 
         final Transfer responseTransfer = new Transfer();
-        responseTransfer.setDetectedHybridizations(detectedHybridizations);
-        responseTransfer.setDetectedConnectivities(detectedConnectivities);
-        responseTransfer.setForbiddenNeighbors(forbiddenNeighbors);
-
+        responseTransfer.setDetections(
+                new Detections(detectedHybridizations, detectedConnectivities, forbiddenNeighbors));
+        
         return responseTransfer;
     }
 }

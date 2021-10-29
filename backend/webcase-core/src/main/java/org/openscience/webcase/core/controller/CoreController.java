@@ -233,9 +233,7 @@ public class CoreController {
                     return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
                 }
 
-                responseTransfer.setDetectedHybridizations(queryResultTransfer.getDetectedHybridizations());
-                responseTransfer.setDetectedConnectivities(queryResultTransfer.getDetectedConnectivities());
-                responseTransfer.setForbiddenNeighbors(queryResultTransfer.getForbiddenNeighbors());
+                responseTransfer.setDetections(queryResultTransfer.getDetections());
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
         } catch (final Exception e) {

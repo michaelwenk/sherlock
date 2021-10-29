@@ -29,7 +29,8 @@ public class InputFileBuilder {
                                                                      .getCorrelations()
                                                                      .getValues();
             Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(correlationList,
-                                                                              detectionTransfer.getDetectedConnectivities());
+                                                                              detectionTransfer.getDetections()
+                                                                                               .getDetectedConnectivities());
         }
 
         // add (custom) filters to elucidation options
@@ -59,9 +60,12 @@ public class InputFileBuilder {
 
 
         return PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getData(), requestTransfer.getMf(),
-                                                                detectionTransfer.getDetectedHybridizations(),
-                                                                detectionTransfer.getDetectedConnectivities(),
-                                                                detectionTransfer.getForbiddenNeighbors(),
+                                                                detectionTransfer.getDetections()
+                                                                                 .getDetectedHybridizations(),
+                                                                detectionTransfer.getDetections()
+                                                                                 .getDetectedConnectivities(),
+                                                                detectionTransfer.getDetections()
+                                                                                 .getForbiddenNeighbors(),
                                                                 requestTransfer.getElucidationOptions());
     }
 }
