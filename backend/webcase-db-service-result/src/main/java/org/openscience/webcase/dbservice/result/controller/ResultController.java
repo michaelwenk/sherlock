@@ -3,6 +3,7 @@ package org.openscience.webcase.dbservice.result.controller;
 import org.openscience.webcase.dbservice.result.model.db.ResultRecord;
 import org.openscience.webcase.dbservice.result.service.ResultServiceImplementation;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 @RestController
@@ -23,6 +24,11 @@ public class ResultController {
     @GetMapping(value = "/getById", produces = "application/json")
     public Mono<ResultRecord> getById(@RequestParam final String id) {
         return this.resultServiceImplementation.findById(id);
+    }
+
+    @GetMapping(value = "/getAll", produces = "application/json")
+    public Flux<ResultRecord> getAll() {
+        return this.resultServiceImplementation.findAll();
     }
 
     @PostMapping(value = "/insert", consumes = "application/json", produces = "application/json")
