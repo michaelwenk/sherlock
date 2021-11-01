@@ -1,20 +1,17 @@
 package org.openscience.webcase.pylsd.utils.detection;
 
-import casekit.nmr.lsd.Utilities;
 import casekit.nmr.model.nmrium.Correlation;
 import org.openscience.webcase.pylsd.model.Detections;
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 public class Detection {
 
     public static Transfer detect(final WebClient.Builder webClientBuilder, final Transfer requestTransfer) {
+        final Transfer responseTransfer = new Transfer();
         final int shiftTol = 0;
         final List<Correlation> correlationList = requestTransfer.getData()
                                                                  .getCorrelations()
@@ -41,29 +38,22 @@ public class Detection {
             }
         }
 
-        final Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities = ConnectivityDetection.detectConnectivities(
+        final Map<Integer, Map<String, Set<Integer>>> detectedConnectivities = ConnectivityDetection.detectConnectivities(
                 webClientBuilder, correlationList, shiftTol, requestTransfer.getDetectionOptions()
-                                                                            .getHybridizationCountThreshold(),
-                requestTransfer.getDetectionOptions()
-                               .getProtonsCountThreshold(), requestTransfer.getMf());
+                                                                            .getElementCountThreshold(),
+                requestTransfer.getMf());
 
         System.out.println("detectedConnectivities: "
                                    + detectedConnectivities);
-        System.out.println("allowedNeighborAtomHybridizations: "
-                                   + Utilities.buildAllowedNeighborAtomHybridizations(correlationList,
-                                                                                      detectedConnectivities));
-        System.out.println("allowedNeighborAtomProtonCounts: "
-                                   + Utilities.buildAllowedNeighborAtomProtonCounts(correlationList,
-                                                                                    detectedConnectivities));
-        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors = ForbiddenNeighborDetection.detectForbiddenNeighbors(
+
+        final Map<Integer, Map<String, Set<Integer>>> forbiddenNeighbors = ForbiddenNeighborDetection.detectForbiddenNeighbors(
                 detectedConnectivities, requestTransfer.getMf());
         System.out.println("-> forbiddenNeighbors: "
                                    + forbiddenNeighbors);
 
-        final Transfer responseTransfer = new Transfer();
         responseTransfer.setDetections(
-                new Detections(detectedHybridizations, detectedConnectivities, forbiddenNeighbors));
-        
+                new Detections(detectedHybridizations, detectedConnectivities, forbiddenNeighbors, new HashMap<>()));
+
         return responseTransfer;
     }
 }

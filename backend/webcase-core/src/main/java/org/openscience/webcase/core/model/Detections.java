@@ -14,6 +14,7 @@ import java.util.Set;
 public class Detections {
 
     private Map<Integer, List<Integer>> detectedHybridizations;
-    private Map<Integer, Map<String, Map<String, Set<Integer>>>> detectedConnectivities;
-    private Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors;
+    private Map<Integer, Map<String, Set<Integer>>> detectedConnectivities;
+    private Map<Integer, Map<String, Set<Integer>>> forbiddenNeighbors;
+    private Map<Integer, Map<String, Set<Integer>>> setNeighbors;
 }

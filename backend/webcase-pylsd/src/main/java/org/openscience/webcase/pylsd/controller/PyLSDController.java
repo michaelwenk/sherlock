@@ -41,16 +41,17 @@ public class PyLSDController {
         final Transfer responseTransfer = new Transfer();
 
         // build PyLSD input file
-        final String pyLSDInputFileContent = InputFileBuilder.createPyLSDInputFile(this.webClientBuilder,
+        final Transfer queryResultTransfer = InputFileBuilder.createPyLSDInputFile(this.webClientBuilder,
                                                                                    requestTransfer);
+        responseTransfer.setDetections(queryResultTransfer.getDetections());
         System.out.println("file content:\n"
-                                   + pyLSDInputFileContent);
+                                   + queryResultTransfer.getPyLSDInputFileContent());
         final String pathToPyLSDInputFile = this.pathToPyLSDInputFileFolder
                 + requestTransfer.getRequestID()
                 + ".pylsd";
 
         // run PyLSD if file was written successfully
-        if (FileSystem.writeFile(pathToPyLSDInputFile, pyLSDInputFileContent)) {
+        if (FileSystem.writeFile(pathToPyLSDInputFile, queryResultTransfer.getPyLSDInputFileContent())) {
             System.out.println("--> has been written successfully: "
                                        + pathToPyLSDInputFile);
             try {

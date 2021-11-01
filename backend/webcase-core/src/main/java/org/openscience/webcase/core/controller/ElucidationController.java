@@ -42,6 +42,7 @@ public class ElucidationController {
         queryTransfer.setData(requestTransfer.getData());
         queryTransfer.setDetectionOptions(requestTransfer.getDetectionOptions());
         queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
+        queryTransfer.setDetections(requestTransfer.getDetections());
         queryTransfer.setRequestID(requestTransfer.getRequestID());
         queryTransfer.setMf(requestTransfer.getMf());
         final Transfer queryResultTransfer;
@@ -53,6 +54,7 @@ public class ElucidationController {
                                            .block();
             responseTransfer.setPyLSDRunWasSuccessful(queryResultTransfer.getPyLSDRunWasSuccessful());
             responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
+            responseTransfer.setDetections(queryResultTransfer.getDetections());
             responseTransfer.setResultID(queryResultTransfer.getResultID());
         } catch (final Exception e) {
             responseTransfer.setErrorMessage(e.getMessage());

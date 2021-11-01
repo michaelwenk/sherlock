@@ -165,6 +165,7 @@ public class CoreController {
                 queryTransfer.setData(requestTransfer.getData());
                 queryTransfer.setDetectionOptions(requestTransfer.getDetectionOptions());
                 queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
+                queryTransfer.setDetections(requestTransfer.getDetections());
                 queryTransfer.setRequestID(requestID);
                 queryTransfer.setMf(mf);
 
@@ -184,6 +185,7 @@ public class CoreController {
                                                   : new ArrayList<>();
                 Ranking.rankDataSetList(dataSetList);
                 responseTransfer.setDataSetList(dataSetList);
+                responseTransfer.setDetections(queryResultTransfer.getDetections());
 
                 // store results in DB if not empty
                 if (!dataSetList.isEmpty()) {

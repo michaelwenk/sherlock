@@ -10,6 +10,5 @@ import lombok.*;
 public class DetectionOptions {
 
     private float hybridizationDetectionThreshold;
-    private float hybridizationCountThreshold;
-    private float protonsCountThreshold;
+    private float elementCountThreshold;
 }

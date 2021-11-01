@@ -48,6 +48,7 @@ public class Transfer {
 
     private Data data;
     private String mf;
+    private String pyLSDInputFileContent;
     private Boolean pyLSDRunWasSuccessful;
     private ElucidationOptions elucidationOptions;
     private DetectionOptions detectionOptions;
