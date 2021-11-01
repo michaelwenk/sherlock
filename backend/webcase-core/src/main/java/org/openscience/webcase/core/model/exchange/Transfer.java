@@ -33,6 +33,7 @@ import org.openscience.webcase.core.model.DereplicationOptions;
 import org.openscience.webcase.core.model.DetectionOptions;
 import org.openscience.webcase.core.model.Detections;
 import org.openscience.webcase.core.model.ElucidationOptions;
+import org.openscience.webcase.core.model.db.ResultRecord;
 
 import java.util.List;
 
@@ -54,7 +55,7 @@ public class Transfer {
     private DetectionOptions detectionOptions;
     private Detections detections;
     private String requestID;
-    private String resultID;
+    private ResultRecord resultRecord;
     // internal only
     private Boolean pyLSDRunWasSuccessful;
     // error message

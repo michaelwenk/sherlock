@@ -37,7 +37,7 @@ public class ResultController {
     }
 
     @DeleteMapping(value = "/deleteById")
-    public Mono<Void> deleteById(final String id) {
+    public Mono<Void> deleteById(@RequestParam final String id) {
         return this.resultServiceImplementation.deleteById(id);
     }
 

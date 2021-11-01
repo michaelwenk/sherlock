@@ -27,6 +27,7 @@ package org.openscience.webcase.core.controller;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
+import org.openscience.webcase.core.model.db.ResultRecord;
 import org.openscience.webcase.core.model.exchange.Transfer;
 import org.openscience.webcase.core.utils.Ranking;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -38,6 +39,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.text.SimpleDateFormat;
 import java.util.*;
 
 @RestController
@@ -63,36 +65,7 @@ public class CoreController {
     public ResponseEntity<Transfer> core(@RequestBody final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
         responseTransfer.setQueryType(requestTransfer.getQueryType());
-
-        if (requestTransfer.getQueryType()
-                           .equals("retrieval")) {
-            System.out.println("RETRIEVAL: "
-                                       + requestTransfer.getResultID());
-            final ResponseEntity<Transfer> transferResponseEntity = this.resultController.retrieve(
-                    requestTransfer.getResultID());
-            if (transferResponseEntity.getStatusCode()
-                                      .isError()) {
-                System.out.println("RETRIEVAL request failed: "
-                                           + Objects.requireNonNull(transferResponseEntity.getBody())
-                                                    .getErrorMessage());
-
-                return transferResponseEntity;
-            }
-
-            if (transferResponseEntity.getBody()
-                    != null
-                    && transferResponseEntity.getBody()
-                                             .getDataSetList()
-                    != null) {
-                // DB contained an entry for given resultID
-                responseTransfer.setDataSetList(transferResponseEntity.getBody()
-                                                                      .getDataSetList());
-            }
-            responseTransfer.setResultID(requestTransfer.getResultID());
-
-            return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
-        }
-
+        
         final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(requestTransfer.getData()
                                                                                         .getCorrelations()
                                                                                         .getValues(), "13C");
@@ -146,8 +119,10 @@ public class CoreController {
                         uniqueDataSetList.add(dataSet);
                     }
                 }
+                final ResultRecord responseResultRecord = new ResultRecord();
+                responseResultRecord.setDataSetList(uniqueDataSetList);
+                responseTransfer.setResultRecord(responseResultRecord);
 
-                responseTransfer.setDataSetList(uniqueDataSetList);
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
 
@@ -189,7 +164,15 @@ public class CoreController {
 
                 // store results in DB if not empty
                 if (!dataSetList.isEmpty()) {
-                    transferResponseEntity = this.resultController.store(responseTransfer);
+                    final ResultRecord queryResultRecord = new ResultRecord();
+                    queryResultRecord.setDataSetList(dataSetList);
+                    queryResultRecord.setName(requestTransfer.getResultRecord()
+                                                             .getName());
+                    final SimpleDateFormat formatter = new SimpleDateFormat("EE MMM d y H:m:s ZZZ");
+                    final String dateString = formatter.format(new Date());
+                    queryResultRecord.setDate(dateString);
+
+                    transferResponseEntity = this.resultController.store(queryResultRecord);
                     if (transferResponseEntity.getStatusCode()
                                               .isError()) {
                         System.out.println("RESULT storage request failed: "
@@ -199,15 +182,14 @@ public class CoreController {
                         return transferResponseEntity;
                     }
                     queryResultTransfer = transferResponseEntity.getBody();
-                    if (queryResultTransfer.getResultID()
+                    if (queryResultTransfer.getResultRecord()
                             != null) {
-                        System.out.println("resultID: "
-                                                   + queryResultTransfer.getResultID());
-                        responseTransfer.setResultID(queryResultTransfer.getResultID());
+                        System.out.println("resultRecord: "
+                                                   + queryResultTransfer.getResultRecord());
+                        responseTransfer.setResultRecord(queryResultTransfer.getResultRecord());
                     }
                 }
 
-                responseTransfer.setResultID(queryResultTransfer.getResultID());
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
 

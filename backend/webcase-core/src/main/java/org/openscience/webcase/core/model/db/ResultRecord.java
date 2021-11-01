@@ -33,5 +33,7 @@ import java.util.List;
 public class ResultRecord {
 
     private String id;
+    private String name;
+    private String date;
     private List<DataSet> dataSetList;
 }
