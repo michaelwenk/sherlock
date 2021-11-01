@@ -20,6 +20,7 @@ public class CORSFilter
         corsConfiguration.addAllowedHeader("content-type");
         corsConfiguration.addAllowedMethod("GET");
         corsConfiguration.addAllowedMethod("POST");
+        corsConfiguration.addAllowedMethod("DELETE");
         corsConfiguration.addAllowedOrigin("http://localhost:3001");
         final UrlBasedCorsConfigurationSource corsConfigurationSource = new UrlBasedCorsConfigurationSource();
         corsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
