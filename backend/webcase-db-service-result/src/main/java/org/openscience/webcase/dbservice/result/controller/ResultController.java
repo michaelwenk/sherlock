@@ -6,6 +6,8 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.ArrayList;
+
 @RestController
 @RequestMapping(value = "/")
 public class ResultController {
@@ -29,6 +31,15 @@ public class ResultController {
     @GetMapping(value = "/getAll", produces = "application/json")
     public Flux<ResultRecord> getAll() {
         return this.resultServiceImplementation.findAll();
+    }
+
+    @GetMapping(value = "/getAllMeta")
+    public Flux<ResultRecord> getAllMeta() {
+        return this.resultServiceImplementation.findAll()
+                                               .map(resultRecord -> {
+                                                   resultRecord.setDataSetList(new ArrayList<>());
+                                                   return resultRecord;
+                                               });
     }
 
     @PostMapping(value = "/insert", consumes = "application/json", produces = "application/json")
