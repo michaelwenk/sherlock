@@ -45,4 +45,6 @@ public class ResultRecord {
     private String name;
     private String date;
     private List<DataSet> dataSetList;
+    private DataSet previewDataSet;
+    private int dataSetListSize;
 }

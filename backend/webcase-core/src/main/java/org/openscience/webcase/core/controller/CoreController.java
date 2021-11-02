@@ -50,7 +50,6 @@ public class CoreController {
     private final ExchangeStrategies exchangeStrategies;
     private final DereplicationController dereplicationController;
     private final ElucidationController elucidationController;
-    private final ResultController resultController;
 
     @Autowired
     public CoreController(final WebClient.Builder webClientBuilder, final ExchangeStrategies exchangeStrategies) {
@@ -58,14 +57,13 @@ public class CoreController {
         this.exchangeStrategies = exchangeStrategies;
         this.dereplicationController = new DereplicationController(this.webClientBuilder, this.exchangeStrategies);
         this.elucidationController = new ElucidationController(this.webClientBuilder, this.exchangeStrategies);
-        this.resultController = new ResultController(this.webClientBuilder, this.exchangeStrategies);
     }
 
     @PostMapping(value = "/core", consumes = "application/json", produces = "application/json")
     public ResponseEntity<Transfer> core(@RequestBody final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
         responseTransfer.setQueryType(requestTransfer.getQueryType());
-        
+
         final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(requestTransfer.getData()
                                                                                         .getCorrelations()
                                                                                         .getValues(), "13C");
@@ -144,7 +142,8 @@ public class CoreController {
                 queryTransfer.setRequestID(requestID);
                 queryTransfer.setMf(mf);
 
-                ResponseEntity<Transfer> transferResponseEntity = this.elucidationController.elucidate(queryTransfer);
+                final ResponseEntity<Transfer> transferResponseEntity = this.elucidationController.elucidate(
+                        queryTransfer);
                 if (transferResponseEntity.getStatusCode()
                                           .isError()) {
                     System.out.println("ELUCIDATION request failed: "
@@ -153,7 +152,7 @@ public class CoreController {
 
                     return transferResponseEntity;
                 }
-                Transfer queryResultTransfer = transferResponseEntity.getBody();
+                final Transfer queryResultTransfer = transferResponseEntity.getBody();
                 final List<DataSet> dataSetList = queryResultTransfer.getDataSetList()
                                                           != null
                                                   ? queryResultTransfer.getDataSetList()
@@ -171,23 +170,44 @@ public class CoreController {
                     final SimpleDateFormat formatter = new SimpleDateFormat("EE MMM d y H:m:s ZZZ");
                     final String dateString = formatter.format(new Date());
                     queryResultRecord.setDate(dateString);
+                    queryResultRecord.setDataSetListSize(dataSetList.size());
+                    queryResultRecord.setPreviewDataSet(dataSetList.get(0));
 
-                    transferResponseEntity = this.resultController.store(queryResultRecord);
-                    if (transferResponseEntity.getStatusCode()
-                                              .isError()) {
-                        System.out.println("RESULT storage request failed: "
-                                                   + Objects.requireNonNull(transferResponseEntity.getBody())
-                                                            .getErrorMessage());
-
-                        return transferResponseEntity;
-                    }
-                    queryResultTransfer = transferResponseEntity.getBody();
-                    if (queryResultTransfer.getResultRecord()
-                            != null) {
+                    final WebClient webClient = this.webClientBuilder.baseUrl(
+                                                            "http://webcase-gateway:8080/webcase-db-service-result/insert")
+                                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                                    MediaType.APPLICATION_JSON_VALUE)
+                                                                     .exchangeStrategies(this.exchangeStrategies)
+                                                                     .build();
+                    try {
+                        final ResultRecord responseResultRecord = webClient.post()
+                                                                           .bodyValue(queryResultRecord)
+                                                                           .retrieve()
+                                                                           .bodyToMono(ResultRecord.class)
+                                                                           .block();
                         System.out.println("resultRecord: "
-                                                   + queryResultTransfer.getResultRecord());
-                        responseTransfer.setResultRecord(queryResultTransfer.getResultRecord());
+                                                   + responseResultRecord);
+                        responseTransfer.setResultRecord(responseResultRecord);
+                    } catch (final Exception e) {
+                        responseTransfer.setErrorMessage(e.getMessage());
+                        return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
                     }
+                    //                    transferResponseEntity = this.resultController.store(queryResultRecord);
+                    //                    if (transferResponseEntity.getStatusCode()
+                    //                                              .isError()) {
+                    //                        System.out.println("RESULT storage request failed: "
+                    //                                                   + Objects.requireNonNull(transferResponseEntity.getBody())
+                    //                                                            .getErrorMessage());
+                    //
+                    //                        return transferResponseEntity;
+                    //                    }
+                    //                    queryResultTransfer = transferResponseEntity.getBody();
+                    //                    if (queryResultTransfer.getResultRecord()
+                    //                            != null) {
+                    //                        System.out.println("resultRecord: "
+                    //                                                   + queryResultTransfer.getResultRecord());
+                    //                        responseTransfer.setResultRecord(queryResultTransfer.getResultRecord());
+                    //                    }
                 }
 
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
