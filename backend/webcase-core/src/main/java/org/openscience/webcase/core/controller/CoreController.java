@@ -142,8 +142,7 @@ public class CoreController {
                 queryTransfer.setRequestID(requestID);
                 queryTransfer.setMf(mf);
 
-                final ResponseEntity<Transfer> transferResponseEntity = this.elucidationController.elucidate(
-                        queryTransfer);
+                ResponseEntity<Transfer> transferResponseEntity = this.elucidationController.elucidate(queryTransfer);
                 if (transferResponseEntity.getStatusCode()
                                           .isError()) {
                     System.out.println("ELUCIDATION request failed: "
@@ -180,34 +179,30 @@ public class CoreController {
                                                                      .exchangeStrategies(this.exchangeStrategies)
                                                                      .build();
                     try {
-                        final ResultRecord responseResultRecord = webClient.post()
-                                                                           .bodyValue(queryResultRecord)
-                                                                           .retrieve()
-                                                                           .bodyToMono(ResultRecord.class)
-                                                                           .block();
+                        final ResponseEntity<ResultRecord> resultRecordResponseEntity = webClient.post()
+                                                                                                 .bodyValue(
+                                                                                                         queryResultRecord)
+                                                                                                 .retrieve()
+                                                                                                 .toEntity(
+                                                                                                         ResultRecord.class)
+                                                                                                 .block();
+                        if (resultRecordResponseEntity.getStatusCode()
+                                                      .isError()) {
+                            System.out.println("Result storage request failed: "
+                                                       + resultRecordResponseEntity.getStatusCode());
+                            responseTransfer.setErrorMessage("Result storage request failed: "
+                                                                     + resultRecordResponseEntity.getStatusCode());
+                            transferResponseEntity = new ResponseEntity<>(responseTransfer,
+                                                                          resultRecordResponseEntity.getStatusCode());
+                            return transferResponseEntity;
+                        }
                         System.out.println("resultRecord: "
-                                                   + responseResultRecord);
-                        responseTransfer.setResultRecord(responseResultRecord);
+                                                   + resultRecordResponseEntity.getBody());
+                        responseTransfer.setResultRecord(resultRecordResponseEntity.getBody());
                     } catch (final Exception e) {
                         responseTransfer.setErrorMessage(e.getMessage());
                         return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
                     }
-                    //                    transferResponseEntity = this.resultController.store(queryResultRecord);
-                    //                    if (transferResponseEntity.getStatusCode()
-                    //                                              .isError()) {
-                    //                        System.out.println("RESULT storage request failed: "
-                    //                                                   + Objects.requireNonNull(transferResponseEntity.getBody())
-                    //                                                            .getErrorMessage());
-                    //
-                    //                        return transferResponseEntity;
-                    //                    }
-                    //                    queryResultTransfer = transferResponseEntity.getBody();
-                    //                    if (queryResultTransfer.getResultRecord()
-                    //                            != null) {
-                    //                        System.out.println("resultRecord: "
-                    //                                                   + queryResultTransfer.getResultRecord());
-                    //                        responseTransfer.setResultRecord(queryResultTransfer.getResultRecord());
-                    //                    }
                 }
 
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
