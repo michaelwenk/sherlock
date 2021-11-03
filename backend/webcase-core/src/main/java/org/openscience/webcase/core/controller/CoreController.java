@@ -159,19 +159,21 @@ public class CoreController {
                                                   ? queryResultTransfer.getDataSetList()
                                                   : new ArrayList<>();
                 Ranking.rankDataSetList(dataSetList);
-                responseTransfer.setDataSetList(dataSetList);
+                //                responseTransfer.setDataSetList(dataSetList);
                 responseTransfer.setDetections(queryResultTransfer.getDetections());
 
-                // store results in DB if not empty
+                final ResultRecord queryResultRecord = new ResultRecord();
+                queryResultRecord.setDataSetList(dataSetList);
+                queryResultRecord.setName(requestTransfer.getResultRecord()
+                                                         .getName());
+                queryResultRecord.setDataSetListSize(dataSetList.size());
+                responseTransfer.setResultRecord(queryResultRecord);
+
+                // store results in DB if not empty and replace resultRecord in responseTransfer
                 if (!dataSetList.isEmpty()) {
-                    final ResultRecord queryResultRecord = new ResultRecord();
-                    queryResultRecord.setDataSetList(dataSetList);
-                    queryResultRecord.setName(requestTransfer.getResultRecord()
-                                                             .getName());
                     final SimpleDateFormat formatter = new SimpleDateFormat("EE MMM d y H:m:s ZZZ");
                     final String dateString = formatter.format(new Date());
                     queryResultRecord.setDate(dateString);
-                    queryResultRecord.setDataSetListSize(dataSetList.size());
                     queryResultRecord.setPreviewDataSet(dataSetList.get(0));
 
                     final WebClient webClient = this.webClientBuilder.baseUrl(
