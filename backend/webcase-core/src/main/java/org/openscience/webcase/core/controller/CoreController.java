@@ -119,6 +119,8 @@ public class CoreController {
                 }
                 final ResultRecord responseResultRecord = new ResultRecord();
                 responseResultRecord.setDataSetList(uniqueDataSetList);
+                responseResultRecord.setDataSetListSize(uniqueDataSetList.size());
+                responseResultRecord.setName("Dereplication");
                 responseTransfer.setResultRecord(responseResultRecord);
 
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
