@@ -18,10 +18,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
 import java.io.FileNotFoundException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 
 public class ParserAndPrediction {
 
@@ -94,19 +91,20 @@ public class ParserAndPrediction {
         final Transfer responseTransfer = new Transfer();
         try {
             requestTransfer.setSmilesList(Parser.smilesFileToList(requestTransfer.getPathToSmilesFile()));
+            try {
+                final List<DataSet> dataSetList = Prediction.predict(requestTransfer, this.hoseCodeDBEntriesMap,
+                                                                     Objects.requireNonNull(
+                                                                             this.getMultiplicitySectionsSettings()
+                                                                                 .block()));
+                responseTransfer.setDataSetList(dataSetList);
+            } catch (final Exception e) {
+                responseTransfer.setErrorMessage(e.getMessage());
+                return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
         } catch (final FileNotFoundException e) {
             System.out.println("Could not parse SMILES file: "
                                        + requestTransfer.getPathToSmilesFile());
-        }
-        try {
-            final List<DataSet> dataSetList = Prediction.predict(requestTransfer, this.hoseCodeDBEntriesMap,
-                                                                 Objects.requireNonNull(
-                                                                         this.getMultiplicitySectionsSettings()
-                                                                             .block()));
-            responseTransfer.setDataSetList(dataSetList);
-        } catch (final Exception e) {
-            responseTransfer.setErrorMessage(e.getMessage());
-            return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
+            responseTransfer.setDataSetList(new ArrayList<>());
         }
 
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
