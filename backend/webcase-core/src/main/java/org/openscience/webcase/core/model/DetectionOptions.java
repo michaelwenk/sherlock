@@ -10,5 +10,6 @@ import lombok.*;
 public class DetectionOptions {
 
     private float hybridizationDetectionThreshold;
-    private float elementCountThreshold;
+    private float lowerElementCountThreshold;
+    private float upperElementCountThreshold;
 }

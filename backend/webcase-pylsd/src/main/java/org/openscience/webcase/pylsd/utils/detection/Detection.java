@@ -5,7 +5,10 @@ import org.openscience.webcase.pylsd.model.Detections;
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 public class Detection {
@@ -40,7 +43,7 @@ public class Detection {
 
         final Map<Integer, Map<String, Set<Integer>>> detectedConnectivities = ConnectivityDetection.detectConnectivities(
                 webClientBuilder, correlationList, shiftTol, requestTransfer.getDetectionOptions()
-                                                                            .getElementCountThreshold(),
+                                                                            .getLowerElementCountThreshold(),
                 requestTransfer.getMf());
 
         System.out.println("detectedConnectivities: "
@@ -51,8 +54,15 @@ public class Detection {
         System.out.println("-> forbiddenNeighbors: "
                                    + forbiddenNeighbors);
 
+        final Map<Integer, Map<String, Set<Integer>>> setNeighbors = ConnectivityDetection.detectConnectivities(
+                webClientBuilder, correlationList, shiftTol, requestTransfer.getDetectionOptions()
+                                                                            .getUpperElementCountThreshold(),
+                requestTransfer.getMf());
+        System.out.println("-> setNeighbors: "
+                                   + setNeighbors);
+
         responseTransfer.setDetections(
-                new Detections(detectedHybridizations, detectedConnectivities, forbiddenNeighbors, new HashMap<>()));
+                new Detections(detectedHybridizations, detectedConnectivities, forbiddenNeighbors, setNeighbors));
 
         return responseTransfer;
     }
