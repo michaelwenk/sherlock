@@ -9,7 +9,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 public class Detection {
 
@@ -33,15 +32,11 @@ public class Detection {
                                       .getHybridization()
                                       .isEmpty()) {
                 correlationList.get(entry.getKey())
-                               .setHybridization(new ArrayList<>(entry.getValue()
-                                                                      .stream()
-                                                                      .map(numericHybridization -> "SP"
-                                                                              + numericHybridization)
-                                                                      .collect(Collectors.toList())));
+                               .setHybridization(new ArrayList<>(entry.getValue()));
             }
         }
 
-        final Map<Integer, Map<String, Set<Integer>>> detectedConnectivities = ConnectivityDetection.detectConnectivities(
+        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities = ConnectivityDetection.detectConnectivities(
                 webClientBuilder, correlationList, shiftTol, requestTransfer.getDetectionOptions()
                                                                             .getLowerElementCountThreshold(),
                 requestTransfer.getMf());
@@ -49,12 +44,12 @@ public class Detection {
         System.out.println("detectedConnectivities: "
                                    + detectedConnectivities);
 
-        final Map<Integer, Map<String, Set<Integer>>> forbiddenNeighbors = ForbiddenNeighborDetection.detectForbiddenNeighbors(
+        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors = ForbiddenNeighborDetection.detectForbiddenNeighbors(
                 detectedConnectivities, requestTransfer.getMf());
         System.out.println("-> forbiddenNeighbors: "
                                    + forbiddenNeighbors);
 
-        final Map<Integer, Map<String, Set<Integer>>> setNeighbors = ConnectivityDetection.detectConnectivities(
+        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors = ConnectivityDetection.detectConnectivities(
                 webClientBuilder, correlationList, shiftTol, requestTransfer.getDetectionOptions()
                                                                             .getUpperElementCountThreshold(),
                 requestTransfer.getMf());

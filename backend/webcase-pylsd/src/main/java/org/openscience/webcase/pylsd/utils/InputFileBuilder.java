@@ -1,6 +1,8 @@
 package org.openscience.webcase.pylsd.utils;
 
 import casekit.nmr.lsd.PyLSDInputFileBuilder;
+import casekit.nmr.lsd.Utilities;
+import casekit.nmr.model.nmrium.Correlation;
 import org.openscience.webcase.pylsd.model.Detections;
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
 import org.openscience.webcase.pylsd.utils.detection.Detection;
@@ -31,16 +33,15 @@ public class InputFileBuilder {
                                       : Detection.detect(webClientBuilder, requestTransfer)
                                                  .getDetections();
 
-        //        // in case of no hetero hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
-        //        if (!requestTransfer.getElucidationOptions()
-        //                            .isAllowHeteroHeteroBonds()) {
-        //            final List<Correlation> correlationList = requestTransfer.getData()
-        //                                                                     .getCorrelations()
-        //                                                                     .getValues();
-        //            Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(correlationList,
-        //                                                                              detectionTransfer.getDetections()
-        //                                                                                               .getDetectedConnectivities());
-        //        }
+        // in case of no hetero hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
+        if (!requestTransfer.getElucidationOptions()
+                            .isAllowHeteroHeteroBonds()) {
+            final List<Correlation> correlationList = requestTransfer.getData()
+                                                                     .getCorrelations()
+                                                                     .getValues();
+            Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(correlationList,
+                                                                              detections.getDetectedConnectivities());
+        }
 
         // add (custom) filters to elucidation options
         final String pathToFilterRing3 = "/data/lsd/PyLSD/LSD/Filters/ring3";

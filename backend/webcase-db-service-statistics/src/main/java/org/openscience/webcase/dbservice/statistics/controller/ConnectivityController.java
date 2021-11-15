@@ -117,13 +117,13 @@ public class ConnectivityController {
     }
 
     @GetMapping(value = "/detectConnectivities", produces = "application/json")
-    public Map<String, Set<Integer>> detectConnectivities(@RequestParam final String nucleus,
-                                                          @RequestParam final String hybridization,
-                                                          @RequestParam final String multiplicity,
-                                                          @RequestParam final int minShift,
-                                                          @RequestParam final int maxShift,
-                                                          @RequestParam final double elementCountThreshold,
-                                                          @RequestParam final String mf) {
+    public Map<String, Map<String, Set<Integer>>> detectConnectivities(@RequestParam final String nucleus,
+                                                                       @RequestParam final String hybridization,
+                                                                       @RequestParam final String multiplicity,
+                                                                       @RequestParam final int minShift,
+                                                                       @RequestParam final int maxShift,
+                                                                       @RequestParam final double elementCountThreshold,
+                                                                       @RequestParam final String mf) {
         final List<Map<String, Map<String, Map<Integer, Integer>>>> detectedConnectivities = this.findByNucleusAndHybridizationAndMultiplicityAndShift(
                                                                                                          nucleus, hybridization, multiplicity, minShift, maxShift)
                                                                                                  .map(ConnectivityRecord::getConnectivityCounts)
@@ -144,16 +144,24 @@ public class ConnectivityController {
         });
 
         // atom type neighbor -> protons count
-        final Map<String, Set<Integer>> filteredExtractedConnectivitiesAll = new HashMap<>();
+        final Map<String, Map<String, Set<Integer>>> filteredExtractedConnectivitiesAll = new HashMap<>();
         // loop over all results from DB in case a chemical shift range is given (minShift != maxShift)
         for (final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivityCount : detectedConnectivities) {
-            final Map<String, Set<Integer>> filteredExtractedConnectivities = ConnectivityStatistics.filterExtractedConnectivities(
+            final Map<String, Map<String, Set<Integer>>> filteredExtractedConnectivities = ConnectivityStatistics.filterExtractedConnectivities(
                     extractedConnectivityCount, elementCountThreshold);
             for (final String extractedNeighborAtomType : filteredExtractedConnectivities.keySet()) {
-                filteredExtractedConnectivitiesAll.putIfAbsent(extractedNeighborAtomType, new HashSet<>());
-                filteredExtractedConnectivitiesAll.get(extractedNeighborAtomType)
-                                                  .addAll(filteredExtractedConnectivities.get(
-                                                          extractedNeighborAtomType));
+                filteredExtractedConnectivitiesAll.putIfAbsent(extractedNeighborAtomType, new HashMap<>());
+                for (final String extractedNeighborHybridization : filteredExtractedConnectivities.get(
+                                                                                                          extractedNeighborAtomType)
+                                                                                                  .keySet()) {
+                    filteredExtractedConnectivitiesAll.get(extractedNeighborAtomType)
+                                                      .putIfAbsent(extractedNeighborHybridization, new HashSet<>());
+                    filteredExtractedConnectivitiesAll.get(extractedNeighborAtomType)
+                                                      .get(extractedNeighborHybridization)
+                                                      .addAll(filteredExtractedConnectivities.get(
+                                                                                                     extractedNeighborAtomType)
+                                                                                             .get(extractedNeighborHybridization));
+                }
             }
         }
 
