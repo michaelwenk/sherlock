@@ -23,6 +23,7 @@ public class PyLSDController {
     final String pathToPyLSDExecutableFolder = "/data/lsd/PyLSD/Variant/";
     final String pathToPyLSDInputFileFolder = "/data/lsd/PyLSD/Variant/";
     final String pathToPyLSDResultFileFolder = "/data/lsd/PyLSD/Variant/";
+    final String pathToNeighborsFilesFolder = "/data/lsd/PyLSD/Variant/";
 
     private final WebClient.Builder webClientBuilder;
     private final ExchangeStrategies exchangeStrategies;
@@ -38,16 +39,25 @@ public class PyLSDController {
 
     @PostMapping(value = "/runPyLSD")
     public ResponseEntity<Transfer> runPyLSD(@RequestBody final Transfer requestTransfer) {
-        final Transfer responseTransfer = new Transfer();
-
         // build PyLSD input file
+        requestTransfer.getElucidationOptions()
+                       .setPathsToNeighborsFiles(new String[]{this.pathToNeighborsFilesFolder
+                                                                      + requestTransfer.getRequestID()
+                                                                      + "_forbidden.deff",
+                                                              this.pathToNeighborsFilesFolder
+                                                                      + requestTransfer.getRequestID()
+                                                                      + "_set.deff"});
         final Transfer queryResultTransfer = InputFileBuilder.createPyLSDInputFile(this.webClientBuilder,
                                                                                    requestTransfer);
+        final Transfer responseTransfer = new Transfer();
+        responseTransfer.setRequestID(requestTransfer.getRequestID());
+        responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
+        responseTransfer.setData(queryResultTransfer.getData());
         responseTransfer.setDetections(queryResultTransfer.getDetections());
         System.out.println("file content:\n"
                                    + queryResultTransfer.getPyLSDInputFileContent());
         final String pathToPyLSDInputFile = this.pathToPyLSDInputFileFolder
-                + requestTransfer.getRequestID()
+                + responseTransfer.getRequestID()
                 + ".pylsd";
 
         // run PyLSD if file was written successfully
@@ -59,27 +69,27 @@ public class PyLSDController {
                 final ProcessBuilder builder = new ProcessBuilder();
                 builder.directory(new File(this.pathToPyLSDExecutableFolder))
                        .redirectError(new File(this.pathToPyLSDInputFileFolder
-                                                       + requestTransfer.getRequestID()
+                                                       + responseTransfer.getRequestID()
                                                        + "_error.txt"))
                        .redirectOutput(new File(this.pathToPyLSDInputFileFolder
-                                                        + requestTransfer.getRequestID()
+                                                        + responseTransfer.getRequestID()
                                                         + "_log.txt"))
                        .command("python2.7", this.pathToPyLSDExecutableFolder
                                + "lsd.py", pathToPyLSDInputFile);
                 final Process process = builder.start();
-                final boolean pyLSDRunWasSuccessful = process.waitFor(requestTransfer.getElucidationOptions()
-                                                                                     .getTimeLimitTotal(),
+                final boolean pyLSDRunWasSuccessful = process.waitFor(responseTransfer.getElucidationOptions()
+                                                                                      .getTimeLimitTotal(),
                                                                       TimeUnit.MINUTES);
                 if (pyLSDRunWasSuccessful) {
                     System.out.println("-> run was successful");
                     final String pathToSmilesFile = this.pathToPyLSDResultFileFolder
-                            + requestTransfer.getRequestID()
+                            + responseTransfer.getRequestID()
                             + "_0.smiles";
                     System.out.println(pathToSmilesFile);
-                    requestTransfer.setPathToSmilesFile(pathToSmilesFile);
+                    responseTransfer.setPathToSmilesFile(pathToSmilesFile);
 
                     final ResponseEntity<Transfer> transferResponseEntity = this.parserAndPrediction.parseAndPredictFromSmilesFile(
-                            requestTransfer);
+                            responseTransfer);
                     if (transferResponseEntity.getStatusCode()
                                               .isError()) {
                         return transferResponseEntity;
@@ -102,9 +112,10 @@ public class PyLSDController {
             }
             // cleanup of created files and folder
             final String[] directoriesToCheck = new String[]{this.pathToPyLSDInputFileFolder,
-                                                             this.pathToPyLSDResultFileFolder};
+                                                             this.pathToPyLSDResultFileFolder,
+                                                             this.pathToNeighborsFilesFolder};
             System.out.println("cleaned ? -> "
-                                       + FileSystem.cleanup(directoriesToCheck, requestTransfer.getRequestID()));
+                                       + FileSystem.cleanup(directoriesToCheck, responseTransfer.getRequestID()));
         } else {
             System.out.println("--> input file creation failed at "
                                        + pathToPyLSDInputFile);

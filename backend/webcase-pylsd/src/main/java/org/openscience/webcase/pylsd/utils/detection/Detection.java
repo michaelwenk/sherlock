@@ -22,17 +22,10 @@ public class Detection {
                                                                   .getHybridizationDetectionThreshold(), shiftTol);
         System.out.println("detectedHybridizations: "
                                    + detectedHybridizations);
-        // set hybridization of correlations from detection if there was nothing set before
+        // set hybridization of correlations from detection
         for (final Map.Entry<Integer, List<Integer>> entry : detectedHybridizations.entrySet()) {
-            if (correlationList.get(entry.getKey())
-                               .getHybridization()
-                    == null
-                    || correlationList.get(entry.getKey())
-                                      .getHybridization()
-                                      .isEmpty()) {
-                correlationList.get(entry.getKey())
-                               .setHybridization(new ArrayList<>(entry.getValue()));
-            }
+            correlationList.get(entry.getKey())
+                           .setHybridization(entry.getValue());
         }
 
         final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities = ConnectivityDetection.detectConnectivities(
@@ -57,6 +50,7 @@ public class Detection {
         System.out.println("-> setNeighbors: "
                                    + setNeighbors);
 
+        responseTransfer.setData(requestTransfer.getData());
         responseTransfer.setDetections(
                 new Detections(detectedHybridizations, detectedConnectivities, forbiddenNeighbors, setNeighbors));
 
