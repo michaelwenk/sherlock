@@ -59,6 +59,8 @@ public class Detection {
             fixedNeighbors.get(entry.getKey())
                           .addAll(entry.getValue());
         }
+        System.out.println("fixedNeighbors: "
+                                   + fixedNeighbors);
 
         responseTransfer.setData(requestTransfer.getData());
         responseTransfer.setDetections(
