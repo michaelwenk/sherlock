@@ -1,7 +1,7 @@
 package org.openscience.webcase.pylsd.utils;
 
 import casekit.nmr.lsd.PyLSDInputFileBuilder;
-import org.openscience.webcase.pylsd.model.Detections;
+import casekit.nmr.lsd.Utilities;
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
 import org.openscience.webcase.pylsd.utils.detection.Detection;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -12,6 +12,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 public class InputFileBuilder {
@@ -21,26 +22,42 @@ public class InputFileBuilder {
 
         System.out.println("-> detected data was already given: "
                                    + (requestTransfer.getDetections()
-                != null)
-                                   + " -> "
-                                   + requestTransfer.getDetections());
+                != null));
         System.out.println(requestTransfer.getDetections());
-        final Detections detections = requestTransfer.getDetections()
-                                              != null
-                                      ? requestTransfer.getDetections()
-                                      : Detection.detect(webClientBuilder, requestTransfer)
-                                                 .getDetections();
+        final Transfer responseTransferByDetection = requestTransfer.getDetections()
+                                                             != null
+                                                     ? requestTransfer
+                                                     : Detection.detect(webClientBuilder, requestTransfer);
+        final Transfer responseTransfer = new Transfer();
+        responseTransfer.setData(responseTransferByDetection.getData());
+        responseTransfer.setDetections(responseTransferByDetection.getDetections());
+        responseTransfer.setMf(requestTransfer.getMf());
+        responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
 
-        //        // in case of no hetero hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
-        //        if (!requestTransfer.getElucidationOptions()
-        //                            .isAllowHeteroHeteroBonds()) {
-        //            final List<Correlation> correlationList = requestTransfer.getData()
-        //                                                                     .getCorrelations()
-        //                                                                     .getValues();
-        //            Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(correlationList,
-        //                                                                              detectionTransfer.getDetections()
-        //                                                                                               .getDetectedConnectivities());
-        //        }
+        // @TODO remove following hybridization replacements as soon as the frontend stores the same information into the NMRium data
+        if (requestTransfer.getDetections()
+                != null) {
+            // set hybridization of correlations from previous detection
+            for (final Map.Entry<Integer, List<Integer>> entry : requestTransfer.getDetections()
+                                                                                .getDetectedHybridizations()
+                                                                                .entrySet()) {
+                responseTransfer.getData()
+                                .getCorrelations()
+                                .getValues()
+                                .get(entry.getKey())
+                                .setHybridization(entry.getValue());
+            }
+        }
+
+        // in case of no hetero hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
+        if (!responseTransfer.getElucidationOptions()
+                             .isAllowHeteroHeteroBonds()) {
+            Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(responseTransfer.getData()
+                                                                                              .getCorrelations()
+                                                                                              .getValues(),
+                                                                              responseTransfer.getDetections()
+                                                                                              .getDetectedConnectivities());
+        }
 
         // add (custom) filters to elucidation options
         final String pathToFilterRing3 = "/data/lsd/PyLSD/LSD/Filters/ring3";
@@ -56,27 +73,31 @@ public class InputFileBuilder {
         } catch (final IOException e) {
             e.printStackTrace();
         }
-        if (requestTransfer.getElucidationOptions()
-                           .isUseFilterLsdRing3()) {
+        if (responseTransfer.getElucidationOptions()
+                            .isUseFilterLsdRing3()) {
             filterList.add(pathToFilterRing3);
         }
-        if (requestTransfer.getElucidationOptions()
-                           .isUseFilterLsdRing4()) {
+        if (responseTransfer.getElucidationOptions()
+                            .isUseFilterLsdRing4()) {
             filterList.add(pathToFilterRing4);
         }
-        requestTransfer.getElucidationOptions()
-                       .setFilterPaths(filterList.toArray(String[]::new));
+        responseTransfer.getElucidationOptions()
+                        .setFilterPaths(filterList.toArray(String[]::new));
 
 
-        final Transfer responseTransfer = new Transfer();
-        responseTransfer.setDetections(detections);
         responseTransfer.setPyLSDInputFileContent(
-                PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getData(), requestTransfer.getMf(),
-                                                                 detections.getDetectedHybridizations(),
-                                                                 detections.getDetectedConnectivities(),
-                                                                 detections.getForbiddenNeighbors(),
-                                                                 detections.getSetNeighbors(),
-                                                                 requestTransfer.getElucidationOptions()));
+                PyLSDInputFileBuilder.buildPyLSDInputFileContent(responseTransfer.getData(), responseTransfer.getMf(),
+                                                                 responseTransfer.getDetections()
+                                                                                 .getDetectedHybridizations(),
+                                                                 responseTransfer.getDetections()
+                                                                                 .getDetectedConnectivities(),
+                                                                 responseTransfer.getDetections()
+                                                                                 .getForbiddenNeighbors(),
+                                                                 responseTransfer.getDetections()
+                                                                                 .getSetNeighbors(),
+                                                                 responseTransfer.getDetections()
+                                                                                 .getFixedNeighbors(),
+                                                                 responseTransfer.getElucidationOptions()));
         return responseTransfer;
     }
 }

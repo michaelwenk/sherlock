@@ -14,12 +14,10 @@ import java.util.*;
 
 public class ConnectivityDetection {
 
-    public static Map<Integer, Map<String, Set<Integer>>> detectConnectivities(final WebClient.Builder webClientBuilder,
-                                                                               final List<Correlation> correlationList,
-                                                                               final int shiftTol,
-                                                                               final double elementCountThreshold,
-                                                                               final String mf) {
-        final Map<Integer, Map<String, Set<Integer>>> detectedConnectivities = new HashMap<>();
+    public static Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectConnectivities(
+            final WebClient.Builder webClientBuilder, final List<Correlation> correlationList, final int shiftTol,
+            final double elementCountThreshold, final String mf) {
+        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities = new HashMap<>();
 
         final WebClient webClient = webClientBuilder.baseUrl(
                                                             "http://webcase-gateway:8080/webcase-db-service-statistics/connectivity/")
@@ -27,10 +25,11 @@ public class ConnectivityDetection {
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .build();
         UriComponentsBuilder uriComponentsBuilder;
-        Map<String, Set<Integer>> detectedConnectivitiesTemp;
+        Map<String, Map<String, Set<Integer>>> detectedConnectivitiesTemp;
         Correlation correlation;
         String multiplicity;
         Signal signal;
+        Integer numericHybridization;
         for (int i = 0; i
                 < correlationList.size(); i++) {
             correlation = correlationList.get(i);
@@ -42,11 +41,12 @@ public class ConnectivityDetection {
                     != null
                     && signal
                     != null) {
-                for (final String hybridizationString : correlation.getHybridization()) {
+                for (final int hybridization : correlation.getHybridization()) {
                     uriComponentsBuilder = UriComponentsBuilder.newInstance();
                     uriComponentsBuilder.path("/detectConnectivities")
                                         .queryParam("nucleus", Constants.nucleiMap.get(correlation.getAtomType()))
-                                        .queryParam("hybridization", hybridizationString)
+                                        .queryParam("hybridization", "SP"
+                                                + hybridization)
                                         .queryParam("multiplicity", multiplicity)
                                         .queryParam("minShift", signal.getShift(0)
                                                                       .intValue()
@@ -60,18 +60,30 @@ public class ConnectivityDetection {
                                                           .uri(uriComponentsBuilder.toUriString())
                                                           .retrieve()
                                                           .bodyToMono(
-                                                                  new ParameterizedTypeReference<Map<String, Set<Integer>>>() {
+                                                                  new ParameterizedTypeReference<Map<String, Map<String, Set<Integer>>>>() {
                                                                   })
                                                           .block();
                     if (detectedConnectivitiesTemp
                             != null) {
                         detectedConnectivities.putIfAbsent(i, new HashMap<>());
-                        for (final Map.Entry<String, Set<Integer>> entryPerNeighborAtomType : detectedConnectivitiesTemp.entrySet()) {
+                        for (final Map.Entry<String, Map<String, Set<Integer>>> entryPerNeighborAtomType : detectedConnectivitiesTemp.entrySet()) {
                             detectedConnectivities.get(i)
-                                                  .putIfAbsent(entryPerNeighborAtomType.getKey(), new HashSet<>());
-                            detectedConnectivities.get(i)
-                                                  .get(entryPerNeighborAtomType.getKey())
-                                                  .addAll(entryPerNeighborAtomType.getValue());
+                                                  .putIfAbsent(entryPerNeighborAtomType.getKey(), new HashMap<>());
+                            for (final Map.Entry<String, Set<Integer>> entryPerNeighborHybridization : entryPerNeighborAtomType.getValue()
+                                                                                                                               .entrySet()) {
+                                numericHybridization = Constants.hybridizationConversionMap.get(
+                                        entryPerNeighborHybridization.getKey());
+                                if (numericHybridization
+                                        != null) {
+                                    detectedConnectivities.get(i)
+                                                          .get(entryPerNeighborAtomType.getKey())
+                                                          .putIfAbsent(numericHybridization, new HashSet<>());
+                                    detectedConnectivities.get(i)
+                                                          .get(entryPerNeighborAtomType.getKey())
+                                                          .get(numericHybridization)
+                                                          .addAll(entryPerNeighborHybridization.getValue());
+                                }
+                            }
                         }
                     }
                 }

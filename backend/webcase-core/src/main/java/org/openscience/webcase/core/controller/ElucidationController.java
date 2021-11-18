@@ -38,20 +38,12 @@ public class ElucidationController {
                                                          .build();
 
         // run PyLSD
-        final Transfer queryTransfer = new Transfer();
-        queryTransfer.setData(requestTransfer.getData());
-        queryTransfer.setDetectionOptions(requestTransfer.getDetectionOptions());
-        queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
-        queryTransfer.setDetections(requestTransfer.getDetections());
-        queryTransfer.setRequestID(requestTransfer.getRequestID());
-        queryTransfer.setMf(requestTransfer.getMf());
-        final Transfer queryResultTransfer;
         try {
-            queryResultTransfer = webClient.post()
-                                           .bodyValue(queryTransfer)
-                                           .retrieve()
-                                           .bodyToMono(Transfer.class)
-                                           .block();
+            final Transfer queryResultTransfer = webClient.post()
+                                                          .bodyValue(requestTransfer)
+                                                          .retrieve()
+                                                          .bodyToMono(Transfer.class)
+                                                          .block();
             responseTransfer.setPyLSDRunWasSuccessful(queryResultTransfer.getPyLSDRunWasSuccessful());
             responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
             responseTransfer.setDetections(queryResultTransfer.getDetections());
