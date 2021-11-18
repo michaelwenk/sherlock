@@ -17,4 +17,5 @@ public class Detections {
     private Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities;
     private Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors;
     private Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors;
+    private Map<Integer, Set<Integer>> fixedNeighbors;
 }

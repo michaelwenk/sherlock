@@ -11,7 +11,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -31,6 +30,9 @@ public class InputFileBuilder {
                                                      : Detection.detect(webClientBuilder, requestTransfer);
         final Transfer responseTransfer = new Transfer();
         responseTransfer.setData(responseTransferByDetection.getData());
+        responseTransfer.setDetections(responseTransferByDetection.getDetections());
+        responseTransfer.setMf(requestTransfer.getMf());
+        responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
 
         // @TODO remove following hybridization replacements as soon as the frontend stores the same information into the NMRium data
         if (requestTransfer.getDetections()
@@ -46,13 +48,6 @@ public class InputFileBuilder {
                                 .setHybridization(entry.getValue());
             }
         }
-
-        responseTransfer.setDetections(responseTransferByDetection.getDetections());
-        responseTransfer.setMf(requestTransfer.getMf());
-        responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
-        System.out.println("neighbor files paths: "
-                                   + Arrays.toString(responseTransfer.getElucidationOptions()
-                                                                     .getPathsToNeighborsFiles()));
 
         // in case of no hetero hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
         if (!responseTransfer.getElucidationOptions()
@@ -100,6 +95,8 @@ public class InputFileBuilder {
                                                                                  .getForbiddenNeighbors(),
                                                                  responseTransfer.getDetections()
                                                                                  .getSetNeighbors(),
+                                                                 responseTransfer.getDetections()
+                                                                                 .getFixedNeighbors(),
                                                                  responseTransfer.getElucidationOptions()));
         return responseTransfer;
     }

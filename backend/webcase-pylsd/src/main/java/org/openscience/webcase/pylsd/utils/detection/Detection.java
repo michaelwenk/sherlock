@@ -52,7 +52,8 @@ public class Detection {
 
         responseTransfer.setData(requestTransfer.getData());
         responseTransfer.setDetections(
-                new Detections(detectedHybridizations, detectedConnectivities, forbiddenNeighbors, setNeighbors));
+                new Detections(detectedHybridizations, detectedConnectivities, forbiddenNeighbors, setNeighbors,
+                               new HashMap<>()));
 
         return responseTransfer;
     }
