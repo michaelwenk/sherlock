@@ -1,6 +1,7 @@
 package org.openscience.webcase.pylsd.utils.detection;
 
 import casekit.nmr.lsd.Constants;
+import casekit.nmr.lsd.Utilities;
 import casekit.nmr.model.nmrium.Correlation;
 import org.openscience.webcase.pylsd.model.Detections;
 import org.openscience.webcase.pylsd.model.exchange.Transfer;
@@ -50,10 +51,19 @@ public class Detection {
         System.out.println("-> setNeighbors: "
                                    + setNeighbors);
 
+        final Map<Integer, Set<Integer>> fixedNeighbors = new HashMap<>();
+        final Map<Integer, Set<Integer>> fixedNeighborsByINADEQUATE = Utilities.buildFixedNeighborsByINADEQUATE(
+                correlationList);
+        for (final Map.Entry<Integer, Set<Integer>> entry : fixedNeighborsByINADEQUATE.entrySet()) {
+            fixedNeighbors.putIfAbsent(entry.getKey(), new HashSet<>());
+            fixedNeighbors.get(entry.getKey())
+                          .addAll(entry.getValue());
+        }
+
         responseTransfer.setData(requestTransfer.getData());
         responseTransfer.setDetections(
                 new Detections(detectedHybridizations, detectedConnectivities, forbiddenNeighbors, setNeighbors,
-                               new HashMap<>()));
+                               fixedNeighbors));
 
         return responseTransfer;
     }
