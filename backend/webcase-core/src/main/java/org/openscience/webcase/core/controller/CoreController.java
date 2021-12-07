@@ -67,12 +67,13 @@ public class CoreController {
         final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(requestTransfer.getData()
                                                                                         .getCorrelations()
                                                                                         .getValues(), "13C");
+
+        // INPUT DATA CHECK
         // check whether each signal has a multiplicity; if not stop here
         if (querySpectrum.getSignals()
                          .stream()
                          .anyMatch(signal -> signal.getMultiplicity()
                                  == null)) {
-            responseTransfer.setDataSetList(new ArrayList<>());
             responseTransfer.setErrorMessage("At least for one carbon the number of attached protons is missing!!!");
             return new ResponseEntity<>(responseTransfer, HttpStatus.BAD_REQUEST);
         }
@@ -80,6 +81,37 @@ public class CoreController {
                                                   .getCorrelations()
                                                   .getOptions()
                                                   .get("mf");
+        // check for mf
+        if (mf
+                == null) {
+            responseTransfer.setErrorMessage("Molecular formula is missing!!!");
+            return new ResponseEntity<>(responseTransfer, HttpStatus.BAD_REQUEST);
+        }
+        //        // check for error state
+        //        final Map<String, Map<String, Object>> state = requestTransfer.getData()
+        //                                                                      .getCorrelations()
+        //                                                                      .getState();
+        //        final Map<String, Map<String, Boolean>> errors = new HashMap<>();
+        //        for (final Map.Entry<String, Map<String, Object>> atomTypeEntry : state.entrySet()) {
+        //            if (atomTypeEntry.getValue()
+        //                             .containsKey("error")
+        //                    && !((Map<String, Object>) atomTypeEntry.getValue()
+        //                                                            .get("error")).isEmpty()) {
+        //                errors.putIfAbsent(atomTypeEntry.getKey(), new HashMap<>());
+        //                for (final Map.Entry<String, Boolean> errorEntry : ((Map<String, Boolean>) atomTypeEntry.getValue()
+        //                                                                                                        .get("error")).entrySet()) {
+        //                    errors.get(atomTypeEntry.getKey())
+        //                          .put(errorEntry.getKey(), errorEntry.getValue());
+        //                }
+        //            }
+        //        }
+        //        if (!errors.isEmpty()) {
+        //            System.out.println("ERRORS: "
+        //                                       + errors);
+        //            //            responseTransfer.setErrorMessage("There are errors in correlation data:\n"
+        //            //                                                     + errors);
+        //            //            return new ResponseEntity<>(responseTransfer, HttpStatus.BAD_REQUEST);
+        //        }
 
         try {
             // DEREPLICATION
