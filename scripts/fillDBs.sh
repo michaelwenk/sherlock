@@ -5,5 +5,9 @@ curl -X POST -i 'http://localhost:8081/sherlock-db-service-hosecode/replaceAll?n
 
 # to create the HOSE code map in shared volume
 # curl -X GET -i 'http://localhost:8081/sherlock-db-service-hosecode/saveAllAsMap'
-# before publishing copy the HOSE code map from shared volume into local data folder
+
+## before publishing
+# copy the HOSE code map from shared volume into local data folder
 # docker cp sherlock-pylsd:/data/hosecode/hosecodes.json backend/sherlock-pylsd/data/hosecode/
+# delete all result entries in DB via CMD or button frontend
+# curl -X DELETE -i 'http://localhost:8081/sherlock-db-service-result/deleteAll'

@@ -39,10 +39,6 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
 
-  sherlock-db-instance-result:
-    volumes:
-      - "./backend/db-instance-result/data/db/result:/data/db"
-
   sherlock-db-instance-hosecode:
     image: mongo:4
     container_name: sherlock-db-instance-hosecode

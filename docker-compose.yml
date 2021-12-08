@@ -102,3 +102,5 @@ services:
       - MONGO_INITDB_DATABASE=result
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+      - "./backend/db-instance-result/data/db/result:/data/db"
