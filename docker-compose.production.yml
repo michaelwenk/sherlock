@@ -1,13 +1,13 @@
 version: "3"
 
 services:
-  webcase-db-service-dataset:
+  sherlock-db-service-dataset:
     build:
-      context: ./backend/webcase-db-service-dataset
+      context: ./backend/sherlock-db-service-dataset
       dockerfile: Dockerfile.production
-    image: webcase-db-service-dataset-production
+    image: sherlock-db-service-dataset-production
 
-  webcase-db-instance-dataset:
+  sherlock-db-instance-dataset:
     image: mongo:4
     volumes:
       - "./backend/db-instance-dataset/data/db/dataset:/data/db"
@@ -16,7 +16,7 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
 
-  webcase-db-instance-statistics:
+  sherlock-db-instance-statistics:
     image: mongo:4
     volumes:
       - "./backend/db-instance-statistics/data/db/statistics:/data/db"
@@ -25,11 +25,11 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
 
-  webcase-db-instance-result:
+  sherlock-db-instance-result:
     volumes:
       - "./backend/db-instance-result/data/db/result:/data/db"
 
-  webcase-db-instance-hosecode:
+  sherlock-db-instance-hosecode:
     image: mongo:4
     volumes:
       - "./backend/db-instance-hosecode/data/db/hosecode:/data/db"

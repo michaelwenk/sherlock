@@ -2,26 +2,26 @@ version: "3"
 
 services:
 
-  webcase-db-service-dataset:
+  sherlock-db-service-dataset:
     build:
-      context: ./backend/webcase-db-service-dataset
+      context: ./backend/sherlock-db-service-dataset
       dockerfile: Dockerfile.publish
-    image: michaelwenk/webcase-db-service-dataset
+    image: michaelwenk/sherlock-db-service-dataset
 
-  webcase-db-instance-dataset:
-    image: michaelwenk/webcase-db-instance-dataset
+  sherlock-db-instance-dataset:
+    image: michaelwenk/sherlock-db-instance-dataset
     build:
       context: backend/db-instance-dataset
       dockerfile: Dockerfile.publish
 
-  webcase-db-instance-statistics:
-    image: michaelwenk/webcase-db-instance-statistics
+  sherlock-db-instance-statistics:
+    image: michaelwenk/sherlock-db-instance-statistics
     build:
       context: backend/db-instance-statistics
       dockerfile: Dockerfile.publish
 
-  webcase-db-instance-hosecode:
-    image: michaelwenk/webcase-db-instance-hosecode
+  sherlock-db-instance-hosecode:
+    image: michaelwenk/sherlock-db-instance-hosecode
     build:
       context: backend/db-instance-hosecode
       dockerfile: Dockerfile.publish

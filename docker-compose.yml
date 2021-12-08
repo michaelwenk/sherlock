@@ -5,112 +5,112 @@ volumes:
     driver: local
 
 services:
-  webcase-discovery-server:
-    container_name: webcase-discovery-server
+  sherlock-discovery-server:
+    container_name: sherlock-discovery-server
     build:
-      context: ./backend/webcase-discovery-server
+      context: ./backend/sherlock-discovery-server
       dockerfile: Dockerfile
-    image: michaelwenk/webcase-discovery-server
+    image: michaelwenk/sherlock-discovery-server
     ports:
       - "8761:8761"
 
-  webcase-gateway:
-    container_name: webcase-gateway
+  sherlock-gateway:
+    container_name: sherlock-gateway
     build:
-      context: ./backend/webcase-gateway
+      context: ./backend/sherlock-gateway
       dockerfile: Dockerfile
-    image: michaelwenk/webcase-gateway
+    image: michaelwenk/sherlock-gateway
     ports:
       - "8081:8080"
     depends_on:
-      - webcase-discovery-server
+      - sherlock-discovery-server
 
-  webcase-core:
-    container_name: webcase-core
+  sherlock-core:
+    container_name: sherlock-core
     build:
-      context: ./backend/webcase-core
+      context: ./backend/sherlock-core
       dockerfile: Dockerfile
-    image: michaelwenk/webcase-core
+    image: michaelwenk/sherlock-core
     ports:
       - "8082:8080"
     depends_on:
-      - webcase-discovery-server
+      - sherlock-discovery-server
 
-  webcase-pylsd:
-    container_name: webcase-pylsd
+  sherlock-pylsd:
+    container_name: sherlock-pylsd
     build:
-      context: ./backend/webcase-pylsd
+      context: ./backend/sherlock-pylsd
       dockerfile: Dockerfile
-    image: michaelwenk/webcase-pylsd
+    image: michaelwenk/sherlock-pylsd
     ports:
       - "8083:8080"
     depends_on:
-      - webcase-discovery-server
-      - webcase-db-service-hosecode
+      - sherlock-discovery-server
+      - sherlock-db-service-hosecode
     volumes:
     - hosecode-file-storage:/data/hosecode
 
-  webcase-db-service-dataset:
-    container_name: webcase-db-service-dataset
+  sherlock-db-service-dataset:
+    container_name: sherlock-db-service-dataset
     ports:
       - "8087:8080"
     depends_on:
-      - webcase-discovery-server
-      - webcase-db-instance-dataset
+      - sherlock-discovery-server
+      - sherlock-db-instance-dataset
 
-  webcase-db-service-statistics:
-    container_name: webcase-db-service-statistics
+  sherlock-db-service-statistics:
+    container_name: sherlock-db-service-statistics
     build:
-      context: ./backend/webcase-db-service-statistics
+      context: ./backend/sherlock-db-service-statistics
       dockerfile: Dockerfile
-    image: michaelwenk/webcase-db-service-statistics
+    image: michaelwenk/sherlock-db-service-statistics
     ports:
       - "8088:8080"
     depends_on:
-      - webcase-discovery-server
-      - webcase-db-instance-statistics
+      - sherlock-discovery-server
+      - sherlock-db-instance-statistics
 
-  webcase-db-service-result:
-    container_name: webcase-db-service-result
+  sherlock-db-service-result:
+    container_name: sherlock-db-service-result
     build:
-      context: ./backend/webcase-db-service-result
+      context: ./backend/sherlock-db-service-result
       dockerfile: Dockerfile
-    image: michaelwenk/webcase-db-service-result
+    image: michaelwenk/sherlock-db-service-result
     ports:
       - "8089:8080"
     depends_on:
-      - webcase-discovery-server
-      - webcase-db-instance-result
+      - sherlock-discovery-server
+      - sherlock-db-instance-result
 
-  webcase-db-service-hosecode:
-    container_name: webcase-db-service-hosecode
+  sherlock-db-service-hosecode:
+    container_name: sherlock-db-service-hosecode
     build:
-      context: ./backend/webcase-db-service-hosecode
+      context: ./backend/sherlock-db-service-hosecode
       dockerfile: Dockerfile
-    image: michaelwenk/webcase-db-service-hosecode
+    image: michaelwenk/sherlock-db-service-hosecode
     ports:
       - "8091:8080"
     depends_on:
-      - webcase-discovery-server
-      - webcase-db-instance-hosecode
+      - sherlock-discovery-server
+      - sherlock-db-instance-hosecode
     volumes:
     - hosecode-file-storage:/data/hosecode
 
-  webcase-db-instance-dataset:
-    container_name: webcase-db-instance-dataset
+  sherlock-db-instance-dataset:
+    container_name: sherlock-db-instance-dataset
     ports:
       - 27020:27017
     command:
       --wiredTigerCacheSizeGB 2
 
-  webcase-db-instance-statistics:
-    container_name: webcase-db-instance-statistics
+  sherlock-db-instance-statistics:
+    container_name: sherlock-db-instance-statistics
     ports:
       - 27021:27017
 
-  webcase-db-instance-result:
+  sherlock-db-instance-result:
     image: mongo:4
-    container_name: webcase-db-instance-result
+    container_name: sherlock-db-instance-result
     ports:
       - 27022:27017
     environment:
@@ -118,9 +118,9 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
 
-  webcase-db-instance-hosecode:
+  sherlock-db-instance-hosecode:
     image: mongo:4
-    container_name: webcase-db-instance-hosecode
+    container_name: sherlock-db-instance-hosecode
     ports:
       - 27023:27017
     environment:

@@ -34,11 +34,11 @@
 **/target
 **/HELP.md
 
-### webcase ###
+### sherlock ###
 **/db/
-# webcase-db-service-dataset: e.g. nmrshiftdb file
-backend/webcase-db-service-dataset/data/nmrshiftdb
-backend/webcase-db-service-dataset/data/coconut
-# webcase-pylsd: custom filters but allow default ones
-backend/webcase-pylsd/data/lsd
+# sherlock-db-service-dataset: e.g. nmrshiftdb file
+backend/sherlock-db-service-dataset/data/nmrshiftdb
+backend/sherlock-db-service-dataset/data/coconut
+# sherlock-pylsd: custom filters but allow default ones
+backend/sherlock-pylsd/data/lsd
 

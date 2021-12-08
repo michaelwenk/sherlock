@@ -1,7 +1,7 @@
-# WebCASE
+# Sherlock
 Web services for Computer-Assisted Structure Elucidation (CASE).
 
-The graphical user interface is available under https://github.com/michaelwenk/webcase-frontend.
+The graphical user interface is available under https://github.com/michaelwenk/sherlock-frontend.
 
 ## Core  Features
 - Dereplication
@@ -17,8 +17,8 @@ This project uses Docker containers (https://www.docker.com) and starts them via
 ### Download
 Clone this repository and change the directory:
  
-    git clone https://github.com/michaelwenk/webcase.git
-    cd webcase
+    git clone https://github.com/michaelwenk/sherlock.git
+    cd sherlock
 
 Now pull all the containers needed for execution from Docker Hub:
 
@@ -49,11 +49,11 @@ Now add the jar file to the local Maven repository by following command:
 
 Clone this repository:
 
-    git clone https://github.com/michaelwenk/webcase.git
+    git clone https://github.com/michaelwenk/sherlock.git
 
 Change the directory and build all the .jar files needed for this project using the build shell script:
 
-    cd webcase
+    cd sherlock
     sh buildJars.sh
 
 ### Dependencies
@@ -66,11 +66,11 @@ Extract and rename the new PyLSD folder to "PyLSD", if needed.
 
 Now put the PyLSD folder into 
 
-    backend/webcase-pylsd/data/lsd/
+    backend/sherlock-pylsd/data/lsd/
 
 In case custom filters are desired to use one can create a folder "filters" in
 
-    backend/webcase-pylsd/data/lsd/
+    backend/sherlock-pylsd/data/lsd/
 
 and put the custom filters there. The system will use them automatically.
 
@@ -81,7 +81,7 @@ For the dereplication, automatic hybridization detection und chemical shift pred
 
 Download the "nmrshiftdb2withsignals.sd" from https://sourceforge.net/projects/nmrshiftdb2/files/data/ and copy it into 
 
-    backend/webcase-db-service-dataset/data/nmrshiftdb/
+    backend/sherlock-db-service-dataset/data/nmrshiftdb/
 
 and rename the file to "nmrshiftdb.sdf". 
 
@@ -114,36 +114,40 @@ That enables the persistence of database content to access the data whenever the
 #### Dataset
 For dataset creation and insertion use:
 
-    curl -X POST -i 'http://localhost:8081/webcase-db-service-dataset/replaceAll?nuclei=13C'
+    curl -X POST -i 'http://localhost:8081/sherlock-db-service-dataset/replaceAll?nuclei=13C'
 
 This will fill-in datasets with 13C spectra only. If multiple nuclei are desired, 
 then this could be done by adding them separated by comma, e.g. 13C, 15N: 
 
-    curl -X POST -i 'http://localhost:8081/webcase-db-service-dataset/replaceAll?nuclei=13C,15N'
+    curl -X POST -i 'http://localhost:8081/sherlock-db-service-dataset/replaceAll?nuclei=13C,15N'
 
 One can then check the number of datasets:
 
-    curl -X GET -i 'http://localhost:8081/webcase-db-service-dataset/count' 
+    curl -X GET -i 'http://localhost:8081/sherlock-db-service-dataset/count' 
 
 #### Statistics
 As for datasets we need to build the hybridization and connectivity statistics and can decide which nuclei to consider:
 
-    curl -X POST -i 'http://localhost:8081/webcase-db-service-statistics/hybridization/replaceAll?nuclei=13C'
-    curl -X POST -i 'http://localhost:8081/webcase-db-service-statistics/connectivity/replaceAll?nuclei=13C'
+    curl -X POST -i 'http://localhost:8081/sherlock-db-service-statistics/hybridization/replaceAll?nuclei=13C'
+    curl -X POST -i 'http://localhost:8081/sherlock-db-service-statistics/connectivity/replaceAll?nuclei=13C'
 
 
 To check the number of hybridization/connectivity entries:
 
-    curl -X GET -i 'http://localhost:8081/webcase-db-service-statistics/hybridization/count'
-    curl -X GET -i 'http://localhost:8081/webcase-db-service-statistics/connectivity/count'
+    curl -X GET -i 'http://localhost:8081/sherlock-db-service-statistics/hybridization/count'
+    curl -X GET -i 'http://localhost:8081/sherlock-db-service-statistics/connectivity/count'
 
 #### HOSE Codes
 One needs to insert the HOSE code information as well:
 
-    curl -X POST -i 'http://localhost:8081/webcase-db-service-hosecode/replaceAll?nuclei=13C&maxSphere=6'
+    curl -X POST -i 'http://localhost:8081/sherlock-db-service-hosecode/replaceAll?nuclei=13C&maxSphere=6'
 
 To check the number of HOSE code entries:
 
-    curl -X GET -i 'http://localhost:8081/webcase-db-service-hosecode/count'
+    curl -X GET -i 'http://localhost:8081/sherlock-db-service-hosecode/count'
 
+For spectra prediction a map of HOSE code and assigned statistics is needed. 
+Due to this one now needs to execute following command to store such map in a shared volume:
+
+    curl -X GET -i 'http://localhost:8081/sherlock-db-service-hosecode/saveAllAsMap'
 
