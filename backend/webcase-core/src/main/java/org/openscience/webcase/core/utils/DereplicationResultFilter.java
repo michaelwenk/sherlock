@@ -17,11 +17,10 @@ public class DereplicationResultFilter {
     public static List<DataSet> filterBySpectralSimilarity(List<DataSet> dataSetList, final Spectrum querySpectrum,
                                                            final DereplicationOptions dereplicationOptions,
                                                            final MultiplicitySectionsBuilder multiplicitySectionsBuilder) {
-        final double shiftTolerance = dereplicationOptions.getShiftTolerances()
-                                                          .get("C");
+        final double shiftTolerance = dereplicationOptions.getShiftTolerance();
+        final double maxAverageDeviation = dereplicationOptions.getMaxAverageDeviation();
         final boolean checkMultiplicity = dereplicationOptions.isCheckMultiplicity();
         final boolean checkEquivalencesCount = dereplicationOptions.isCheckEquivalencesCount();
-        final double maxAverageDeviation = dereplicationOptions.getMaxAverageDeviation();
 
         if (querySpectrum.getNDim()
                 == 1

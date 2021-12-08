@@ -9,9 +9,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class HybridizationDetection {
 
@@ -60,7 +58,10 @@ public class HybridizationDetection {
                                           .collectList()
                                           .block();
 
-                detectedHybridizations.put(i, hybridizations);
+                detectedHybridizations.put(i, hybridizations
+                                                      != null
+                                              ? new ArrayList<>(new HashSet<>(hybridizations))
+                                              : new ArrayList<>());
             }
         }
 
