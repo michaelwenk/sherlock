@@ -4,8 +4,22 @@ services:
   sherlock-db-service-dataset:
     build:
       context: ./backend/sherlock-db-service-dataset
-      dockerfile: Dockerfile.production
+      dockerfile: Dockerfile
     image: sherlock-db-service-dataset-production
+
+  sherlock-db-service-hosecode:
+    container_name: sherlock-db-service-hosecode
+    build:
+      context: ./backend/sherlock-db-service-hosecode
+      dockerfile: Dockerfile
+    image: michaelwenk/sherlock-db-service-hosecode
+    ports:
+      - "8091:8080"
+    depends_on:
+      - sherlock-discovery-server
+      - sherlock-db-instance-hosecode
+    volumes:
+      - hosecode-file-storage:/data/hosecode
 
   sherlock-db-instance-dataset:
     image: mongo:4
@@ -31,6 +45,9 @@ services:
 
   sherlock-db-instance-hosecode:
     image: mongo:4
+    container_name: sherlock-db-instance-hosecode
+    ports:
+      - 27023:27017
     volumes:
       - "./backend/db-instance-hosecode/data/db/hosecode:/data/db"
     environment:

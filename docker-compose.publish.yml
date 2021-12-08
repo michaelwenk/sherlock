@@ -1,7 +1,6 @@
 version: "3"
 
 services:
-
   sherlock-db-service-dataset:
     build:
       context: ./backend/sherlock-db-service-dataset
@@ -18,10 +17,4 @@ services:
     image: michaelwenk/sherlock-db-instance-statistics
     build:
       context: backend/db-instance-statistics
-      dockerfile: Dockerfile.publish
-
-  sherlock-db-instance-hosecode:
-    image: michaelwenk/sherlock-db-instance-hosecode
-    build:
-      context: backend/db-instance-hosecode
       dockerfile: Dockerfile.publish

@@ -36,9 +36,10 @@
 
 ### sherlock ###
 **/db/
-# sherlock-db-service-dataset: e.g. nmrshiftdb file
-backend/sherlock-db-service-dataset/data/nmrshiftdb
-backend/sherlock-db-service-dataset/data/coconut
-# sherlock-pylsd: custom filters but allow default ones
+# sherlock-db-service-dataset: e.g. nmrshiftdb or COCONUT file(s)
+backend/sherlock-db-service-dataset/data
+# sherlock-pylsd: allow custom filters but ignore default ones in lsd folder
 backend/sherlock-pylsd/data/lsd
+# sherlock-pylsd: HOSE code map for spectra prediction
+backend/sherlock-pylsd/data/hosecode
 
