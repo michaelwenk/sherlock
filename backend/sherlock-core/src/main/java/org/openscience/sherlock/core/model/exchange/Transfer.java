@@ -24,6 +24,7 @@
 
 package org.openscience.sherlock.core.model.exchange;
 
+import casekit.nmr.lsd.model.Detections;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.nmrium.Data;
@@ -31,7 +32,6 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 import org.openscience.sherlock.core.model.DereplicationOptions;
 import org.openscience.sherlock.core.model.DetectionOptions;
-import org.openscience.sherlock.core.model.Detections;
 import org.openscience.sherlock.core.model.ElucidationOptions;
 import org.openscience.sherlock.core.model.db.ResultRecord;
 

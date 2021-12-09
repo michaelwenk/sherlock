@@ -26,6 +26,7 @@ package org.openscience.sherlock.core.controller;
 
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
+import casekit.nmr.model.nmrium.Correlations;
 import casekit.nmr.utils.Utils;
 import org.openscience.sherlock.core.model.db.ResultRecord;
 import org.openscience.sherlock.core.model.exchange.Transfer;
@@ -64,9 +65,9 @@ public class CoreController {
         final Transfer responseTransfer = new Transfer();
         responseTransfer.setQueryType(requestTransfer.getQueryType());
 
-        final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(requestTransfer.getData()
-                                                                                        .getCorrelations()
-                                                                                        .getValues(), "13C");
+        final Correlations correlations = requestTransfer.getData()
+                                                         .getCorrelations();
+        final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(correlations.getValues(), "13C");
 
         // INPUT DATA CHECK
         // check whether each signal has a multiplicity; if not stop here
@@ -77,10 +78,8 @@ public class CoreController {
             responseTransfer.setErrorMessage("At least for one carbon the number of attached protons is missing!!!");
             return new ResponseEntity<>(responseTransfer, HttpStatus.BAD_REQUEST);
         }
-        final String mf = (String) requestTransfer.getData()
-                                                  .getCorrelations()
-                                                  .getOptions()
-                                                  .get("mf");
+        final String mf = (String) correlations.getOptions()
+                                               .get("mf");
         // check for mf
         if (mf
                 == null) {
@@ -191,22 +190,25 @@ public class CoreController {
                                                   ? queryResultTransfer.getDataSetList()
                                                   : new ArrayList<>();
                 Ranking.rankDataSetList(dataSetList);
-                //                responseTransfer.setDataSetList(dataSetList);
-                responseTransfer.setDetections(queryResultTransfer.getDetections());
 
                 final ResultRecord queryResultRecord = new ResultRecord();
                 queryResultRecord.setDataSetList(dataSetList);
                 queryResultRecord.setName(requestTransfer.getResultRecord()
                                                          .getName());
                 queryResultRecord.setDataSetListSize(dataSetList.size());
+                queryResultRecord.setDetections(queryResultTransfer.getDetections());
                 responseTransfer.setResultRecord(queryResultRecord);
 
                 // store results in DB if not empty and replace resultRecord in responseTransfer
-                if (!dataSetList.isEmpty()) {
+                if (queryResultRecord.getDataSetListSize()
+                        != 0) {
                     final SimpleDateFormat formatter = new SimpleDateFormat("EE MMM d y H:m:s ZZZ");
                     final String dateString = formatter.format(new Date());
                     queryResultRecord.setDate(dateString);
-                    queryResultRecord.setPreviewDataSet(dataSetList.get(0));
+                    queryResultRecord.setPreviewDataSet(queryResultRecord.getDataSetList()
+                                                                         .get(0));
+                    queryResultRecord.setCorrelations(correlations);
+                    queryResultRecord.setDetections(queryResultTransfer.getDetections());
 
                     final WebClient webClient = this.webClientBuilder.baseUrl(
                                                             "http://sherlock-gateway:8080/sherlock-db-service-result/insert")
@@ -268,7 +270,10 @@ public class CoreController {
                     return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
                 }
 
-                responseTransfer.setDetections(queryResultTransfer.getDetections());
+                final ResultRecord queryResultRecord = new ResultRecord();
+                queryResultRecord.setDetections(queryResultTransfer.getDetections());
+
+                responseTransfer.setResultRecord(queryResultRecord);
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
         } catch (final Exception e) {

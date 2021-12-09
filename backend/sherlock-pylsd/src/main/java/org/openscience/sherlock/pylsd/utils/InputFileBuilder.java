@@ -87,16 +87,7 @@ public class InputFileBuilder {
 
         responseTransfer.setPyLSDInputFileContent(
                 PyLSDInputFileBuilder.buildPyLSDInputFileContent(responseTransfer.getData(), responseTransfer.getMf(),
-                                                                 responseTransfer.getDetections()
-                                                                                 .getDetectedHybridizations(),
-                                                                 responseTransfer.getDetections()
-                                                                                 .getDetectedConnectivities(),
-                                                                 responseTransfer.getDetections()
-                                                                                 .getForbiddenNeighbors(),
-                                                                 responseTransfer.getDetections()
-                                                                                 .getSetNeighbors(),
-                                                                 responseTransfer.getDetections()
-                                                                                 .getFixedNeighbors(),
+                                                                 responseTransfer.getDetections(),
                                                                  responseTransfer.getElucidationOptions()));
         return responseTransfer;
     }

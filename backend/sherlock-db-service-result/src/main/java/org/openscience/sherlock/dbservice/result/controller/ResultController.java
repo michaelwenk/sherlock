@@ -1,5 +1,7 @@
 package org.openscience.sherlock.dbservice.result.controller;
 
+import casekit.nmr.lsd.model.Detections;
+import casekit.nmr.model.nmrium.Correlations;
 import org.openscience.sherlock.dbservice.result.model.db.ResultRecord;
 import org.openscience.sherlock.dbservice.result.service.ResultServiceImplementation;
 import org.springframework.web.bind.annotation.*;
@@ -37,7 +39,10 @@ public class ResultController {
     public Flux<ResultRecord> getAllMeta() {
         return this.resultServiceImplementation.findAll()
                                                .map(resultRecord -> {
+                                                   // empty the following to save unnecessary data transfer
                                                    resultRecord.setDataSetList(new ArrayList<>());
+                                                   resultRecord.setCorrelations(new Correlations());
+                                                   resultRecord.setDetections(new Detections());
                                                    return resultRecord;
                                                });
     }

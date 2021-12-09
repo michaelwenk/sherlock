@@ -2,8 +2,8 @@ package org.openscience.sherlock.pylsd.utils.detection;
 
 import casekit.nmr.lsd.Constants;
 import casekit.nmr.lsd.Utilities;
+import casekit.nmr.lsd.model.Detections;
 import casekit.nmr.model.nmrium.Correlation;
-import org.openscience.sherlock.pylsd.model.Detections;
 import org.openscience.sherlock.pylsd.model.exchange.Transfer;
 import org.springframework.web.reactive.function.client.WebClient;
 
