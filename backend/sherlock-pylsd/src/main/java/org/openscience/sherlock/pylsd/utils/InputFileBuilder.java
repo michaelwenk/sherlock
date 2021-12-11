@@ -29,7 +29,7 @@ public class InputFileBuilder {
                                                      ? requestTransfer
                                                      : Detection.detect(webClientBuilder, requestTransfer);
         final Transfer responseTransfer = new Transfer();
-        responseTransfer.setData(responseTransferByDetection.getData());
+        responseTransfer.setCorrelations(responseTransferByDetection.getCorrelations());
         responseTransfer.setDetections(responseTransferByDetection.getDetections());
         responseTransfer.setMf(requestTransfer.getMf());
         responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
@@ -41,8 +41,7 @@ public class InputFileBuilder {
             for (final Map.Entry<Integer, List<Integer>> entry : requestTransfer.getDetections()
                                                                                 .getDetectedHybridizations()
                                                                                 .entrySet()) {
-                responseTransfer.getData()
-                                .getCorrelations()
+                responseTransfer.getCorrelations()
                                 .getValues()
                                 .get(entry.getKey())
                                 .setHybridization(entry.getValue());
@@ -52,8 +51,7 @@ public class InputFileBuilder {
         // in case of no hetero hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
         if (!responseTransfer.getElucidationOptions()
                              .isAllowHeteroHeteroBonds()) {
-            Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(responseTransfer.getData()
-                                                                                              .getCorrelations()
+            Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(responseTransfer.getCorrelations()
                                                                                               .getValues(),
                                                                               responseTransfer.getDetections()
                                                                                               .getDetectedConnectivities());
@@ -86,7 +84,8 @@ public class InputFileBuilder {
 
 
         responseTransfer.setPyLSDInputFileContent(
-                PyLSDInputFileBuilder.buildPyLSDInputFileContent(responseTransfer.getData(), responseTransfer.getMf(),
+                PyLSDInputFileBuilder.buildPyLSDInputFileContent(responseTransfer.getCorrelations(),
+                                                                 responseTransfer.getMf(),
                                                                  responseTransfer.getDetections(),
                                                                  responseTransfer.getElucidationOptions()));
         return responseTransfer;

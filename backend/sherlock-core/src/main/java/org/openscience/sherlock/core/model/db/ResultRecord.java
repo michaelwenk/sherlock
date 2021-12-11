@@ -28,6 +28,8 @@ import casekit.nmr.lsd.model.Detections;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.nmrium.Correlations;
 import lombok.Data;
+import org.openscience.sherlock.core.model.DetectionOptions;
+import org.openscience.sherlock.core.model.ElucidationOptions;
 
 import java.util.List;
 
@@ -42,4 +44,6 @@ public class ResultRecord {
     private int dataSetListSize;
     private Correlations correlations;
     private Detections detections;
+    private DetectionOptions detectionOptions;
+    private ElucidationOptions elucidationOptions;
 }

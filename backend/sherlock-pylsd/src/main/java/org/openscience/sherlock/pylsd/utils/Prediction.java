@@ -12,8 +12,8 @@ import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.smiles.SmilesParser;
-import org.openscience.sherlock.pylsd.model.exchange.Transfer;
 import org.openscience.sherlock.pylsd.model.db.HOSECode;
+import org.openscience.sherlock.pylsd.model.exchange.Transfer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
@@ -34,7 +34,8 @@ public class Prediction {
 
     private static Mono<HOSECode> getHOSECodeByID(final WebClient.Builder webClientBuilder,
                                                   final ExchangeStrategies exchangeStrategies, final String hoseCode) {
-        final WebClient webClient = webClientBuilder.baseUrl("http://sherlock-gateway:8080/sherlock-db-service-hosecode/")
+        final WebClient webClient = webClientBuilder.baseUrl(
+                                                            "http://sherlock-gateway:8080/sherlock-db-service-hosecode/")
                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .exchangeStrategies(exchangeStrategies)
@@ -60,8 +61,7 @@ public class Prediction {
                                    + smilesList.size());
         final double maxAverageDeviation = requestTransfer.getElucidationOptions()
                                                           .getMaxAverageDeviation();
-        final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(requestTransfer.getData()
-                                                                                        .getCorrelations()
+        final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(requestTransfer.getCorrelations()
                                                                                         .getValues(), nucleus);
         multiplicitySectionsBuilder.setMinLimit(multiplicitySectionsSettings.get(nucleus)[0]);
         multiplicitySectionsBuilder.setMaxLimit(multiplicitySectionsSettings.get(nucleus)[1]);

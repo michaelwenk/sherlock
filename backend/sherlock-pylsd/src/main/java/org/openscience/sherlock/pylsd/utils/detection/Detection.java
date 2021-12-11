@@ -15,8 +15,7 @@ public class Detection {
     public static Transfer detect(final WebClient.Builder webClientBuilder, final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
         final int shiftTol = 0;
-        final List<Correlation> correlationList = requestTransfer.getData()
-                                                                 .getCorrelations()
+        final List<Correlation> correlationList = requestTransfer.getCorrelations()
                                                                  .getValues();
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.detectHybridizations(
                 webClientBuilder, correlationList, requestTransfer.getDetectionOptions()
@@ -62,7 +61,7 @@ public class Detection {
         System.out.println("fixedNeighbors: "
                                    + fixedNeighbors);
 
-        responseTransfer.setData(requestTransfer.getData());
+        responseTransfer.setCorrelations(requestTransfer.getCorrelations());
         responseTransfer.setDetections(
                 new Detections(detectedHybridizations, detectedConnectivities, forbiddenNeighbors, setNeighbors,
                                fixedNeighbors));
