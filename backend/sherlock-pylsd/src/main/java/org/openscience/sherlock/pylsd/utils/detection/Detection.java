@@ -2,8 +2,8 @@ package org.openscience.sherlock.pylsd.utils.detection;
 
 import casekit.nmr.lsd.Constants;
 import casekit.nmr.lsd.Utilities;
+import casekit.nmr.lsd.model.Detections;
 import casekit.nmr.model.nmrium.Correlation;
-import org.openscience.sherlock.pylsd.model.Detections;
 import org.openscience.sherlock.pylsd.model.exchange.Transfer;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -15,8 +15,7 @@ public class Detection {
     public static Transfer detect(final WebClient.Builder webClientBuilder, final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
         final int shiftTol = 0;
-        final List<Correlation> correlationList = requestTransfer.getData()
-                                                                 .getCorrelations()
+        final List<Correlation> correlationList = requestTransfer.getCorrelations()
                                                                  .getValues();
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.detectHybridizations(
                 webClientBuilder, correlationList, requestTransfer.getDetectionOptions()
@@ -62,7 +61,7 @@ public class Detection {
         System.out.println("fixedNeighbors: "
                                    + fixedNeighbors);
 
-        responseTransfer.setData(requestTransfer.getData());
+        responseTransfer.setCorrelations(requestTransfer.getCorrelations());
         responseTransfer.setDetections(
                 new Detections(detectedHybridizations, detectedConnectivities, forbiddenNeighbors, setNeighbors,
                                fixedNeighbors));

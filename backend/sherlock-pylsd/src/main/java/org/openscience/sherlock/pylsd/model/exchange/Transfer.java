@@ -24,12 +24,12 @@
 
 package org.openscience.sherlock.pylsd.model.exchange;
 
+import casekit.nmr.lsd.model.Detections;
 import casekit.nmr.model.DataSet;
-import casekit.nmr.model.nmrium.Data;
+import casekit.nmr.model.nmrium.Correlations;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 import org.openscience.sherlock.pylsd.model.DetectionOptions;
-import org.openscience.sherlock.pylsd.model.Detections;
 import org.openscience.sherlock.pylsd.model.ElucidationOptions;
 
 import java.util.List;
@@ -46,7 +46,7 @@ public class Transfer {
     private List<DataSet> dataSetList;
     private String requestID;
 
-    private Data data;
+    private Correlations correlations;
     private String mf;
     private String pyLSDInputFileContent;
     private Boolean pyLSDRunWasSuccessful;

@@ -24,14 +24,14 @@
 
 package org.openscience.sherlock.core.model.exchange;
 
+import casekit.nmr.lsd.model.Detections;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
-import casekit.nmr.model.nmrium.Data;
+import casekit.nmr.model.nmrium.Correlations;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import lombok.*;
 import org.openscience.sherlock.core.model.DereplicationOptions;
 import org.openscience.sherlock.core.model.DetectionOptions;
-import org.openscience.sherlock.core.model.Detections;
 import org.openscience.sherlock.core.model.ElucidationOptions;
 import org.openscience.sherlock.core.model.db.ResultRecord;
 
@@ -46,7 +46,7 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Transfer {
     private List<DataSet> dataSetList;
-    private Data data;
+    private Correlations correlations;
     private Spectrum querySpectrum;
     private String mf;
     private String queryType;

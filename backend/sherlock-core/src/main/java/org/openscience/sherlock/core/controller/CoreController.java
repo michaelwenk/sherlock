@@ -26,6 +26,7 @@ package org.openscience.sherlock.core.controller;
 
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
+import casekit.nmr.model.nmrium.Correlations;
 import casekit.nmr.utils.Utils;
 import org.openscience.sherlock.core.model.db.ResultRecord;
 import org.openscience.sherlock.core.model.exchange.Transfer;
@@ -63,10 +64,12 @@ public class CoreController {
     public ResponseEntity<Transfer> core(@RequestBody final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
         responseTransfer.setQueryType(requestTransfer.getQueryType());
+        responseTransfer.setDereplicationOptions(responseTransfer.getDereplicationOptions());
+        responseTransfer.setResultRecord(requestTransfer.getResultRecord());
 
-        final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(requestTransfer.getData()
-                                                                                        .getCorrelations()
-                                                                                        .getValues(), "13C");
+        final Correlations correlations = requestTransfer.getResultRecord()
+                                                         .getCorrelations();
+        final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(correlations.getValues(), "13C");
 
         // INPUT DATA CHECK
         // check whether each signal has a multiplicity; if not stop here
@@ -77,10 +80,8 @@ public class CoreController {
             responseTransfer.setErrorMessage("At least for one carbon the number of attached protons is missing!!!");
             return new ResponseEntity<>(responseTransfer, HttpStatus.BAD_REQUEST);
         }
-        final String mf = (String) requestTransfer.getData()
-                                                  .getCorrelations()
-                                                  .getOptions()
-                                                  .get("mf");
+        final String mf = (String) correlations.getOptions()
+                                               .get("mf");
         // check for mf
         if (mf
                 == null) {
@@ -118,7 +119,8 @@ public class CoreController {
             if (requestTransfer.getQueryType()
                                .equals("dereplication")) {
                 final Transfer queryTransfer = new Transfer();
-                queryTransfer.setData(requestTransfer.getData());
+                queryTransfer.setCorrelations(requestTransfer.getResultRecord()
+                                                             .getCorrelations());
                 queryTransfer.setDereplicationOptions(requestTransfer.getDereplicationOptions());
                 queryTransfer.setQueryType(requestTransfer.getQueryType());
                 queryTransfer.setQuerySpectrum(querySpectrum);
@@ -169,10 +171,14 @@ public class CoreController {
                                              .toString();
                 // PyLSD RUN
                 final Transfer queryTransfer = new Transfer();
-                queryTransfer.setData(requestTransfer.getData());
-                queryTransfer.setDetectionOptions(requestTransfer.getDetectionOptions());
-                queryTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
-                queryTransfer.setDetections(requestTransfer.getDetections());
+                queryTransfer.setCorrelations(requestTransfer.getResultRecord()
+                                                             .getCorrelations());
+                queryTransfer.setDetectionOptions(requestTransfer.getResultRecord()
+                                                                 .getDetectionOptions());
+                queryTransfer.setElucidationOptions(requestTransfer.getResultRecord()
+                                                                   .getElucidationOptions());
+                queryTransfer.setDetections(requestTransfer.getResultRecord()
+                                                           .getDetections());
                 queryTransfer.setRequestID(requestID);
                 queryTransfer.setMf(mf);
 
@@ -190,23 +196,26 @@ public class CoreController {
                                                           != null
                                                   ? queryResultTransfer.getDataSetList()
                                                   : new ArrayList<>();
-                Ranking.rankDataSetList(dataSetList);
-                //                responseTransfer.setDataSetList(dataSetList);
-                responseTransfer.setDetections(queryResultTransfer.getDetections());
-
-                final ResultRecord queryResultRecord = new ResultRecord();
-                queryResultRecord.setDataSetList(dataSetList);
-                queryResultRecord.setName(requestTransfer.getResultRecord()
-                                                         .getName());
-                queryResultRecord.setDataSetListSize(dataSetList.size());
-                responseTransfer.setResultRecord(queryResultRecord);
 
                 // store results in DB if not empty and replace resultRecord in responseTransfer
                 if (!dataSetList.isEmpty()) {
+                    Ranking.rankDataSetList(dataSetList);
+
                     final SimpleDateFormat formatter = new SimpleDateFormat("EE MMM d y H:m:s ZZZ");
                     final String dateString = formatter.format(new Date());
+                    final ResultRecord queryResultRecord = new ResultRecord();
+                    queryResultRecord.setDataSetList(dataSetList);
+                    queryResultRecord.setName(requestTransfer.getResultRecord()
+                                                             .getName());
+                    queryResultRecord.setDataSetListSize(dataSetList.size());
                     queryResultRecord.setDate(dateString);
                     queryResultRecord.setPreviewDataSet(dataSetList.get(0));
+                    queryResultRecord.setCorrelations(correlations);
+                    queryResultRecord.setDetections(queryResultTransfer.getDetections());
+                    queryResultRecord.setDetectionOptions(requestTransfer.getResultRecord()
+                                                                         .getDetectionOptions());
+                    queryResultRecord.setElucidationOptions(requestTransfer.getResultRecord()
+                                                                           .getElucidationOptions());
 
                     final WebClient webClient = this.webClientBuilder.baseUrl(
                                                             "http://sherlock-gateway:8080/sherlock-db-service-result/insert")
@@ -239,6 +248,17 @@ public class CoreController {
                         responseTransfer.setErrorMessage(e.getMessage());
                         return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
                     }
+                } else {
+                    responseTransfer.getResultRecord()
+                                    .setDataSetList(new ArrayList<>());
+                    responseTransfer.getResultRecord()
+                                    .setDataSetListSize(0);
+                    responseTransfer.getResultRecord()
+                                    .setPreviewDataSet(null);
+                    responseTransfer.getResultRecord()
+                                    .setDate(null);
+                    responseTransfer.getResultRecord()
+                                    .setId(null);
                 }
 
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
@@ -253,8 +273,10 @@ public class CoreController {
                                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                                  .build();
                 final Transfer queryTransfer = new Transfer();
-                queryTransfer.setData(requestTransfer.getData());
-                queryTransfer.setDetectionOptions(requestTransfer.getDetectionOptions());
+                queryTransfer.setCorrelations(requestTransfer.getResultRecord()
+                                                             .getCorrelations());
+                queryTransfer.setDetectionOptions(requestTransfer.getResultRecord()
+                                                                 .getDetectionOptions());
                 queryTransfer.setMf(mf);
 
                 final Transfer queryResultTransfer = webClient.post()
@@ -267,8 +289,8 @@ public class CoreController {
                     responseTransfer.setErrorMessage("Could not detect connectivities!");
                     return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
                 }
-
-                responseTransfer.setDetections(queryResultTransfer.getDetections());
+                responseTransfer.getResultRecord()
+                                .setDetections(queryResultTransfer.getDetections());
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
         } catch (final Exception e) {

@@ -52,7 +52,7 @@ public class PyLSDController {
         final Transfer responseTransfer = new Transfer();
         responseTransfer.setRequestID(requestTransfer.getRequestID());
         responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
-        responseTransfer.setData(queryResultTransfer.getData());
+        responseTransfer.setCorrelations(queryResultTransfer.getCorrelations());
         responseTransfer.setDetections(queryResultTransfer.getDetections());
         System.out.println("file content:\n"
                                    + queryResultTransfer.getPyLSDInputFileContent());
