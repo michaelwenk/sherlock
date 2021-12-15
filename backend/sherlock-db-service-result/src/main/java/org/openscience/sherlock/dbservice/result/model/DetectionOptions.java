@@ -9,6 +9,8 @@ import lombok.*;
 @ToString
 public class DetectionOptions {
 
+    private boolean useHybridizationDetections;
+    private boolean useNeighborDetections;
     private float hybridizationDetectionThreshold;
     private float lowerElementCountThreshold;
     private float upperElementCountThreshold;

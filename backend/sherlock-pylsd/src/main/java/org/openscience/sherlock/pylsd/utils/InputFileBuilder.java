@@ -2,8 +2,8 @@ package org.openscience.sherlock.pylsd.utils;
 
 import casekit.nmr.lsd.PyLSDInputFileBuilder;
 import casekit.nmr.lsd.Utilities;
+import casekit.nmr.lsd.model.Detections;
 import org.openscience.sherlock.pylsd.model.exchange.Transfer;
-import org.openscience.sherlock.pylsd.utils.detection.Detection;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
@@ -11,6 +11,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -24,37 +25,49 @@ public class InputFileBuilder {
                                    + (requestTransfer.getDetections()
                 != null));
         System.out.println(requestTransfer.getDetections());
-        final Transfer responseTransferByDetection = requestTransfer.getDetections()
-                                                             != null
-                                                     ? requestTransfer
-                                                     : Detection.detect(webClientBuilder, requestTransfer);
-        final Transfer responseTransfer = new Transfer();
-        responseTransfer.setCorrelations(responseTransferByDetection.getCorrelations());
-        responseTransfer.setDetections(responseTransferByDetection.getDetections());
-        responseTransfer.setMf(requestTransfer.getMf());
-        responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
+
+        Detections newDetections = requestTransfer.getDetections();
+        if (newDetections
+                == null) {
+            newDetections = new Detections(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>(),
+                                           requestTransfer.getDetections()
+                                                   != null
+                                                   && requestTransfer.getDetections()
+                                                                     .getFixedNeighbors()
+                                                   != null
+                                           ? requestTransfer.getDetections()
+                                                            .getFixedNeighbors()
+                                           : new HashMap<>());
+        }
+        requestTransfer.setDetections(newDetections);
 
         // @TODO remove following hybridization replacements as soon as the frontend stores the same information into the NMRium data
-        if (requestTransfer.getDetections()
+        if (requestTransfer.getDetectionOptions()
+                           .isUseHybridizationDetections()
+                && requestTransfer.getDetections()
                 != null) {
             // set hybridization of correlations from previous detection
             for (final Map.Entry<Integer, List<Integer>> entry : requestTransfer.getDetections()
                                                                                 .getDetectedHybridizations()
                                                                                 .entrySet()) {
-                responseTransfer.getCorrelations()
-                                .getValues()
-                                .get(entry.getKey())
-                                .setHybridization(entry.getValue());
+                requestTransfer.getCorrelations()
+                               .getValues()
+                               .get(entry.getKey())
+                               .setHybridization(entry.getValue());
             }
         }
 
         // in case of no hetero hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
-        if (!responseTransfer.getElucidationOptions()
-                             .isAllowHeteroHeteroBonds()) {
-            Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(responseTransfer.getCorrelations()
-                                                                                              .getValues(),
-                                                                              responseTransfer.getDetections()
-                                                                                              .getDetectedConnectivities());
+        if (requestTransfer.getDetectionOptions()
+                           .isUseNeighborDetections()
+                && requestTransfer.getDetections()
+                != null
+                && !requestTransfer.getElucidationOptions()
+                                   .isAllowHeteroHeteroBonds()) {
+            Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(requestTransfer.getCorrelations()
+                                                                                             .getValues(),
+                                                                              requestTransfer.getDetections()
+                                                                                             .getDetectedConnectivities());
         }
 
         // add (custom) filters to elucidation options
@@ -71,23 +84,46 @@ public class InputFileBuilder {
         } catch (final IOException e) {
             e.printStackTrace();
         }
-        if (responseTransfer.getElucidationOptions()
-                            .isUseFilterLsdRing3()) {
+        if (requestTransfer.getElucidationOptions()
+                           .isUseFilterLsdRing3()) {
             filterList.add(pathToFilterRing3);
         }
-        if (responseTransfer.getElucidationOptions()
-                            .isUseFilterLsdRing4()) {
+        if (requestTransfer.getElucidationOptions()
+                           .isUseFilterLsdRing4()) {
             filterList.add(pathToFilterRing4);
         }
-        responseTransfer.getElucidationOptions()
-                        .setFilterPaths(filterList.toArray(String[]::new));
+        requestTransfer.getElucidationOptions()
+                       .setFilterPaths(filterList.toArray(String[]::new));
 
 
-        responseTransfer.setPyLSDInputFileContent(
-                PyLSDInputFileBuilder.buildPyLSDInputFileContent(responseTransfer.getCorrelations(),
-                                                                 responseTransfer.getMf(),
-                                                                 responseTransfer.getDetections(),
-                                                                 responseTransfer.getElucidationOptions()));
-        return responseTransfer;
+        final Detections detectionsToUse = new Detections(new HashMap<>(), new HashMap<>(), new HashMap<>(),
+                                                          new HashMap<>(), requestTransfer.getDetections()
+                                                                                   != null
+                                                                                   && requestTransfer.getDetections()
+                                                                                                     .getFixedNeighbors()
+                != null
+                                                                           ? requestTransfer.getDetections()
+                                                                                            .getFixedNeighbors()
+                                                                           : new HashMap<>());
+        if (requestTransfer.getDetectionOptions()
+                           .isUseHybridizationDetections()) {
+            detectionsToUse.setDetectedHybridizations(requestTransfer.getDetections()
+                                                                     .getDetectedHybridizations());
+        }
+        if (requestTransfer.getDetectionOptions()
+                           .isUseNeighborDetections()) {
+            detectionsToUse.setDetectedConnectivities(requestTransfer.getDetections()
+                                                                     .getDetectedConnectivities());
+            detectionsToUse.setForbiddenNeighbors(requestTransfer.getDetections()
+                                                                 .getForbiddenNeighbors());
+            detectionsToUse.setSetNeighbors(requestTransfer.getDetections()
+                                                           .getSetNeighbors());
+        }
+
+        requestTransfer.setPyLSDInputFileContent(
+                PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getCorrelations(),
+                                                                 requestTransfer.getMf(), detectionsToUse,
+                                                                 requestTransfer.getElucidationOptions()));
+        return requestTransfer;
     }
 }

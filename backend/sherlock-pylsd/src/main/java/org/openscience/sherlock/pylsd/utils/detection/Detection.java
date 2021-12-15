@@ -17,6 +17,7 @@ public class Detection {
         final int shiftTol = 0;
         final List<Correlation> correlationList = requestTransfer.getCorrelations()
                                                                  .getValues();
+        // HYBRIDIZATION
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.detectHybridizations(
                 webClientBuilder, correlationList, requestTransfer.getDetectionOptions()
                                                                   .getHybridizationDetectionThreshold(), shiftTol);
@@ -27,7 +28,7 @@ public class Detection {
             correlationList.get(entry.getKey())
                            .setHybridization(entry.getValue());
         }
-
+        // DETECTIONS
         final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities = ConnectivityDetection.detectConnectivities(
                 webClientBuilder, correlationList, shiftTol, requestTransfer.getDetectionOptions()
                                                                             .getLowerElementCountThreshold(),
@@ -50,7 +51,14 @@ public class Detection {
         System.out.println("-> setNeighbors: "
                                    + setNeighbors);
 
-        final Map<Integer, Set<Integer>> fixedNeighbors = new HashMap<>();
+        final Map<Integer, Set<Integer>> fixedNeighbors = requestTransfer.getDetections()
+                                                                  != null
+                                                                  && requestTransfer.getDetections()
+                                                                                    .getFixedNeighbors()
+                != null
+                                                          ? requestTransfer.getDetections()
+                                                                           .getFixedNeighbors()
+                                                          : new HashMap<>();
         final Map<Integer, Set<Integer>> fixedNeighborsByINADEQUATE = Utilities.buildFixedNeighborsByINADEQUATE(
                 correlationList);
         for (final Map.Entry<Integer, Set<Integer>> entry : fixedNeighborsByINADEQUATE.entrySet()) {

@@ -54,6 +54,7 @@ public class PyLSDController {
         responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
         responseTransfer.setCorrelations(queryResultTransfer.getCorrelations());
         responseTransfer.setDetections(queryResultTransfer.getDetections());
+        responseTransfer.setDetectionOptions(queryResultTransfer.getDetectionOptions());
         System.out.println("file content:\n"
                                    + queryResultTransfer.getPyLSDInputFileContent());
         final String pathToPyLSDInputFile = this.pathToPyLSDInputFileFolder

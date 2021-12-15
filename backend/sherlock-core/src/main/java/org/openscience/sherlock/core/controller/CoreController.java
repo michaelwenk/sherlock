@@ -151,10 +151,10 @@ public class CoreController {
                         uniqueDataSetList.add(dataSet);
                     }
                 }
-                final ResultRecord responseResultRecord = new ResultRecord();
-                responseResultRecord.setDataSetList(uniqueDataSetList);
-                responseResultRecord.setDataSetListSize(uniqueDataSetList.size());
-                responseTransfer.setResultRecord(responseResultRecord);
+                responseTransfer.getResultRecord()
+                                .setDataSetList(uniqueDataSetList);
+                responseTransfer.getResultRecord()
+                                .setDataSetListSize(uniqueDataSetList.size());
 
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
@@ -277,6 +277,8 @@ public class CoreController {
                 queryTransfer.setDetectionOptions(requestTransfer.getResultRecord()
                                                                  .getDetectionOptions());
                 queryTransfer.setMf(mf);
+                queryTransfer.setDetections(requestTransfer.getResultRecord()
+                                                           .getDetections());
 
                 final Transfer queryResultTransfer = webClient.post()
                                                               .bodyValue(queryTransfer)

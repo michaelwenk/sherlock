@@ -31,7 +31,8 @@ public class ElucidationController {
     public ResponseEntity<Transfer> elucidate(@RequestBody final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
 
-        final WebClient webClient = this.webClientBuilder.baseUrl("http://sherlock-gateway:8080/sherlock-pylsd/runPyLSD")
+        final WebClient webClient = this.webClientBuilder.baseUrl(
+                                                "http://sherlock-gateway:8080/sherlock-pylsd/runPyLSD")
                                                          .exchangeStrategies(this.exchangeStrategies)
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
@@ -47,6 +48,7 @@ public class ElucidationController {
             responseTransfer.setPyLSDRunWasSuccessful(queryResultTransfer.getPyLSDRunWasSuccessful());
             responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
             responseTransfer.setDetections(queryResultTransfer.getDetections());
+            responseTransfer.setDetectionOptions(queryResultTransfer.getDetectionOptions());
         } catch (final Exception e) {
             responseTransfer.setErrorMessage(e.getMessage());
             return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
