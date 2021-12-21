@@ -73,6 +73,22 @@ public class Detection {
         responseTransfer.setDetections(
                 new Detections(detectedHybridizations, detectedConnectivities, forbiddenNeighbors, setNeighbors,
                                fixedNeighbors));
+        responseTransfer.setDetectionOptions(requestTransfer.getDetectionOptions());
+
+        // in case of no hetero hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
+        if (responseTransfer.getDetectionOptions()
+                            .isUseNeighborDetections()
+                && responseTransfer.getDetections()
+                != null
+                && !requestTransfer.getElucidationOptions()
+                                   .isAllowHeteroHeteroBonds()) {
+            Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(responseTransfer.getCorrelations()
+                                                                                              .getValues(),
+                                                                              responseTransfer.getDetections()
+                                                                                              .getDetectedConnectivities(),
+                                                                              responseTransfer.getDetections()
+                                                                                              .getDetectedHybridizations());
+        }
 
         return responseTransfer;
     }

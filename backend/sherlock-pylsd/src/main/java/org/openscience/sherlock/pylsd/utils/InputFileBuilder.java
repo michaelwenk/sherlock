@@ -1,10 +1,8 @@
 package org.openscience.sherlock.pylsd.utils;
 
 import casekit.nmr.lsd.PyLSDInputFileBuilder;
-import casekit.nmr.lsd.Utilities;
 import casekit.nmr.lsd.model.Detections;
 import org.openscience.sherlock.pylsd.model.exchange.Transfer;
-import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -18,8 +16,7 @@ import java.util.stream.Collectors;
 
 public class InputFileBuilder {
 
-    public static Transfer createPyLSDInputFile(final WebClient.Builder webClientBuilder,
-                                                final Transfer requestTransfer) {
+    public static Transfer createPyLSDInputFile(final Transfer requestTransfer) {
 
         System.out.println("-> detected data was already given: "
                                    + (requestTransfer.getDetections()
@@ -55,19 +52,6 @@ public class InputFileBuilder {
                                .get(entry.getKey())
                                .setHybridization(entry.getValue());
             }
-        }
-
-        // in case of no hetero hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
-        if (requestTransfer.getDetectionOptions()
-                           .isUseNeighborDetections()
-                && requestTransfer.getDetections()
-                != null
-                && !requestTransfer.getElucidationOptions()
-                                   .isAllowHeteroHeteroBonds()) {
-            Utilities.reduceDefaultHybridizationsAndProtonCountsOfHeteroAtoms(requestTransfer.getCorrelations()
-                                                                                             .getValues(),
-                                                                              requestTransfer.getDetections()
-                                                                                             .getDetectedConnectivities());
         }
 
         // add (custom) filters to elucidation options

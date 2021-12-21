@@ -279,6 +279,8 @@ public class CoreController {
                 queryTransfer.setMf(mf);
                 queryTransfer.setDetections(requestTransfer.getResultRecord()
                                                            .getDetections());
+                queryTransfer.setElucidationOptions(requestTransfer.getResultRecord()
+                                                                   .getElucidationOptions());
 
                 final Transfer queryResultTransfer = webClient.post()
                                                               .bodyValue(queryTransfer)
