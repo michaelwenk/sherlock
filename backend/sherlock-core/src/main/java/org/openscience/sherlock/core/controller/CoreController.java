@@ -293,6 +293,8 @@ public class CoreController {
                     return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
                 }
                 responseTransfer.getResultRecord()
+                                .setCorrelations(queryResultTransfer.getCorrelations());
+                responseTransfer.getResultRecord()
                                 .setDetections(queryResultTransfer.getDetections());
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
