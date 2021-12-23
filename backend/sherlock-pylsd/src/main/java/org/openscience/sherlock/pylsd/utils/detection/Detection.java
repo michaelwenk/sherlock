@@ -40,14 +40,19 @@ public class Detection {
         final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors = ForbiddenNeighborDetection.detectForbiddenNeighbors(
                 detectedConnectivities, requestTransfer.getMf());
         reduce(forbiddenNeighbors);
-        System.out.println("-> forbiddenNeighbors: "
-                                   + forbiddenNeighbors);
 
         final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors = ConnectivityDetection.detectConnectivities(
                 webClientBuilder, correlationList, shiftTol, requestTransfer.getDetectionOptions()
                                                                             .getUpperElementCountThreshold(),
                 requestTransfer.getMf());
         reduce(setNeighbors);
+
+
+        // @TODO for now: avoid different neighbor hybridizations
+        simplifyHybridizations(forbiddenNeighbors);
+        simplifyHybridizations(setNeighbors);
+        System.out.println("-> forbiddenNeighbors: "
+                                   + forbiddenNeighbors);
         System.out.println("-> setNeighbors: "
                                    + setNeighbors);
 
@@ -151,6 +156,28 @@ public class Detection {
                 for (final int hybrid : hybridizationsToRemove) {
                     entryPerAtomType.getValue()
                                     .remove(hybrid);
+                }
+            }
+        }
+    }
+
+    private static void simplifyHybridizations(final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> neighbors) {
+        for (final Map.Entry<Integer, Map<String, Map<Integer, Set<Integer>>>> entryPerCorrelation : neighbors.entrySet()) {
+            for (final Map.Entry<String, Map<Integer, Set<Integer>>> entryPerNeighborAtom : entryPerCorrelation.getValue()
+                                                                                                               .entrySet()) {
+                for (final int neighborHybridization : new ArrayList<>(entryPerNeighborAtom.getValue()
+                                                                                           .keySet())) {
+                    if (neighborHybridization
+                            != -1) {
+                        entryPerNeighborAtom.getValue()
+                                            .putIfAbsent(-1, new HashSet<>());
+                        entryPerNeighborAtom.getValue()
+                                            .get(-1)
+                                            .addAll(entryPerNeighborAtom.getValue()
+                                                                        .get(neighborHybridization));
+                        entryPerNeighborAtom.getValue()
+                                            .remove(neighborHybridization);
+                    }
                 }
             }
         }
