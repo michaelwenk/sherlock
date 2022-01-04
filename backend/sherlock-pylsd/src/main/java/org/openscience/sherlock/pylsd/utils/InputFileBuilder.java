@@ -1,11 +1,8 @@
 package org.openscience.sherlock.pylsd.utils;
 
-import casekit.nmr.lsd.Utilities;
 import casekit.nmr.lsd.inputfile.PyLSDInputFileBuilder;
 import casekit.nmr.lsd.model.Detections;
-import casekit.nmr.lsd.model.Grouping;
 import casekit.nmr.model.nmrium.Correlation;
-import casekit.nmr.model.nmrium.Correlations;
 import org.openscience.sherlock.pylsd.model.exchange.Transfer;
 import org.openscience.sherlock.pylsd.utils.detection.Detection;
 import org.springframework.web.reactive.function.client.WebClient;
@@ -42,7 +39,7 @@ public class InputFileBuilder {
         System.out.println(requestTransfer.getGrouping());
         if (requestTransfer.getGrouping()
                 == null) {
-            requestTransfer.setGrouping(detectGroups(requestTransfer.getCorrelations()));
+            requestTransfer.setGrouping(Detection.detectGroups(requestTransfer.getCorrelations()));
             System.out.println(" -> new grouping: "
                                        + requestTransfer.getGrouping());
         }
@@ -123,10 +120,5 @@ public class InputFileBuilder {
                                                                  requestTransfer.getMf(), detectionsToUse,
                                                                  requestTransfer.getElucidationOptions()));
         return requestTransfer;
-    }
-
-    private static Grouping detectGroups(final Correlations correlations) {
-        return Utilities.buildGroups(correlations.getValues(), (Map<String, Double>) correlations.getOptions()
-                                                                                                 .get("tolerance"));
     }
 }

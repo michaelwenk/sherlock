@@ -3,7 +3,9 @@ package org.openscience.sherlock.pylsd.utils.detection;
 import casekit.nmr.lsd.Constants;
 import casekit.nmr.lsd.Utilities;
 import casekit.nmr.lsd.model.Detections;
+import casekit.nmr.lsd.model.Grouping;
 import casekit.nmr.model.nmrium.Correlation;
+import casekit.nmr.model.nmrium.Correlations;
 import org.openscience.sherlock.pylsd.model.exchange.Transfer;
 import org.springframework.web.reactive.function.client.WebClient;
 
@@ -95,6 +97,10 @@ public class Detection {
         //                                                                                              .getDetectedHybridizations());
         //        }
 
+
+        responseTransfer.setGrouping(detectGroups(responseTransfer.getCorrelations()));
+        System.out.println(responseTransfer.getGrouping());
+
         return responseTransfer;
     }
 
@@ -181,5 +187,10 @@ public class Detection {
                 }
             }
         }
+    }
+
+    public static Grouping detectGroups(final Correlations correlations) {
+        return Utilities.buildGroups(correlations.getValues(), (Map<String, Double>) correlations.getOptions()
+                                                                                                 .get("tolerance"));
     }
 }
