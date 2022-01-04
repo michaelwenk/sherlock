@@ -47,12 +47,13 @@ public class PyLSDController {
                                                               this.pathToNeighborsFilesFolder
                                                                       + requestTransfer.getRequestID()
                                                                       + "_set.deff"});
-        final Transfer queryResultTransfer = InputFileBuilder.createPyLSDInputFile(requestTransfer);
+        final Transfer queryResultTransfer = InputFileBuilder.createPyLSDInputFile(this.webClientBuilder, requestTransfer);
         final Transfer responseTransfer = new Transfer();
         responseTransfer.setRequestID(requestTransfer.getRequestID());
         responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
         responseTransfer.setCorrelations(queryResultTransfer.getCorrelations());
         responseTransfer.setDetections(queryResultTransfer.getDetections());
+        responseTransfer.setGrouping(queryResultTransfer.getGrouping());
         responseTransfer.setDetectionOptions(queryResultTransfer.getDetectionOptions());
         System.out.println("file content:\n"
                                    + queryResultTransfer.getPyLSDInputFileContent());

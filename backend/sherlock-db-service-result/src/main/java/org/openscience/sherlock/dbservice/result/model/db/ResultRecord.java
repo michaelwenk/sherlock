@@ -25,6 +25,7 @@
 package org.openscience.sherlock.dbservice.result.model.db;
 
 import casekit.nmr.lsd.model.Detections;
+import casekit.nmr.lsd.model.Grouping;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.nmrium.Correlations;
 import lombok.*;
@@ -53,6 +54,7 @@ public class ResultRecord {
     private int dataSetListSize;
     private Correlations correlations;
     private Detections detections;
+    private Grouping grouping;
     private DetectionOptions detectionOptions;
     private ElucidationOptions elucidationOptions;
 }

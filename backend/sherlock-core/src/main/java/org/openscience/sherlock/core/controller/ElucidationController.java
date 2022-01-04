@@ -48,6 +48,7 @@ public class ElucidationController {
             responseTransfer.setPyLSDRunWasSuccessful(queryResultTransfer.getPyLSDRunWasSuccessful());
             responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
             responseTransfer.setDetections(queryResultTransfer.getDetections());
+            responseTransfer.setGrouping(queryResultTransfer.getGrouping());
             responseTransfer.setDetectionOptions(queryResultTransfer.getDetectionOptions());
         } catch (final Exception e) {
             responseTransfer.setErrorMessage(e.getMessage());

@@ -1,8 +1,14 @@
 package org.openscience.sherlock.pylsd.utils;
 
-import casekit.nmr.lsd.PyLSDInputFileBuilder;
+import casekit.nmr.lsd.Utilities;
+import casekit.nmr.lsd.inputfile.PyLSDInputFileBuilder;
 import casekit.nmr.lsd.model.Detections;
+import casekit.nmr.lsd.model.Grouping;
+import casekit.nmr.model.nmrium.Correlation;
+import casekit.nmr.model.nmrium.Correlations;
 import org.openscience.sherlock.pylsd.model.exchange.Transfer;
+import org.openscience.sherlock.pylsd.utils.detection.Detection;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -16,27 +22,30 @@ import java.util.stream.Collectors;
 
 public class InputFileBuilder {
 
-    public static Transfer createPyLSDInputFile(final Transfer requestTransfer) {
-
-        System.out.println("-> detected data was already given: "
+    public static Transfer createPyLSDInputFile(final WebClient.Builder webClientBuilder,
+                                                final Transfer requestTransfer) {
+        System.out.println("-> detected data was already given?: "
                                    + (requestTransfer.getDetections()
                 != null));
         System.out.println(requestTransfer.getDetections());
 
-        Detections newDetections = requestTransfer.getDetections();
-        if (newDetections
+        if (requestTransfer.getDetections()
                 == null) {
-            newDetections = new Detections(new HashMap<>(), new HashMap<>(), new HashMap<>(), new HashMap<>(),
-                                           requestTransfer.getDetections()
-                                                   != null
-                                                   && requestTransfer.getDetections()
-                                                                     .getFixedNeighbors()
-                                                   != null
-                                           ? requestTransfer.getDetections()
-                                                            .getFixedNeighbors()
-                                           : new HashMap<>());
+            final Transfer detectionTransfer = Detection.detect(webClientBuilder, requestTransfer);
+            requestTransfer.setDetections(detectionTransfer.getDetections());
+            System.out.println(" -> new detections: "
+                                       + requestTransfer.getDetections());
         }
-        requestTransfer.setDetections(newDetections);
+        System.out.println("-> grouping was already given?: "
+                                   + (requestTransfer.getGrouping()
+                != null));
+        System.out.println(requestTransfer.getGrouping());
+        if (requestTransfer.getGrouping()
+                == null) {
+            requestTransfer.setGrouping(detectGroups(requestTransfer.getCorrelations()));
+            System.out.println(" -> new grouping: "
+                                       + requestTransfer.getGrouping());
+        }
 
         // @TODO remove following hybridization replacements as soon as the frontend stores the same information into the NMRium data
         if (requestTransfer.getDetectionOptions()
@@ -93,6 +102,11 @@ public class InputFileBuilder {
                            .isUseHybridizationDetections()) {
             detectionsToUse.setDetectedHybridizations(requestTransfer.getDetections()
                                                                      .getDetectedHybridizations());
+        } else {
+            for (final Correlation correlation : requestTransfer.getCorrelations()
+                                                                .getValues()) {
+                correlation.setHybridization(new ArrayList<>());
+            }
         }
         if (requestTransfer.getDetectionOptions()
                            .isUseNeighborDetections()) {
@@ -109,5 +123,10 @@ public class InputFileBuilder {
                                                                  requestTransfer.getMf(), detectionsToUse,
                                                                  requestTransfer.getElucidationOptions()));
         return requestTransfer;
+    }
+
+    private static Grouping detectGroups(final Correlations correlations) {
+        return Utilities.buildGroups(correlations.getValues(), (Map<String, Double>) correlations.getOptions()
+                                                                                                 .get("tolerance"));
     }
 }

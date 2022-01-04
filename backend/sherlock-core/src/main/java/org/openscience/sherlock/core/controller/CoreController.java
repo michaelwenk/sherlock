@@ -178,6 +178,8 @@ public class CoreController {
                                                                    .getElucidationOptions());
                 queryTransfer.setDetections(requestTransfer.getResultRecord()
                                                            .getDetections());
+                queryTransfer.setGrouping(requestTransfer.getResultRecord()
+                                                         .getGrouping());
                 queryTransfer.setRequestID(requestID);
                 queryTransfer.setMf(mf);
 
@@ -211,6 +213,7 @@ public class CoreController {
                     queryResultRecord.setPreviewDataSet(dataSetList.get(0));
                     queryResultRecord.setCorrelations(correlations);
                     queryResultRecord.setDetections(queryResultTransfer.getDetections());
+                    queryResultRecord.setGrouping(queryResultTransfer.getGrouping());
                     queryResultRecord.setDetectionOptions(requestTransfer.getResultRecord()
                                                                          .getDetectionOptions());
                     queryResultRecord.setElucidationOptions(requestTransfer.getResultRecord()
@@ -296,6 +299,8 @@ public class CoreController {
                                 .setCorrelations(queryResultTransfer.getCorrelations());
                 responseTransfer.getResultRecord()
                                 .setDetections(queryResultTransfer.getDetections());
+                responseTransfer.getResultRecord()
+                                .setGrouping(queryResultTransfer.getGrouping());
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
         } catch (final Exception e) {

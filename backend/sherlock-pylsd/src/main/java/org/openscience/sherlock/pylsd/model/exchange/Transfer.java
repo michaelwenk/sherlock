@@ -25,6 +25,7 @@
 package org.openscience.sherlock.pylsd.model.exchange;
 
 import casekit.nmr.lsd.model.Detections;
+import casekit.nmr.lsd.model.Grouping;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.nmrium.Correlations;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -53,6 +54,7 @@ public class Transfer {
     private ElucidationOptions elucidationOptions;
     private DetectionOptions detectionOptions;
     private Detections detections;
+    private Grouping grouping;
     // for (ranked) SDF parsing
     private String pathToSmilesFile;
     private List<String> smilesList;

@@ -1,6 +1,7 @@
 package org.openscience.sherlock.dbservice.result.controller;
 
 import casekit.nmr.lsd.model.Detections;
+import casekit.nmr.lsd.model.Grouping;
 import casekit.nmr.model.nmrium.Correlations;
 import org.openscience.sherlock.dbservice.result.model.db.ResultRecord;
 import org.openscience.sherlock.dbservice.result.service.ResultServiceImplementation;
@@ -43,6 +44,7 @@ public class ResultController {
                                                    resultRecord.setDataSetList(new ArrayList<>());
                                                    resultRecord.setCorrelations(new Correlations());
                                                    resultRecord.setDetections(new Detections());
+                                                   resultRecord.setGrouping(new Grouping());
                                                    return resultRecord;
                                                });
     }

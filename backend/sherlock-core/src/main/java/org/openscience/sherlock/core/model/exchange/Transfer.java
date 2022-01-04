@@ -25,6 +25,7 @@
 package org.openscience.sherlock.core.model.exchange;
 
 import casekit.nmr.lsd.model.Detections;
+import casekit.nmr.lsd.model.Grouping;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.nmrium.Correlations;
@@ -54,6 +55,7 @@ public class Transfer {
     private ElucidationOptions elucidationOptions;
     private DetectionOptions detectionOptions;
     private Detections detections;
+    private Grouping grouping;
     private String requestID;
     private ResultRecord resultRecord;
     // internal only
