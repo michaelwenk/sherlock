@@ -2,8 +2,8 @@ package org.openscience.sherlock.dbservice.statistics.controller;
 
 import casekit.nmr.analysis.ConnectivityStatistics;
 import casekit.nmr.utils.Utils;
-import org.openscience.sherlock.dbservice.statistics.service.model.ConnectivityRecord;
 import org.openscience.sherlock.dbservice.statistics.service.ConnectivityServiceImplementation;
+import org.openscience.sherlock.dbservice.statistics.service.model.ConnectivityRecord;
 import org.openscience.sherlock.dbservice.statistics.service.model.DataSetRecord;
 import org.openscience.sherlock.dbservice.statistics.utils.Utilities;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +13,10 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -117,54 +120,70 @@ public class ConnectivityController {
     }
 
     @GetMapping(value = "/detectConnectivities", produces = "application/json")
-    public Map<String, Map<String, Set<Integer>>> detectConnectivities(@RequestParam final String nucleus,
-                                                                       @RequestParam final String hybridization,
-                                                                       @RequestParam final String multiplicity,
-                                                                       @RequestParam final int minShift,
-                                                                       @RequestParam final int maxShift,
-                                                                       @RequestParam final double elementCountThreshold,
-                                                                       @RequestParam final String mf) {
-        final List<Map<String, Map<String, Map<Integer, Integer>>>> detectedConnectivities = this.findByNucleusAndHybridizationAndMultiplicityAndShift(
-                                                                                                         nucleus, hybridization, multiplicity, minShift, maxShift)
-                                                                                                 .map(ConnectivityRecord::getConnectivityCounts)
-                                                                                                 .collectList()
-                                                                                                 .block();
-
+    public Map<String, Map<Integer, Set<Integer>>> detectConnectivities(@RequestParam final String nucleus,
+                                                                        @RequestParam final int[] hybridizations,
+                                                                        @RequestParam final String multiplicity,
+                                                                        @RequestParam final int minShift,
+                                                                        @RequestParam final int maxShift,
+                                                                        @RequestParam final double elementCountThreshold,
+                                                                        @RequestParam final String mf,
+                                                                        @RequestParam final boolean onAtomTypeLevel,
+                                                                        @RequestParam final Set<Integer> knownCarbonHybridizations) {
+        final Map<String, Map<Integer, Map<Integer, Integer>>> extractedConnectivitiesAll = new HashMap<>();
         final Set<String> atomTypesByMf = Utils.getMolecularFormulaElementCounts(mf)
                                                .keySet();
-        detectedConnectivities.forEach(foundExtractedConnectivityCountsMap -> {
-            final Set<String> foundAtomTypesToIgnore = foundExtractedConnectivityCountsMap.keySet()
-                                                                                          .stream()
-                                                                                          .filter(foundAtomType -> !atomTypesByMf.contains(
-                                                                                                  foundAtomType))
-                                                                                          .collect(Collectors.toSet());
-            for (final String foundAtomTypeToIgnore : foundAtomTypesToIgnore) {
-                foundExtractedConnectivityCountsMap.remove(foundAtomTypeToIgnore);
-            }
-        });
 
-        // atom type neighbor -> protons count
-        final Map<String, Map<String, Set<Integer>>> filteredExtractedConnectivitiesAll = new HashMap<>();
-        // loop over all results from DB in case a chemical shift range is given (minShift != maxShift)
-        for (final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivityCount : detectedConnectivities) {
-            final Map<String, Map<String, Set<Integer>>> filteredExtractedConnectivities = ConnectivityStatistics.filterExtractedConnectivities(
-                    extractedConnectivityCount, elementCountThreshold);
-            for (final String extractedNeighborAtomType : filteredExtractedConnectivities.keySet()) {
-                filteredExtractedConnectivitiesAll.putIfAbsent(extractedNeighborAtomType, new HashMap<>());
-                for (final String extractedNeighborHybridization : filteredExtractedConnectivities.get(
+        List<Map<String, Map<String, Map<Integer, Integer>>>> detectedConnectivities;
+        Map<String, Map<Integer, Map<Integer, Integer>>> convertedMap;
+
+        // loop through all given hybridization states
+        for (final int hybridization : hybridizations) {
+            detectedConnectivities = this.findByNucleusAndHybridizationAndMultiplicityAndShift(nucleus, "SP"
+                                                 + hybridization, multiplicity, minShift, maxShift)
+                                         .map(ConnectivityRecord::getConnectivityCounts)
+                                         .collectList()
+                                         .block();
+            detectedConnectivities.forEach(foundExtractedConnectivityCountsMap -> {
+                final Set<String> foundAtomTypesToIgnore = foundExtractedConnectivityCountsMap.keySet()
+                                                                                              .stream()
+                                                                                              .filter(foundAtomType -> !atomTypesByMf.contains(
+                                                                                                      foundAtomType))
+                                                                                              .collect(
+                                                                                                      Collectors.toSet());
+                for (final String foundAtomTypeToIgnore : foundAtomTypesToIgnore) {
+                    foundExtractedConnectivityCountsMap.remove(foundAtomTypeToIgnore);
+                }
+            });
+            // loop over all results from DB in case a chemical shift range is given (minShift != maxShift)
+            for (final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivityTemp : detectedConnectivities) {
+                convertedMap = ConnectivityStatistics.convertToNumericHybridizationMapKeys(extractedConnectivityTemp);
+                for (final String extractedNeighborAtomType : convertedMap.keySet()) {
+                    extractedConnectivitiesAll.putIfAbsent(extractedNeighborAtomType, new HashMap<>());
+                    for (final int extractedNeighborHybridization : convertedMap.get(extractedNeighborAtomType)
+                                                                                .keySet()) {
+                        extractedConnectivitiesAll.get(extractedNeighborAtomType)
+                                                  .putIfAbsent(extractedNeighborHybridization, new HashMap<>());
+                        for (final Map.Entry<Integer, Integer> entryPerProtonsCount : convertedMap.get(
                                                                                                           extractedNeighborAtomType)
-                                                                                                  .keySet()) {
-                    filteredExtractedConnectivitiesAll.get(extractedNeighborAtomType)
-                                                      .putIfAbsent(extractedNeighborHybridization, new HashSet<>());
-                    filteredExtractedConnectivitiesAll.get(extractedNeighborAtomType)
+                                                                                                  .get(extractedNeighborHybridization)
+                                                                                                  .entrySet()) {
+                            extractedConnectivitiesAll.get(extractedNeighborAtomType)
                                                       .get(extractedNeighborHybridization)
-                                                      .addAll(filteredExtractedConnectivities.get(
-                                                                                                     extractedNeighborAtomType)
-                                                                                             .get(extractedNeighborHybridization));
+                                                      .putIfAbsent(entryPerProtonsCount.getKey(), 0);
+                            extractedConnectivitiesAll.get(extractedNeighborAtomType)
+                                                      .get(extractedNeighborHybridization)
+                                                      .put(entryPerProtonsCount.getKey(),
+                                                           extractedConnectivitiesAll.get(extractedNeighborAtomType)
+                                                                                     .get(extractedNeighborHybridization)
+                                                                                     .get(entryPerProtonsCount.getKey())
+                                                                   + entryPerProtonsCount.getValue());
+                        }
+                    }
                 }
             }
         }
 
-        return filteredExtractedConnectivitiesAll;
+        return ConnectivityStatistics.filterExtractedConnectivities(extractedConnectivitiesAll, elementCountThreshold,
+                                                                    onAtomTypeLevel, knownCarbonHybridizations);
     }
 }

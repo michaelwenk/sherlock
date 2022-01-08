@@ -16,13 +16,15 @@ public class Detection {
 
     public static Transfer detect(final WebClient.Builder webClientBuilder, final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
-        final int shiftTol = 0;
+        final int shiftTolHybridization = 2;
+        final int shiftTolDetection = 2;
         final List<Correlation> correlationList = requestTransfer.getCorrelations()
                                                                  .getValues();
         // HYBRIDIZATION
         final Map<Integer, List<Integer>> detectedHybridizations = HybridizationDetection.detectHybridizations(
                 webClientBuilder, correlationList, requestTransfer.getDetectionOptions()
-                                                                  .getHybridizationDetectionThreshold(), shiftTol);
+                                                                  .getHybridizationDetectionThreshold(),
+                shiftTolHybridization);
         System.out.println("detectedHybridizations: "
                                    + detectedHybridizations);
         // set hybridization of correlations from detection
@@ -32,9 +34,9 @@ public class Detection {
         }
         // DETECTIONS
         final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities = ConnectivityDetection.detectConnectivities(
-                webClientBuilder, correlationList, shiftTol, requestTransfer.getDetectionOptions()
-                                                                            .getLowerElementCountThreshold(),
-                requestTransfer.getMf());
+                webClientBuilder, correlationList, shiftTolDetection, requestTransfer.getDetectionOptions()
+                                                                                     .getLowerElementCountThreshold(),
+                requestTransfer.getMf(), false);
 
         System.out.println("detectedConnectivities: "
                                    + detectedConnectivities);
@@ -44,10 +46,15 @@ public class Detection {
         reduce(forbiddenNeighbors);
 
         final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors = ConnectivityDetection.detectConnectivities(
-                webClientBuilder, correlationList, shiftTol, requestTransfer.getDetectionOptions()
-                                                                            .getUpperElementCountThreshold(),
-                requestTransfer.getMf());
+                webClientBuilder, correlationList, shiftTolDetection, requestTransfer.getDetectionOptions()
+                                                                                     .getUpperElementCountThreshold(),
+                requestTransfer.getMf(), true);
         reduce(setNeighbors);
+        // remove carbons from set neighbors list
+        for (final Map.Entry<Integer, Map<String, Map<Integer, Set<Integer>>>> entryPerCorrelation : setNeighbors.entrySet()) {
+            entryPerCorrelation.getValue()
+                               .remove("C");
+        }
 
 
         // @TODO for now: avoid different neighbor hybridizations

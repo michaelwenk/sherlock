@@ -11,13 +11,22 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class ConnectivityDetection {
 
     public static Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectConnectivities(
             final WebClient.Builder webClientBuilder, final List<Correlation> correlationList, final int shiftTol,
-            final double elementCountThreshold, final String mf) {
+            final double elementCountThreshold, final String mf, final boolean onAtomTypeLevel) {
         final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities = new HashMap<>();
+        final Set<Integer> knownCarbonHybridizations = new HashSet<>();
+        for (final Correlation correlation : correlationList) {
+            // @TODO constraints for carbon only for now
+            if (correlation.getAtomType()
+                           .equals("C")) {
+                knownCarbonHybridizations.addAll(correlation.getHybridization());
+            }
+        }
 
         final WebClient webClient = webClientBuilder.baseUrl(
                                                             "http://sherlock-gateway:8080/sherlock-db-service-statistics/connectivity/")
@@ -25,11 +34,10 @@ public class ConnectivityDetection {
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .build();
         UriComponentsBuilder uriComponentsBuilder;
-        Map<String, Map<String, Set<Integer>>> detectedConnectivitiesTemp;
+        Map<String, Map<Integer, Set<Integer>>> detectedConnectivitiesTemp;
         Correlation correlation;
         String multiplicity;
         Signal signal;
-        Integer numericHybridization;
         for (int i = 0; i
                 < correlationList.size(); i++) {
             correlation = correlationList.get(i);
@@ -40,53 +48,35 @@ public class ConnectivityDetection {
                     && multiplicity
                     != null
                     && signal
-                    != null) {
-                for (final int hybridization : correlation.getHybridization()) {
-                    uriComponentsBuilder = UriComponentsBuilder.newInstance();
-                    uriComponentsBuilder.path("/detectConnectivities")
-                                        .queryParam("nucleus", Constants.nucleiMap.get(correlation.getAtomType()))
-                                        .queryParam("hybridization", "SP"
-                                                + hybridization)
-                                        .queryParam("multiplicity", multiplicity)
-                                        .queryParam("minShift", signal.getShift(0)
-                                                                      .intValue()
-                                                - shiftTol)
-                                        .queryParam("maxShift", signal.getShift(0)
-                                                                      .intValue()
-                                                + shiftTol)
-                                        .queryParam("elementCountThreshold", elementCountThreshold)
-                                        .queryParam("mf", mf);
-                    detectedConnectivitiesTemp = webClient.get()
-                                                          .uri(uriComponentsBuilder.toUriString())
-                                                          .retrieve()
-                                                          .bodyToMono(
-                                                                  new ParameterizedTypeReference<Map<String, Map<String, Set<Integer>>>>() {
-                                                                  })
-                                                          .block();
-                    if (detectedConnectivitiesTemp
-                            != null) {
-                        detectedConnectivities.putIfAbsent(i, new HashMap<>());
-                        for (final Map.Entry<String, Map<String, Set<Integer>>> entryPerNeighborAtomType : detectedConnectivitiesTemp.entrySet()) {
-                            detectedConnectivities.get(i)
-                                                  .putIfAbsent(entryPerNeighborAtomType.getKey(), new HashMap<>());
-                            for (final Map.Entry<String, Set<Integer>> entryPerNeighborHybridization : entryPerNeighborAtomType.getValue()
-                                                                                                                               .entrySet()) {
-                                numericHybridization = Constants.hybridizationConversionMap.get(
-                                        entryPerNeighborHybridization.getKey());
-                                if (numericHybridization
-                                        != null) {
-                                    detectedConnectivities.get(i)
-                                                          .get(entryPerNeighborAtomType.getKey())
-                                                          .putIfAbsent(numericHybridization, new HashSet<>());
-                                    detectedConnectivities.get(i)
-                                                          .get(entryPerNeighborAtomType.getKey())
-                                                          .get(numericHybridization)
-                                                          .addAll(entryPerNeighborHybridization.getValue());
-                                }
-                            }
-                        }
-                    }
-                }
+                    != null
+                    && !correlation.getHybridization()
+                                   .isEmpty()) {
+                uriComponentsBuilder = UriComponentsBuilder.newInstance();
+                uriComponentsBuilder.path("/detectConnectivities")
+                                    .queryParam("nucleus", Constants.nucleiMap.get(correlation.getAtomType()))
+                                    .queryParam("hybridizations", correlation.getHybridization()
+                                                                             .stream()
+                                                                             .map(String::valueOf)
+                                                                             .collect(Collectors.joining(",")))
+                                    .queryParam("multiplicity", multiplicity)
+                                    .queryParam("minShift", signal.getShift(0)
+                                                                  .intValue()
+                                            - shiftTol)
+                                    .queryParam("maxShift", signal.getShift(0)
+                                                                  .intValue()
+                                            + shiftTol)
+                                    .queryParam("elementCountThreshold", elementCountThreshold)
+                                    .queryParam("mf", mf)
+                                    .queryParam("onAtomTypeLevel", onAtomTypeLevel)
+                                    .queryParam("knownCarbonHybridizations", knownCarbonHybridizations);
+                detectedConnectivitiesTemp = webClient.get()
+                                                      .uri(uriComponentsBuilder.toUriString())
+                                                      .retrieve()
+                                                      .bodyToMono(
+                                                              new ParameterizedTypeReference<Map<String, Map<Integer, Set<Integer>>>>() {
+                                                              })
+                                                      .block();
+                detectedConnectivities.put(i, detectedConnectivitiesTemp);
             }
         }
 
