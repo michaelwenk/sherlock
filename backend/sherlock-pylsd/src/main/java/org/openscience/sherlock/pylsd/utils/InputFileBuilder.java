@@ -118,6 +118,7 @@ public class InputFileBuilder {
         requestTransfer.setPyLSDInputFileContent(
                 PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getCorrelations(),
                                                                  requestTransfer.getMf(), detectionsToUse,
+                                                                 requestTransfer.getGrouping(),
                                                                  requestTransfer.getElucidationOptions()));
         return requestTransfer;
     }
