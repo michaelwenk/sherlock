@@ -33,37 +33,55 @@ public class Detection {
                            .setHybridization(entry.getValue());
         }
         // DETECTIONS
-        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivities = ConnectivityDetection.detectConnectivities(
+        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedOccurrenceForbidden = ConnectivityDetection.detectByOccurrenceCounts(
                 webClientBuilder, correlationList, shiftTolDetection, requestTransfer.getDetectionOptions()
                                                                                      .getLowerElementCountThreshold(),
-                requestTransfer.getMf(), false);
+                requestTransfer.getMf(), "lowerLimit");
 
-        System.out.println("detectedConnectivities: "
-                                   + detectedConnectivities);
-
-        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors = ForbiddenNeighborDetection.detectForbiddenNeighbors(
-                detectedConnectivities, requestTransfer.getMf());
-        reduce(forbiddenNeighbors);
-
-        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors = ConnectivityDetection.detectConnectivities(
+        System.out.println("detectedOccurrenceForbidden: "
+                                   + detectedOccurrenceForbidden);
+        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedOccurrenceAllowed = ConnectivityDetection.detectByOccurrenceCounts(
                 webClientBuilder, correlationList, shiftTolDetection, requestTransfer.getDetectionOptions()
                                                                                      .getUpperElementCountThreshold(),
-                requestTransfer.getMf(), true);
-        reduce(setNeighbors);
-        // remove carbons from set neighbors list
-        for (final Map.Entry<Integer, Map<String, Map<Integer, Set<Integer>>>> entryPerCorrelation : setNeighbors.entrySet()) {
-            entryPerCorrelation.getValue()
-                               .remove("C");
-        }
+                requestTransfer.getMf(), "upperLimit");
 
-
-        // @TODO for now: avoid different neighbor hybridizations
-        simplifyHybridizations(forbiddenNeighbors);
-        simplifyHybridizations(setNeighbors);
-        System.out.println("-> forbiddenNeighbors: "
-                                   + forbiddenNeighbors);
-        System.out.println("-> setNeighbors: "
-                                   + setNeighbors);
+        System.out.println("detectedOccurrenceAllowed: "
+                                   + detectedOccurrenceAllowed);
+        //        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivityCounts = ConnectivityDetection.detectByConnectivityCounts(
+        //                webClientBuilder, correlationList, shiftTolDetection, requestTransfer.getDetectionOptions()
+        //                                                                                     .getLowerElementCountThreshold(),
+        //                requestTransfer.getMf(), false);
+        //
+        //        System.out.println("detectedConnectivityCounts: "
+        //                                   + detectedConnectivityCounts);
+        //
+        //        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors = ForbiddenNeighborDetection.detectForbiddenNeighbors(
+        //                detectedConnectivityCounts, requestTransfer.getMf());
+        //        reduce(forbiddenNeighbors);
+        //
+        //        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors = ConnectivityDetection.detectByConnectivityCounts(
+        //                webClientBuilder, correlationList, shiftTolDetection, requestTransfer.getDetectionOptions()
+        //                                                                                     .getUpperElementCountThreshold(),
+        //                requestTransfer.getMf(), false);
+        //        reduce(setNeighbors);
+        //        // remove carbons from forbidden/set neighbors list
+        //        //        for (final Map.Entry<Integer, Map<String, Map<Integer, Set<Integer>>>> entryPerCorrelation : forbiddenNeighbors.entrySet()) {
+        //        //            entryPerCorrelation.getValue()
+        //        //                               .remove("C");
+        //        //        }
+        //        //        for (final Map.Entry<Integer, Map<String, Map<Integer, Set<Integer>>>> entryPerCorrelation : setNeighbors.entrySet()) {
+        //        //            entryPerCorrelation.getValue()
+        //        //                               .remove("C");
+        //        //        }
+        //
+        //
+        //        // @TODO for now: avoid different neighbor hybridizations
+        //        simplifyHybridizations(forbiddenNeighbors);
+        //        simplifyHybridizations(setNeighbors);
+        //        System.out.println("-> forbiddenNeighbors: "
+        //                                   + forbiddenNeighbors);
+        //        System.out.println("-> setNeighbors: "
+        //                                   + setNeighbors);
 
         final Map<Integer, Set<Integer>> fixedNeighbors = requestTransfer.getDetections()
                                                                   != null
@@ -85,7 +103,8 @@ public class Detection {
 
         responseTransfer.setCorrelations(requestTransfer.getCorrelations());
         responseTransfer.setDetections(
-                new Detections(detectedHybridizations, detectedConnectivities, forbiddenNeighbors, setNeighbors,
+                new Detections(detectedHybridizations, new HashMap<>(), detectedOccurrenceForbidden,
+                               detectedOccurrenceAllowed,//detectedConnectivityCounts, forbiddenNeighbors, setNeighbors,
                                fixedNeighbors));
         responseTransfer.setDetectionOptions(requestTransfer.getDetectionOptions());
 

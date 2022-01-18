@@ -1,5 +1,6 @@
 package org.openscience.sherlock.dbservice.statistics.utils;
 
+import casekit.nmr.lsd.Constants;
 import org.openscience.sherlock.dbservice.statistics.service.model.DataSetRecord;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -9,6 +10,8 @@ import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 
 public class Utilities {
 
@@ -32,5 +35,25 @@ public class Utilities {
                         .uri(uriComponentsBuilder.toUriString())
                         .retrieve()
                         .bodyToFlux(DataSetRecord.class);
+    }
+
+    public static Map<String, Map<Integer, Map<Integer, Integer>>> convertToNumericHybridizationMapKeys(
+            final Map<String, Map<String, Map<Integer, Integer>>> map) {
+        final Map<String, Map<Integer, Map<Integer, Integer>>> converted = new HashMap<>();
+        int numericHybridization;
+        for (final Map.Entry<String, Map<String, Map<Integer, Integer>>> entryPerAtomType : map.entrySet()) {
+            converted.put(entryPerAtomType.getKey(), new HashMap<>());
+            for (final Map.Entry<String, Map<Integer, Integer>> entryPerHybridizationString : entryPerAtomType.getValue()
+                                                                                                              .entrySet()) {
+                if (Constants.hybridizationConversionMap.containsKey(entryPerHybridizationString.getKey())) {
+                    numericHybridization = Constants.hybridizationConversionMap.get(
+                            entryPerHybridizationString.getKey());
+                    converted.get(entryPerAtomType.getKey())
+                             .putIfAbsent(numericHybridization, entryPerHybridizationString.getValue());
+                }
+            }
+        }
+
+        return converted;
     }
 }

@@ -13,10 +13,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -69,81 +66,85 @@ public class ConnectivityController {
             .block();
 
         // nucleus -> multiplicity -> hybridization -> shift (int) -> connected atom symbol -> connected atom hybridization -> connected atom protons count -> occurrence
-        final Map<String, Map<String, Map<String, Map<Integer, Map<String, Map<String, Map<Integer, Integer>>>>>>> connectivityStatisticsPerNucleus = new ConcurrentHashMap<>();
+        final Map<String, Map<String, Map<String, Map<Integer, Map<String, Map<String, Map<Integer, Integer>>>>>>> connectivityStatistics = new ConcurrentHashMap<>();
+        // nucleus -> multiplicity -> hybridization -> shift (int) -> "elemental composition" -> connected atom symbol -> [#found, #notFound]
+        final Map<String, Map<String, Map<String, Map<Integer, Map<String, Map<String, Integer[]>>>>>> occurrenceStatistics = new HashMap<>();
         Utilities.getByDataSetSpectrumNuclei(this.webClientBuilder, this.exchangeStrategies, nuclei)
                  .map(DataSetRecord::getDataSet)
                  .doOnNext(dataSet -> {
                      final String nucleus = dataSet.getSpectrum()
                                                    .getNuclei()[0];
                      final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
-                     connectivityStatisticsPerNucleus.putIfAbsent(nucleus, new ConcurrentHashMap<>());
+                     connectivityStatistics.putIfAbsent(nucleus, new ConcurrentHashMap<>());
                      ConnectivityStatistics.buildConnectivityStatistics(dataSet, atomType,
-                                                                        connectivityStatisticsPerNucleus.get(nucleus));
+                                                                        connectivityStatistics.get(nucleus));
+                     occurrenceStatistics.putIfAbsent(nucleus, new ConcurrentHashMap<>());
+                     ConnectivityStatistics.buildOccurrenceStatistics(dataSet, atomType,
+                                                                      occurrenceStatistics.get(nucleus));
                  })
                  .doAfterTerminate(() -> {
                      System.out.println(" -> connectivityStatistics done");
-                     connectivityStatisticsPerNucleus.keySet()
-                                                     .forEach(nucleus -> connectivityStatisticsPerNucleus.get(nucleus)
-                                                                                                         .keySet()
-                                                                                                         .forEach(
-                                                                                                                 multiplicity -> connectivityStatisticsPerNucleus.get(
-                                                                                                                                                                         nucleus)
-                                                                                                                                                                 .get(multiplicity)
-                                                                                                                                                                 .keySet()
-                                                                                                                                                                 .forEach(
-                                                                                                                                                                         hybridization -> connectivityStatisticsPerNucleus.get(
-                                                                                                                                                                                                                                  nucleus)
-                                                                                                                                                                                                                          .get(multiplicity)
-                                                                                                                                                                                                                          .get(hybridization)
-                                                                                                                                                                                                                          .keySet()
-                                                                                                                                                                                                                          .forEach(
-                                                                                                                                                                                                                                  shift -> {
-                                                                                                                                                                                                                                      this.connectivityServiceImplementation.insert(
-                                                                                                                                                                                                                                                  new ConnectivityRecord(
-                                                                                                                                                                                                                                                          null,
-                                                                                                                                                                                                                                                          nucleus,
-                                                                                                                                                                                                                                                          hybridization,
-                                                                                                                                                                                                                                                          multiplicity,
-                                                                                                                                                                                                                                                          shift,
-                                                                                                                                                                                                                                                          connectivityStatisticsPerNucleus.get(
-                                                                                                                                                                                                                                                                                                  nucleus)
-                                                                                                                                                                                                                                                                                          .get(multiplicity)
-                                                                                                                                                                                                                                                                                          .get(hybridization)
-                                                                                                                                                                                                                                                                                          .get(shift)))
-                                                                                                                                                                                                                                                                            .subscribe();
-                                                                                                                                                                                                                                  }))));
-                     System.out.println(" -> done -> "
-                                                + this.getCount()
-                                                      .block());
+                     connectivityStatistics.keySet()
+                                           .forEach(nucleus -> connectivityStatistics.get(nucleus)
+                                                                                     .keySet()
+                                                                                     .forEach(
+                                                                                             multiplicity -> connectivityStatistics.get(
+                                                                                                                                           nucleus)
+                                                                                                                                   .get(multiplicity)
+                                                                                                                                   .keySet()
+                                                                                                                                   .forEach(
+                                                                                                                                           hybridization -> connectivityStatistics.get(
+                                                                                                                                                                                          nucleus)
+                                                                                                                                                                                  .get(multiplicity)
+                                                                                                                                                                                  .get(hybridization)
+                                                                                                                                                                                  .keySet()
+                                                                                                                                                                                  .forEach(
+                                                                                                                                                                                          shift -> {
+                                                                                                                                                                                              this.connectivityServiceImplementation.insert(
+                                                                                                                                                                                                          new ConnectivityRecord(
+                                                                                                                                                                                                                  null,
+                                                                                                                                                                                                                  nucleus,
+                                                                                                                                                                                                                  hybridization,
+                                                                                                                                                                                                                  multiplicity,
+                                                                                                                                                                                                                  shift,
+                                                                                                                                                                                                                  connectivityStatistics.get(
+                                                                                                                                                                                                                                                nucleus)
+                                                                                                                                                                                                                                        .get(multiplicity)
+                                                                                                                                                                                                                                        .get(hybridization)
+                                                                                                                                                                                                                                        .get(shift),
+                                                                                                                                                                                                                  occurrenceStatistics.get(
+                                                                                                                                                                                                                                              nucleus)
+                                                                                                                                                                                                                                      .get(multiplicity)
+                                                                                                                                                                                                                                      .get(hybridization)
+                                                                                                                                                                                                                                      .get(shift)))
+                                                                                                                                                                                                                                    .subscribe();
+                                                                                                                                                                                          }))));
                  })
                  .subscribe();
     }
 
-    @GetMapping(value = "/detectConnectivities", produces = "application/json")
-    public Map<String, Map<Integer, Set<Integer>>> detectConnectivities(@RequestParam final String nucleus,
-                                                                        @RequestParam final int[] hybridizations,
-                                                                        @RequestParam final String multiplicity,
-                                                                        @RequestParam final int minShift,
-                                                                        @RequestParam final int maxShift,
-                                                                        @RequestParam final double elementCountThreshold,
-                                                                        @RequestParam final String mf,
-                                                                        @RequestParam final boolean onAtomTypeLevel,
-                                                                        @RequestParam final Set<Integer> knownCarbonHybridizations) {
-        final Map<String, Map<Integer, Map<Integer, Integer>>> extractedConnectivitiesAll = new HashMap<>();
+    @GetMapping(value = "/detectConnectivityCounts", produces = "application/json")
+    public Map<String, Map<Integer, Map<Integer, Integer>>> detectConnectivityCounts(@RequestParam final String nucleus,
+                                                                                     @RequestParam final int[] hybridizations,
+                                                                                     @RequestParam final String multiplicity,
+                                                                                     @RequestParam final int minShift,
+                                                                                     @RequestParam final int maxShift,
+                                                                                     @RequestParam final String mf) {
+        final Map<String, Map<Integer, Map<Integer, Integer>>> extractedConnectivities = new HashMap<>();
         final Set<String> atomTypesByMf = Utils.getMolecularFormulaElementCounts(mf)
                                                .keySet();
 
-        List<Map<String, Map<String, Map<Integer, Integer>>>> detectedConnectivities;
+        List<Map<String, Map<String, Map<Integer, Integer>>>> detectedConnectivitiesList;
         Map<String, Map<Integer, Map<Integer, Integer>>> convertedMap;
 
         // loop through all given hybridization states
         for (final int hybridization : hybridizations) {
-            detectedConnectivities = this.findByNucleusAndHybridizationAndMultiplicityAndShift(nucleus, "SP"
-                                                 + hybridization, multiplicity, minShift, maxShift)
-                                         .map(ConnectivityRecord::getConnectivityCounts)
-                                         .collectList()
-                                         .block();
-            detectedConnectivities.forEach(foundExtractedConnectivityCountsMap -> {
+            detectedConnectivitiesList = this.findByNucleusAndHybridizationAndMultiplicityAndShift(nucleus, "SP"
+                                                     + hybridization, multiplicity, minShift, maxShift)
+                                             .map(ConnectivityRecord::getConnectivityCounts)
+                                             .collectList()
+                                             .block();
+            detectedConnectivitiesList.forEach(foundExtractedConnectivityCountsMap -> {
                 final Set<String> foundAtomTypesToIgnore = foundExtractedConnectivityCountsMap.keySet()
                                                                                               .stream()
                                                                                               .filter(foundAtomType -> !atomTypesByMf.contains(
@@ -155,35 +156,85 @@ public class ConnectivityController {
                 }
             });
             // loop over all results from DB in case a chemical shift range is given (minShift != maxShift)
-            for (final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivityTemp : detectedConnectivities) {
-                convertedMap = ConnectivityStatistics.convertToNumericHybridizationMapKeys(extractedConnectivityTemp);
+            for (final Map<String, Map<String, Map<Integer, Integer>>> extractedConnectivityTemp : detectedConnectivitiesList) {
+                convertedMap = Utilities.convertToNumericHybridizationMapKeys(extractedConnectivityTemp);
                 for (final String extractedNeighborAtomType : convertedMap.keySet()) {
-                    extractedConnectivitiesAll.putIfAbsent(extractedNeighborAtomType, new HashMap<>());
+                    extractedConnectivities.putIfAbsent(extractedNeighborAtomType, new HashMap<>());
                     for (final int extractedNeighborHybridization : convertedMap.get(extractedNeighborAtomType)
                                                                                 .keySet()) {
-                        extractedConnectivitiesAll.get(extractedNeighborAtomType)
-                                                  .putIfAbsent(extractedNeighborHybridization, new HashMap<>());
+                        extractedConnectivities.get(extractedNeighborAtomType)
+                                               .putIfAbsent(extractedNeighborHybridization, new HashMap<>());
                         for (final Map.Entry<Integer, Integer> entryPerProtonsCount : convertedMap.get(
                                                                                                           extractedNeighborAtomType)
                                                                                                   .get(extractedNeighborHybridization)
                                                                                                   .entrySet()) {
-                            extractedConnectivitiesAll.get(extractedNeighborAtomType)
-                                                      .get(extractedNeighborHybridization)
-                                                      .putIfAbsent(entryPerProtonsCount.getKey(), 0);
-                            extractedConnectivitiesAll.get(extractedNeighborAtomType)
-                                                      .get(extractedNeighborHybridization)
-                                                      .put(entryPerProtonsCount.getKey(),
-                                                           extractedConnectivitiesAll.get(extractedNeighborAtomType)
-                                                                                     .get(extractedNeighborHybridization)
-                                                                                     .get(entryPerProtonsCount.getKey())
-                                                                   + entryPerProtonsCount.getValue());
+                            extractedConnectivities.get(extractedNeighborAtomType)
+                                                   .get(extractedNeighborHybridization)
+                                                   .putIfAbsent(entryPerProtonsCount.getKey(), 0);
+                            extractedConnectivities.get(extractedNeighborAtomType)
+                                                   .get(extractedNeighborHybridization)
+                                                   .put(entryPerProtonsCount.getKey(), extractedConnectivities.get(
+                                                                                                                      extractedNeighborAtomType)
+                                                                                                              .get(extractedNeighborHybridization)
+                                                                                                              .get(entryPerProtonsCount.getKey())
+                                                           + entryPerProtonsCount.getValue());
                         }
                     }
                 }
             }
         }
 
-        return ConnectivityStatistics.filterExtractedConnectivities(extractedConnectivitiesAll, elementCountThreshold,
-                                                                    onAtomTypeLevel, knownCarbonHybridizations);
+        return extractedConnectivities;
+    }
+
+    @GetMapping(value = "/detectOccurrenceCounts", produces = "application/json")
+    public Map<String, Integer[]> detectOccurrenceCounts(@RequestParam final String nucleus,
+                                                         @RequestParam final int[] hybridizations,
+                                                         @RequestParam final String multiplicity,
+                                                         @RequestParam final int minShift,
+                                                         @RequestParam final int maxShift,
+                                                         @RequestParam final String mf) {
+        final Map<String, Integer[]> extractedOccurrences = new HashMap<>();
+        final List<String> elements = new ArrayList<>(Utils.getMolecularFormulaElementCounts(mf)
+                                                           .keySet());
+        elements.remove("H");
+        Collections.sort(elements);
+        final String elementsString = String.join(",", elements);
+
+        List<Map<String, Map<String, Integer[]>>> extractedOccurrencesList;
+        List<Map<String, Integer[]>> extractedOccurrencesSimplifiedList; // no elemental composition distinguishes anymore since we will filter out one only (through mf)
+        List<String> foundElementalComposition;
+        // loop through all given hybridization states
+        for (final int hybridization : hybridizations) {
+            extractedOccurrencesList = this.findByNucleusAndHybridizationAndMultiplicityAndShift(nucleus, "SP"
+                                                   + hybridization, multiplicity, minShift, maxShift)
+                                           .map(ConnectivityRecord::getOccurrenceCounts)
+                                           .collectList()
+                                           .block();
+            extractedOccurrencesSimplifiedList = new ArrayList<>();
+            for (final Map<String, Map<String, Integer[]>> foundExtractedOccurrenceCountMap : extractedOccurrencesList) {
+                foundElementalComposition = foundExtractedOccurrenceCountMap.keySet()
+                                                                            .stream()
+                                                                            .filter(foundElementalCompositionTemp -> foundElementalCompositionTemp.equals(
+                                                                                    elementsString))
+                                                                            .collect(Collectors.toList());
+                if (!foundElementalComposition.isEmpty()) {
+                    extractedOccurrencesSimplifiedList.add(
+                            foundExtractedOccurrenceCountMap.get(foundElementalComposition.get(0)));
+                }
+            }
+            // loop over all results from DB in case a chemical shift range is given (minShift != maxShift)
+            for (final Map<String, Integer[]> extractedOccurrencesSimplified : extractedOccurrencesSimplifiedList) {
+                for (final Map.Entry<String, Integer[]> entryPerNeighborAtomType : extractedOccurrencesSimplified.entrySet()) {
+                    extractedOccurrences.putIfAbsent(entryPerNeighborAtomType.getKey(), new Integer[]{0, 0});
+                    extractedOccurrences.get(
+                            entryPerNeighborAtomType.getKey())[0] += entryPerNeighborAtomType.getValue()[0];
+                    extractedOccurrences.get(
+                            entryPerNeighborAtomType.getKey())[1] += entryPerNeighborAtomType.getValue()[1];
+                }
+            }
+        }
+
+        return extractedOccurrences;
     }
 }
