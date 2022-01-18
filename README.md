@@ -1,4 +1,5 @@
-<img width="100px" alt="sherlock-logo" src="public/Sherlock.png" style="width: 100px; float:right;">
+<img width="150" alt="sherlock-logo" src="public/Sherlock.png" align="right">
+
 # Sherlock
 Web services for Computer-Assisted Structure Elucidation (CASE).
 
