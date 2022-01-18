@@ -1,3 +1,4 @@
+<img width="100px" alt="sherlock-logo" src="public/Sherlock.png" style="width: 100px; float:right;">
 # Sherlock
 Web services for Computer-Assisted Structure Elucidation (CASE).
 
