@@ -11,5 +11,6 @@ public class ElucidationOptions
     // elucidation process
     private int timeLimitTotal;
     // generated structures filter
+    private double shiftTolerance;
     private double maxAverageDeviation;
 }

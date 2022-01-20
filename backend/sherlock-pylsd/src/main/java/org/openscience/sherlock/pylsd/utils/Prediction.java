@@ -59,8 +59,6 @@ public class Prediction {
         final List<String> smilesList = requestTransfer.getSmilesList();
         System.out.println(" ---> requestSMILES: "
                                    + smilesList.size());
-        final double maxAverageDeviation = requestTransfer.getElucidationOptions()
-                                                          .getMaxAverageDeviation();
         final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(requestTransfer.getCorrelations()
                                                                                         .getValues(), nucleus);
         multiplicitySectionsBuilder.setMinLimit(multiplicitySectionsSettings.get(nucleus)[0]);
@@ -78,8 +76,11 @@ public class Prediction {
             final List<Callable<DataSet>> callables = new ArrayList<>();
             for (final String smiles : smilesList) {
                 final IAtomContainer structure = smilesParser.parseSmiles(smiles);
-                callables.add(() -> predict(structure, querySpectrum, maxSphere, maxAverageDeviation,
-                                            bitSetFingerprintQuerySpectrum, keepDataSetMetaOnly, hoseCodeDBEntriesMap));
+                callables.add(() -> predict(structure, querySpectrum, maxSphere, requestTransfer.getElucidationOptions()
+                                                                                                .getShiftTolerance(),
+                                            requestTransfer.getElucidationOptions()
+                                                           .getMaxAverageDeviation(), bitSetFingerprintQuerySpectrum,
+                                            keepDataSetMetaOnly, hoseCodeDBEntriesMap));
             }
             final Consumer<DataSet> consumer = (dataSet) -> {
                 if (dataSet
@@ -97,7 +98,7 @@ public class Prediction {
     }
 
     private static DataSet predict(final IAtomContainer structure, final Spectrum querySpectrum, final int maxSphere,
-                                   final double maxAverageDeviation,
+                                   final double shiftTolerance, final double maxAverageDeviation,
                                    final BitSetFingerprint bitSetFingerprintQuerySpectrum,
                                    final boolean keepDataSetMetaOnly,
                                    final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap) {
@@ -208,7 +209,8 @@ public class Prediction {
             dataSet.addMetaInfo("querySpectrumSignalCount", String.valueOf(querySpectrum.getSignalCount()));
             dataSet.addMetaInfo("querySpectrumSignalCountWithEquivalences",
                                 String.valueOf(querySpectrum.getSignalCountWithEquivalences()));
-            matchAssignment = Similarity.matchSpectra(querySpectrum, predictedSpectrum, 0, 0, 50, true, true, false);
+            matchAssignment = Similarity.matchSpectra(querySpectrum, predictedSpectrum, 0, 0, shiftTolerance, true,
+                                                      true, false);
             dataSet.addMetaInfo("setAssignmentsCount", String.valueOf(matchAssignment.getSetAssignmentsCount(0)));
             dataSet.addMetaInfo("setAssignmentsCountWithEquivalences",
                                 String.valueOf(matchAssignment.getSetAssignmentsCountWithEquivalences(0)));
