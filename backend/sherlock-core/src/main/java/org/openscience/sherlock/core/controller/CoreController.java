@@ -114,6 +114,22 @@ public class CoreController {
         //            //            return new ResponseEntity<>(responseTransfer, HttpStatus.BAD_REQUEST);
         //        }
 
+
+        final Map<String, Number> tolerances = (Map<String, Number>) requestTransfer.getResultRecord()
+                                                                                    .getCorrelations()
+                                                                                    .getOptions()
+                                                                                    .get("tolerance");
+        for (final String atomType : tolerances.keySet()) {
+            if (tolerances.get(atomType) instanceof Integer) {
+                tolerances.put(atomType, tolerances.get(atomType)
+                                                   .doubleValue());
+            }
+        }
+        requestTransfer.getResultRecord()
+                       .getCorrelations()
+                       .getOptions()
+                       .put("tolerance", tolerances);
+
         try {
             // DEREPLICATION
             if (requestTransfer.getQueryType()
