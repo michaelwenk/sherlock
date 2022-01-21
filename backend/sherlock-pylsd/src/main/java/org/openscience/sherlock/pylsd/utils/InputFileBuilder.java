@@ -2,6 +2,7 @@ package org.openscience.sherlock.pylsd.utils;
 
 import casekit.nmr.lsd.inputfile.PyLSDInputFileBuilder;
 import casekit.nmr.lsd.model.Detections;
+import casekit.nmr.lsd.model.Grouping;
 import casekit.nmr.model.nmrium.Correlation;
 import org.openscience.sherlock.pylsd.model.exchange.Transfer;
 import org.openscience.sherlock.pylsd.utils.detection.Detection;
@@ -118,7 +119,11 @@ public class InputFileBuilder {
         requestTransfer.setPyLSDInputFileContent(
                 PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getCorrelations(),
                                                                  requestTransfer.getMf(), detectionsToUse,
-                                                                 requestTransfer.getGrouping(),
+                                                                 requestTransfer.getElucidationOptions()
+                                                                                .isUseCombinatorics()
+                                                                 ? requestTransfer.getGrouping()
+                                                                 : new Grouping(new HashMap<>(), new HashMap<>(),
+                                                                                new HashMap<>()),
                                                                  requestTransfer.getElucidationOptions()));
         return requestTransfer;
     }

@@ -125,7 +125,8 @@ public class Detection {
 
 
         responseTransfer.setGrouping(detectGroups(responseTransfer.getCorrelations()));
-        System.out.println(responseTransfer.getGrouping());
+        System.out.println("grouping: "
+                                   + responseTransfer.getGrouping());
 
         return responseTransfer;
     }

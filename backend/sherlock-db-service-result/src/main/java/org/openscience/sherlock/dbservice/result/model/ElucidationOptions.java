@@ -13,4 +13,5 @@ public class ElucidationOptions
     // generated structures filter
     private double shiftTolerance;
     private double maxAverageDeviation;
+    private boolean useCombinatorics;
 }
