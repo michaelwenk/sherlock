@@ -38,8 +38,11 @@ public interface HybridizationService {
 
     Mono<HybridizationRecord> findById(final String id);
 
-    Flux<HybridizationRecord> findByNucleusAndMultiplicityAndShift(final String nucleus, final String multiplicity,
-                                                                   final int minShift, final int maxShift);
+    Flux<HybridizationRecord> findByNucleusAndMultiplicityAndElementsStringAndShift(final String nucleus,
+                                                                                    final String multiplicity,
+                                                                                    final String elementsString,
+                                                                                    final int minShift,
+                                                                                    final int maxShift);
 
     Mono<Void> deleteAll();
 }

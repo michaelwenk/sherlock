@@ -44,5 +44,6 @@ public class HybridizationRecord {
     private String nucleus;
     private int shift;
     private String multiplicity;
-    private Map<String, Integer> hybridizationCounts; // hybridization -> count
+    private String elementsString;
+    private Map<String, Integer[]> hybridizationCounts; // hybridization -> [count, total count]
 }

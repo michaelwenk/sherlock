@@ -38,7 +38,10 @@ public interface HybridizationRepository
     @Override
     Mono<HybridizationRecord> findById(final String id);
 
-    @Query(value = "{\"nucleus\": \"?0\", \"multiplicity\": \"?1\", \"shift\": {$gte: ?2, $lte: ?3}}")
-    Flux<HybridizationRecord> findByNucleusAndMultiplicityAndShift(final String nucleus, final String multiplicity,
-                                                                   final int minShift, final int maxShift);
+    @Query(value = "{\"nucleus\": \"?0\", \"multiplicity\": \"?1\", \"elementsString\": \"?2\", \"shift\": {$gte: ?3, $lte: ?4}}")
+    Flux<HybridizationRecord> findByNucleusAndMultiplicityAndElementsStringAndShift(final String nucleus,
+                                                                                    final String multiplicity,
+                                                                                    final String elementsString,
+                                                                                    final int minShift,
+                                                                                    final int maxShift);
 }

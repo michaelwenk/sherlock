@@ -15,7 +15,8 @@ public class HybridizationDetection {
 
     public static Map<Integer, List<Integer>> detectHybridizations(final WebClient.Builder webClientBuilder,
                                                                    final List<Correlation> correlationList,
-                                                                   final float threshold, final int shiftTol) {
+                                                                   final String mf, final float threshold,
+                                                                   final int shiftTol) {
         final Map<Integer, List<Integer>> detectedHybridizations = new HashMap<>();
 
         final WebClient webClient = webClientBuilder.baseUrl(
@@ -43,14 +44,15 @@ public class HybridizationDetection {
                 uriComponentsBuilder = UriComponentsBuilder.newInstance();
                 uriComponentsBuilder.path("/detectHybridizations")
                                     .queryParam("nucleus", Constants.nucleiMap.get(correlation.getAtomType()))
+                                    .queryParam("multiplicity", multiplicity)
                                     .queryParam("minShift", signal.getShift(0)
                                                                   .intValue()
                                             - shiftTol)
                                     .queryParam("maxShift", signal.getShift(0)
                                                                   .intValue()
                                             + shiftTol)
-                                    .queryParam("multiplicity", multiplicity)
-                                    .queryParam("threshold", threshold);
+                                    .queryParam("threshold", threshold)
+                                    .queryParam("mf", mf);
                 hybridizations = webClient.get()
                                           .uri(uriComponentsBuilder.toUriString())
                                           .retrieve()
