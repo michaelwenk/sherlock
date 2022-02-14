@@ -24,8 +24,9 @@
 
 package org.openscience.sherlock.pylsd.model.exchange;
 
-import casekit.nmr.lsd.model.Detections;
-import casekit.nmr.lsd.model.Grouping;
+
+import casekit.nmr.elucidation.model.Detections;
+import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.nmrium.Correlations;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
@@ -49,7 +50,7 @@ public class Transfer {
 
     private Correlations correlations;
     private String mf;
-    private String pyLSDInputFileContent;
+    private List<String> pyLSDInputFileContentList;
     private Boolean pyLSDRunWasSuccessful;
     private ElucidationOptions elucidationOptions;
     private DetectionOptions detectionOptions;

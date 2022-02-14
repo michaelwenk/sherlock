@@ -1,6 +1,6 @@
 package org.openscience.sherlock.pylsd.utils.detection;
 
-import casekit.nmr.lsd.Constants;
+import casekit.nmr.elucidation.Constants;
 import casekit.nmr.model.Signal;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.utils.Utils;

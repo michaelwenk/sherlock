@@ -1,6 +1,6 @@
 package org.openscience.sherlock.pylsd.utils.detection;
 
-import casekit.nmr.lsd.Utilities;
+import casekit.nmr.elucidation.Utilities;
 import casekit.nmr.utils.Utils;
 
 import java.util.HashMap;

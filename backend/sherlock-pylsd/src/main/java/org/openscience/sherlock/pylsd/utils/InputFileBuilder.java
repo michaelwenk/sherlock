@@ -1,8 +1,8 @@
 package org.openscience.sherlock.pylsd.utils;
 
-import casekit.nmr.lsd.inputfile.PyLSDInputFileBuilder;
-import casekit.nmr.lsd.model.Detections;
-import casekit.nmr.lsd.model.Grouping;
+import casekit.nmr.elucidation.lsd.PyLSDInputFileBuilder;
+import casekit.nmr.elucidation.model.Detections;
+import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.model.nmrium.Correlation;
 import org.openscience.sherlock.pylsd.model.exchange.Transfer;
 import org.openscience.sherlock.pylsd.utils.detection.Detection;
@@ -116,15 +116,21 @@ public class InputFileBuilder {
                                                            .getSetNeighbors());
         }
 
-        requestTransfer.setPyLSDInputFileContent(
-                PyLSDInputFileBuilder.buildPyLSDInputFileContent(requestTransfer.getCorrelations(),
-                                                                 requestTransfer.getMf(), detectionsToUse,
-                                                                 requestTransfer.getElucidationOptions()
-                                                                                .isUseCombinatorics()
-                                                                 ? requestTransfer.getGrouping()
-                                                                 : new Grouping(new HashMap<>(), new HashMap<>(),
-                                                                                new HashMap<>()),
-                                                                 requestTransfer.getElucidationOptions()));
+        // define default bond distances
+        final Map<String, Integer[]> defaultBondDistances = new HashMap<>();
+        defaultBondDistances.put("hmbc", new Integer[]{2, 3});
+        defaultBondDistances.put("cosy", new Integer[]{3, 4});
+
+        requestTransfer.setPyLSDInputFileContentList(
+                PyLSDInputFileBuilder.buildPyLSDInputFileContentList(requestTransfer.getCorrelations(),
+                                                                     requestTransfer.getMf(), detectionsToUse,
+                                                                     requestTransfer.getElucidationOptions()
+                                                                                    .isUseCombinatorics()
+                                                                     ? requestTransfer.getGrouping()
+                                                                     : new Grouping(new HashMap<>(), new HashMap<>(),
+                                                                                    new HashMap<>()),
+                                                                     requestTransfer.getElucidationOptions(),
+                                                                     defaultBondDistances));
         return requestTransfer;
     }
 }
