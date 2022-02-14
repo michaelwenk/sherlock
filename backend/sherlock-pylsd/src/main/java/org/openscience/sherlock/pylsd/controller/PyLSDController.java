@@ -14,6 +14,7 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -47,7 +48,8 @@ public class PyLSDController {
                                                               this.pathToNeighborsFilesFolder
                                                                       + requestTransfer.getRequestID()
                                                                       + "_set.deff"});
-        final Transfer queryResultTransfer = InputFileBuilder.createPyLSDInputFile(this.webClientBuilder, requestTransfer);
+        final Transfer queryResultTransfer = InputFileBuilder.createPyLSDInputFile(this.webClientBuilder,
+                                                                                   requestTransfer);
         final Transfer responseTransfer = new Transfer();
         responseTransfer.setRequestID(requestTransfer.getRequestID());
         responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
@@ -55,75 +57,110 @@ public class PyLSDController {
         responseTransfer.setDetections(queryResultTransfer.getDetections());
         responseTransfer.setGrouping(queryResultTransfer.getGrouping());
         responseTransfer.setDetectionOptions(queryResultTransfer.getDetectionOptions());
-        System.out.println("file content:\n"
-                                   + queryResultTransfer.getPyLSDInputFileContent());
-        final String pathToPyLSDInputFile = this.pathToPyLSDInputFileFolder
-                + responseTransfer.getRequestID()
-                + ".pylsd";
 
-        // run PyLSD if file was written successfully
-        if (FileSystem.writeFile(pathToPyLSDInputFile, queryResultTransfer.getPyLSDInputFileContent())) {
-            System.out.println("--> has been written successfully: "
-                                       + pathToPyLSDInputFile);
-            try {
-                // try to execute PyLSD
-                final ProcessBuilder builder = new ProcessBuilder();
-                builder.directory(new File(this.pathToPyLSDExecutableFolder))
-                       .redirectError(new File(this.pathToPyLSDInputFileFolder
-                                                       + responseTransfer.getRequestID()
-                                                       + "_error.txt"))
-                       .redirectOutput(new File(this.pathToPyLSDInputFileFolder
-                                                        + responseTransfer.getRequestID()
-                                                        + "_log.txt"))
-                       .command("python2.7", this.pathToPyLSDExecutableFolder
-                               + "lsd.py", pathToPyLSDInputFile);
-                final Process process = builder.start();
-                final boolean pyLSDRunWasSuccessful = process.waitFor(responseTransfer.getElucidationOptions()
-                                                                                      .getTimeLimitTotal(),
-                                                                      TimeUnit.MINUTES);
-                if (pyLSDRunWasSuccessful) {
-                    System.out.println("-> run was successful");
-                    final String pathToSmilesFile = this.pathToPyLSDResultFileFolder
-                            + responseTransfer.getRequestID()
-                            + "_0.smiles";
-                    System.out.println(pathToSmilesFile);
-                    responseTransfer.setPathToSmilesFile(pathToSmilesFile);
+        final String[] directoriesToCheck = new String[]{this.pathToPyLSDInputFileFolder,
+                                                         this.pathToPyLSDResultFileFolder,
+                                                         this.pathToNeighborsFilesFolder};
 
-                    final ResponseEntity<Transfer> transferResponseEntity = this.parserAndPrediction.parseAndPredictFromSmilesFile(
-                            responseTransfer);
-                    if (transferResponseEntity.getStatusCode()
-                                              .isError()) {
-                        return transferResponseEntity;
+        System.out.println("\n ---> file content list processing: "
+                                   + queryResultTransfer.getPyLSDInputFileContentList()
+                                                        .size()
+                                   + "\n");
+        String pyLSDInputFileContent, pathToPyLSDInputFile, requestID;
+        ProcessBuilder processBuilder;
+        Process process;
+        final List<DataSet> dataSetList = new ArrayList<>();
+        boolean pyLSDRunWasSuccessful;
+        ResponseEntity<Transfer> transferResponseEntity;
+        for (int i = 0; i
+                < queryResultTransfer.getPyLSDInputFileContentList()
+                                     .size(); i++) {
+            pyLSDInputFileContent = queryResultTransfer.getPyLSDInputFileContentList()
+                                                       .get(i);
+            requestID = responseTransfer.getRequestID()
+                    + "_"
+                    + i;
+            //            System.out.println("\n----------------------\n -> i: "
+            //                                       + i
+            //                                       + " -> \n"
+            //                                       + pyLSDInputFileContent
+            //                                       + "\n----------------------\n");
+
+            pathToPyLSDInputFile = this.pathToPyLSDInputFileFolder
+                    + requestID
+                    + ".pylsd";
+
+            // run PyLSD if file was written successfully
+            if (FileSystem.writeFile(pathToPyLSDInputFile, pyLSDInputFileContent)) {
+                //                System.out.println("--> has been written successfully: "
+                //                                           + pathToPyLSDInputFile);
+                try {
+                    // try to execute PyLSD
+                    processBuilder = new ProcessBuilder();
+                    processBuilder.directory(new File(this.pathToPyLSDExecutableFolder))
+                                  .redirectError(new File(this.pathToPyLSDInputFileFolder
+                                                                  + requestID
+                                                                  + "_error.txt"))
+                                  .redirectOutput(new File(this.pathToPyLSDInputFileFolder
+                                                                   + requestID
+                                                                   + "_log.txt"))
+                                  .command("python2.7", this.pathToPyLSDExecutableFolder
+                                          + "lsd.py", pathToPyLSDInputFile);
+                    process = processBuilder.start();
+                    pyLSDRunWasSuccessful = process.waitFor(responseTransfer.getElucidationOptions()
+                                                                            .getTimeLimitTotal(), TimeUnit.MINUTES);
+                    if (pyLSDRunWasSuccessful) {
+                        //                        System.out.println("--> run was successful");
+                        final String pathToSmilesFile = this.pathToPyLSDResultFileFolder
+                                + requestID
+                                + "_0.smiles";
+                        responseTransfer.setPathToSmilesFile(pathToSmilesFile);
+
+                        transferResponseEntity = this.parserAndPrediction.parseAndPredictFromSmilesFile(
+                                responseTransfer);
+                        if (transferResponseEntity.getStatusCode()
+                                                  .isError()) {
+                            return transferResponseEntity;
+                        }
+                        //                        System.out.println("--> path to smiles file: "
+                        //                                                   + pathToSmilesFile
+                        //                                                   + "\n-->  number of parsed and ranked structures: "
+                        //                                                   + transferResponseEntity.getBody()
+                        //                                                                           .getDataSetList()
+                        //                                                                           .size());
+                        for (final DataSet dataSet : transferResponseEntity.getBody()
+                                                                           .getDataSetList()) {
+                            if (dataSetList.stream()
+                                           .noneMatch(ds -> ds.getMeta()
+                                                              .get("smiles")
+                                                              .equals(dataSet.getMeta()
+                                                                             .get("smiles")))) {
+                                dataSetList.add(dataSet);
+                            }
+                        }
+                    } else {
+                        //                        System.out.println("--> run was NOT successful -> killing PyLSD run if it still exist");
+                        this.cancel();
+                        break;
                     }
-                    final List<DataSet> dataSetList = transferResponseEntity.getBody()
-                                                                            .getDataSetList();
-                    System.out.println("--> number of parsed and ranked structures: "
-                                               + dataSetList.size());
-
-                    System.out.println("--> number of results: "
-                                               + dataSetList.size());
-                    responseTransfer.setDataSetList(dataSetList);
-                } else {
-                    System.out.println("run was NOT successful -> killing PyLSD run if it still exist");
-                    this.cancel();
+                } catch (final Exception e) {
+                    e.printStackTrace();
+                    responseTransfer.setPyLSDRunWasSuccessful(false);
+                    break;
                 }
-            } catch (final Exception e) {
-                e.printStackTrace();
-                responseTransfer.setPyLSDRunWasSuccessful(false);
+                // cleanup of created files and folder
+                FileSystem.cleanup(directoriesToCheck, requestID);
+            } else {
+                //                System.out.println("--> input file creation failed at "
+                //                                           + pathToPyLSDInputFile);
+                responseTransfer.setErrorMessage("PyLSD input file creation failed at "
+                                                         + pathToPyLSDInputFile);
+                return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
             }
-            // cleanup of created files and folder
-            final String[] directoriesToCheck = new String[]{this.pathToPyLSDInputFileFolder,
-                                                             this.pathToPyLSDResultFileFolder,
-                                                             this.pathToNeighborsFilesFolder};
-            System.out.println("cleaned ? -> "
-                                       + FileSystem.cleanup(directoriesToCheck, responseTransfer.getRequestID()));
-        } else {
-            System.out.println("--> input file creation failed at "
-                                       + pathToPyLSDInputFile);
-            responseTransfer.setErrorMessage("PyLSD input file creation failed at "
-                                                     + pathToPyLSDInputFile);
-            return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+        System.out.println("\n\n ---> total count of unique parsed and ranked structures: "
+                                   + dataSetList.size());
+        responseTransfer.setDataSetList(dataSetList);
 
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
