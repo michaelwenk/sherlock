@@ -57,8 +57,8 @@ public class Prediction {
         final int maxSphere = 6;
         final boolean keepDataSetMetaOnly = true;
         final List<String> smilesList = requestTransfer.getSmilesList();
-        System.out.println(" ---> requestSMILES: "
-                                   + smilesList.size());
+        //        System.out.println("-----> requestSMILES: "
+        //                                   + smilesList.size());
         final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(requestTransfer.getCorrelations()
                                                                                         .getValues(), nucleus);
         multiplicitySectionsBuilder.setMinLimit(multiplicitySectionsSettings.get(nucleus)[0]);

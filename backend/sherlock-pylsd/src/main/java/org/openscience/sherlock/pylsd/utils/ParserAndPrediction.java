@@ -102,8 +102,8 @@ public class ParserAndPrediction {
                 return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } catch (final FileNotFoundException e) {
-            System.out.println("Could not parse SMILES file: "
-                                       + requestTransfer.getPathToSmilesFile());
+            //            System.out.println("--> could not parse SMILES file: "
+            //                                       + requestTransfer.getPathToSmilesFile());
             responseTransfer.setDataSetList(new ArrayList<>());
         }
 

@@ -1,8 +1,8 @@
 package org.openscience.sherlock.pylsd.utils.detection;
 
-import casekit.nmr.lsd.Utilities;
-import casekit.nmr.lsd.model.Detections;
-import casekit.nmr.lsd.model.Grouping;
+import casekit.nmr.elucidation.Utilities;
+import casekit.nmr.elucidation.model.Detections;
+import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.model.nmrium.Correlations;
 import org.openscience.sherlock.pylsd.model.exchange.Transfer;
