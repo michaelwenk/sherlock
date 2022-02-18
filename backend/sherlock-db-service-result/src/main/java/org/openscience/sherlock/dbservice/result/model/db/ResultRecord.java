@@ -24,8 +24,8 @@
 
 package org.openscience.sherlock.dbservice.result.model.db;
 
-import casekit.nmr.lsd.model.Detections;
-import casekit.nmr.lsd.model.Grouping;
+import casekit.nmr.elucidation.model.Detections;
+import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.nmrium.Correlations;
 import lombok.*;

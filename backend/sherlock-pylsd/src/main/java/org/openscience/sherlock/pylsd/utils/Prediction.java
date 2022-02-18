@@ -10,6 +10,7 @@ import casekit.threading.MultiThreading;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.cdk.io.MDLV3000Writer;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.smiles.SmilesParser;
 import org.openscience.sherlock.pylsd.model.db.HOSECode;
@@ -21,6 +22,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Mono;
 
+import java.io.ByteArrayOutputStream;
 import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -55,7 +57,7 @@ public class Prediction {
         // @TODO method modifications for different nuclei and solvent needed
         final String nucleus = "13C";
         final int maxSphere = 6;
-        final boolean keepDataSetMetaOnly = true;
+        final boolean keepDataSetMetaOnly = false;
         final List<String> smilesList = requestTransfer.getSmilesList();
         //        System.out.println("-----> requestSMILES: "
         //                                   + smilesList.size());
@@ -75,12 +77,11 @@ public class Prediction {
             final ConcurrentLinkedQueue<DataSet> dataSetConcurrentLinkedQueue = new ConcurrentLinkedQueue<>();
             final List<Callable<DataSet>> callables = new ArrayList<>();
             for (final String smiles : smilesList) {
-                final IAtomContainer structure = smilesParser.parseSmiles(smiles);
-                callables.add(() -> predict(structure, querySpectrum, maxSphere, requestTransfer.getElucidationOptions()
-                                                                                                .getShiftTolerance(),
+                callables.add(() -> predict(smilesParser.parseSmiles(smiles), querySpectrum, maxSphere,
                                             requestTransfer.getElucidationOptions()
-                                                           .getMaxAverageDeviation(), bitSetFingerprintQuerySpectrum,
-                                            keepDataSetMetaOnly, hoseCodeDBEntriesMap));
+                                                           .getShiftTolerance(), requestTransfer.getElucidationOptions()
+                                                                                                .getMaxAverageDeviation(),
+                                            bitSetFingerprintQuerySpectrum, keepDataSetMetaOnly, hoseCodeDBEntriesMap));
             }
             final Consumer<DataSet> consumer = (dataSet) -> {
                 if (dataSet
@@ -108,7 +109,7 @@ public class Prediction {
 
 
         final Assignment assignment;
-        final Assignment matchAssignment;
+        final Assignment spectralMatchAssignment;
         Signal signal;
         Map<String, Double[]> hoseCodeObjectValues;
         double predictedShift;
@@ -120,6 +121,8 @@ public class Prediction {
         int signalIndex, sphere;
         List<Double> medians;
         final BitSetFingerprint bitSetFingerprintDataSet;
+        final MDLV3000Writer mdlv3000Writer;
+        final ByteArrayOutputStream byteArrayOutputStream;
         try {
             final DataSet dataSet = Utils.atomContainerToDataSet(structure);
             //                // convert implicit to explicit hydrogens for building HOSE codes and lookup in HOSE code DB
@@ -150,6 +153,12 @@ public class Prediction {
                         for (final Map.Entry<String, Double[]> solventEntry : hoseCodeObjectValues.entrySet()) {
                             statistics = hoseCodeObjectValues.get(solventEntry.getKey());
                             medians.add(statistics[3]);
+                            //                            System.out.println(" -> "
+                            //                                                       + sphere
+                            //                                                       + " -> "
+                            //                                                       + solventEntry.getKey()
+                            //                                                       + " -> "
+                            //                                                       + Arrays.toString(statistics));
                         }
                         break;
                     }
@@ -189,7 +198,6 @@ public class Prediction {
 
             // to save space and time when (re-)converting datasets avoid the currently non-used information
             // the SMILES was build by CDK and stored in meta information
-
             if (keepDataSetMetaOnly) {
                 dataSet.setStructure(null);
             } else {
@@ -204,23 +212,33 @@ public class Prediction {
                     }
                 }
                 dataSet.setAssignment(assignment);
+
+                // store as MOL file
+                mdlv3000Writer = new MDLV3000Writer();
+                byteArrayOutputStream = new ByteArrayOutputStream();
+                mdlv3000Writer.setWriter(byteArrayOutputStream);
+                mdlv3000Writer.write(dataSet.getStructure()
+                                            .toAtomContainer());
+                dataSet.addMetaInfo("molfile", byteArrayOutputStream.toString());
             }
 
             dataSet.addMetaInfo("querySpectrumSignalCount", String.valueOf(querySpectrum.getSignalCount()));
             dataSet.addMetaInfo("querySpectrumSignalCountWithEquivalences",
                                 String.valueOf(querySpectrum.getSignalCountWithEquivalences()));
-            matchAssignment = Similarity.matchSpectra(querySpectrum, predictedSpectrum, 0, 0, shiftTolerance, true,
-                                                      true, false);
-            dataSet.addMetaInfo("setAssignmentsCount", String.valueOf(matchAssignment.getSetAssignmentsCount(0)));
+            spectralMatchAssignment = Similarity.matchSpectra(predictedSpectrum, querySpectrum, 0, 0, shiftTolerance,
+                                                              true, true, false);
+            dataSet.addMetaInfo("setAssignmentsCount",
+                                String.valueOf(spectralMatchAssignment.getSetAssignmentsCount(0)));
             dataSet.addMetaInfo("setAssignmentsCountWithEquivalences",
-                                String.valueOf(matchAssignment.getSetAssignmentsCountWithEquivalences(0)));
+                                String.valueOf(spectralMatchAssignment.getSetAssignmentsCountWithEquivalences(0)));
             dataSet.addMetaInfo("isCompleteSpectralMatch", String.valueOf(querySpectrum.getSignalCount()
-                                                                                  == matchAssignment.getSetAssignmentsCount(
+                                                                                  == spectralMatchAssignment.getSetAssignmentsCount(
                     0)));
             dataSet.addMetaInfo("isCompleteSpectralMatchWithEquivalences", String.valueOf(
                     querySpectrum.getSignalCountWithEquivalences()
-                            == matchAssignment.getSetAssignmentsCountWithEquivalences(0)));
-            deviations = Similarity.getDeviations(querySpectrum, predictedSpectrum, 0, 0, matchAssignment);
+                            == spectralMatchAssignment.getSetAssignmentsCountWithEquivalences(0)));
+            dataSet.addAttachment("spectralMatchAssignment", spectralMatchAssignment);
+            deviations = Similarity.getDeviations(predictedSpectrum, querySpectrum, 0, 0, spectralMatchAssignment);
             averageDeviation = Statistics.calculateAverageDeviation(deviations);
             if (averageDeviation
                     != null) {
@@ -231,11 +249,10 @@ public class Prediction {
                     dataSet.addMetaInfo("rmsd", String.valueOf(rmsd));
                     bitSetFingerprintDataSet = Similarity.getBitSetFingerprint(predictedSpectrum, 0,
                                                                                multiplicitySectionsBuilder);
-                    tanimotoCoefficient = Similarity.calculateTanimotoCoefficient(bitSetFingerprintQuerySpectrum,
-                                                                                  bitSetFingerprintDataSet);
+                    tanimotoCoefficient = Similarity.calculateTanimotoCoefficient(bitSetFingerprintDataSet,
+                                                                                  bitSetFingerprintQuerySpectrum);
                     dataSet.addMetaInfo("tanimoto", String.valueOf(tanimotoCoefficient));
 
-                    //                    dataSetList.add(dataSet);
                     return dataSet;
                 }
             } else {
@@ -254,7 +271,6 @@ public class Prediction {
                                                                                   bitSetFingerprintDataSet);
                     dataSet.addMetaInfo("tanimoto", String.valueOf(tanimotoCoefficient));
 
-                    //                    dataSetList.add(dataSet);
                     return dataSet;
                 }
             }

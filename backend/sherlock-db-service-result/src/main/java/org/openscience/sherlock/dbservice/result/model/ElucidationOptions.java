@@ -4,7 +4,7 @@ import lombok.Data;
 
 @Data
 public class ElucidationOptions
-        extends casekit.nmr.lsd.model.ElucidationOptions {
+        extends casekit.nmr.elucidation.model.ElucidationOptions {
     // PyLSD input file creation
     private boolean useFilterLsdRing3;
     private boolean useFilterLsdRing4;

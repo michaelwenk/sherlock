@@ -1,6 +1,6 @@
 package org.openscience.sherlock.dbservice.statistics.utils;
 
-import casekit.nmr.lsd.Constants;
+import casekit.nmr.elucidation.Constants;
 import org.openscience.sherlock.dbservice.statistics.service.model.DataSetRecord;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;

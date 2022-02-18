@@ -1,7 +1,7 @@
 package org.openscience.sherlock.dbservice.result.controller;
 
-import casekit.nmr.lsd.model.Detections;
-import casekit.nmr.lsd.model.Grouping;
+import casekit.nmr.elucidation.model.Detections;
+import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.model.nmrium.Correlations;
 import org.openscience.sherlock.dbservice.result.model.db.ResultRecord;
 import org.openscience.sherlock.dbservice.result.service.ResultServiceImplementation;

@@ -1,6 +1,6 @@
 package org.openscience.sherlock.dbservice.statistics.controller;
 
-import casekit.nmr.lsd.Constants;
+import casekit.nmr.elucidation.Constants;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.interfaces.IAtomContainer;
