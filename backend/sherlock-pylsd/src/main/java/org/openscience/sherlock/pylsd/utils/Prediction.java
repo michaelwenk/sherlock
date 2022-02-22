@@ -1,7 +1,6 @@
 package org.openscience.sherlock.pylsd.utils;
 
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
-import casekit.nmr.hose.HOSECodeBuilder;
 import casekit.nmr.model.*;
 import casekit.nmr.similarity.Similarity;
 import casekit.nmr.utils.Statistics;
@@ -11,16 +10,12 @@ import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.io.MDLV3000Writer;
+import org.openscience.cdk.layout.StructureDiagramGenerator;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.smiles.SmilesParser;
-import org.openscience.sherlock.pylsd.model.db.HOSECode;
+import org.openscience.nmrshiftdb.util.AtomUtils;
+import org.openscience.nmrshiftdb.util.ExtendedHOSECodeGenerator;
 import org.openscience.sherlock.pylsd.model.exchange.Transfer;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.web.reactive.function.client.ExchangeStrategies;
-import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriComponentsBuilder;
-import reactor.core.publisher.Mono;
 
 import java.io.ByteArrayOutputStream;
 import java.util.*;
@@ -29,27 +24,7 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
 public class Prediction {
-
-    //    private final String[] solvents = new String[]{"Chloroform-D1 (CDCl3)", "Methanol-D4 (CD3OD)",
-    //                                                   "Dimethylsulphoxide-D6 (DMSO-D6, C2D6SO)", "Unreported", "Unknown"};
     private static final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
-
-    private static Mono<HOSECode> getHOSECodeByID(final WebClient.Builder webClientBuilder,
-                                                  final ExchangeStrategies exchangeStrategies, final String hoseCode) {
-        final WebClient webClient = webClientBuilder.baseUrl(
-                                                            "http://sherlock-gateway:8080/sherlock-db-service-hosecode/")
-                                                    .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                   MediaType.APPLICATION_JSON_VALUE)
-                                                    .exchangeStrategies(exchangeStrategies)
-                                                    .build();
-        final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-        uriComponentsBuilder.path("/getByID")
-                            .queryParam("id", hoseCode);
-        return webClient.get()
-                        .uri(uriComponentsBuilder.toUriString())
-                        .retrieve()
-                        .bodyToMono(HOSECode.class);
-    }
 
     public static List<DataSet> predict(final Transfer requestTransfer,
                                         final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
@@ -105,8 +80,8 @@ public class Prediction {
                                    final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap) {
         final String nucleus = querySpectrum.getNuclei()[0];
         final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
-        //        final String solvent = this.solvents[0];
-
+        final StructureDiagramGenerator structureDiagramGenerator = new StructureDiagramGenerator();
+        final ExtendedHOSECodeGenerator extendedHOSECodeGenerator = new ExtendedHOSECodeGenerator();
 
         final Assignment assignment;
         final Assignment spectralMatchAssignment;
@@ -123,11 +98,19 @@ public class Prediction {
         final BitSetFingerprint bitSetFingerprintDataSet;
         final MDLV3000Writer mdlv3000Writer;
         final ByteArrayOutputStream byteArrayOutputStream;
+
         try {
-            final DataSet dataSet = Utils.atomContainerToDataSet(structure);
-            //                // convert implicit to explicit hydrogens for building HOSE codes and lookup in HOSE code DB
-            //                Utils.convertImplicitToExplicitHydrogens(structure);
-            //                Utils.setAromaticityAndKekulize(structure);
+            // set 2D coordinates
+            structureDiagramGenerator.setMolecule(structure);
+            structureDiagramGenerator.generateCoordinates(structure);
+            /* !!! No explicit H in mol !!! */
+            Utils.convertExplicitToImplicitHydrogens(structure);
+            /* add explicit H atoms */
+            AtomUtils.addAndPlaceHydrogens(structure);
+            /* detect aromaticity */
+            Utils.setAromaticityAndKekulize(structure);
+
+            final DataSet dataSet = Utils.atomContainerToDataSet(structure, false);
 
             final Spectrum predictedSpectrum = new Spectrum();
             predictedSpectrum.setNuclei(querySpectrum.getNuclei());
@@ -146,21 +129,19 @@ public class Prediction {
                 sphere = maxSphere;
                 while (sphere
                         >= 1) {
-                    hoseCode = HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
-                    hoseCodeObjectValues = hoseCodeDBEntriesMap.get(hoseCode);
-                    if (hoseCodeObjectValues
-                            != null) {
-                        for (final Map.Entry<String, Double[]> solventEntry : hoseCodeObjectValues.entrySet()) {
-                            statistics = hoseCodeObjectValues.get(solventEntry.getKey());
-                            medians.add(statistics[3]);
-                            //                            System.out.println(" -> "
-                            //                                                       + sphere
-                            //                                                       + " -> "
-                            //                                                       + solventEntry.getKey()
-                            //                                                       + " -> "
-                            //                                                       + Arrays.toString(statistics));
+                    try {
+                        hoseCode = extendedHOSECodeGenerator.getHOSECode(structure, structure.getAtom(i),
+                                                                         sphere); //HOSECodeBuilder.buildHOSECode(structure, i, sphere, false);
+                        hoseCodeObjectValues = hoseCodeDBEntriesMap.get(hoseCode);
+                        if (hoseCodeObjectValues
+                                != null) {
+                            for (final Map.Entry<String, Double[]> solventEntry : hoseCodeObjectValues.entrySet()) {
+                                statistics = hoseCodeObjectValues.get(solventEntry.getKey());
+                                medians.add(statistics[3]);
+                            }
+                            break;
                         }
-                        break;
+                    } catch (final Exception ignored) {
                     }
                     sphere--;
                 }
@@ -171,8 +152,8 @@ public class Prediction {
                 signal = new Signal();
                 signal.setNuclei(querySpectrum.getNuclei());
                 signal.setShifts(new Double[]{predictedShift});
-                signal.setMultiplicity(Utils.getMultiplicityFromProtonsCount(structure.getAtom(i)
-                                                                                      .getImplicitHydrogenCount()));
+                signal.setMultiplicity(Utils.getMultiplicityFromProtonsCount(
+                        AtomUtils.getHcount(structure, structure.getAtom(i)))); // counts explicit H
                 signal.setEquivalencesCount(1);
 
                 signalIndex = predictedSpectrum.addSignal(signal);
@@ -201,6 +182,9 @@ public class Prediction {
             if (keepDataSetMetaOnly) {
                 dataSet.setStructure(null);
             } else {
+                Utils.convertExplicitToImplicitHydrogens(structure);
+                dataSet.setStructure(new StructureCompact(structure));
+
                 dataSet.setSpectrum(new SpectrumCompact(predictedSpectrum));
                 assignment = new Assignment();
                 assignment.setNuclei(predictedSpectrum.getNuclei());

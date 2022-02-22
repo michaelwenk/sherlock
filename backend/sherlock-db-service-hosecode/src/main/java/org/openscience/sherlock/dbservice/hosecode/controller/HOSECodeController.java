@@ -2,14 +2,13 @@ package org.openscience.sherlock.dbservice.hosecode.controller;
 
 import casekit.io.FileSystem;
 import casekit.nmr.analysis.HOSECodeShiftStatistics;
-import casekit.nmr.utils.Statistics;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.http.HttpHeaders;
 import org.openscience.sherlock.dbservice.hosecode.service.HOSECodeServiceImplementation;
+import org.openscience.sherlock.dbservice.hosecode.service.model.DataSetRecord;
 import org.openscience.sherlock.dbservice.hosecode.service.model.HOSECode;
 import org.openscience.sherlock.dbservice.hosecode.service.model.HOSECodeRecord;
-import org.openscience.sherlock.dbservice.hosecode.service.model.DataSetRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +21,8 @@ import reactor.core.publisher.Mono;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
@@ -87,12 +87,13 @@ public class HOSECodeController {
 
         final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts = new ConcurrentHashMap<>();
         this.getByDataSetSpectrumNuclei(nuclei)
-            .doOnNext(dataSetRecord -> HOSECodeShiftStatistics.insert(dataSetRecord.getDataSet(), maxSphere, false,
-                                                                      hoseCodeShifts))
+            .doOnNext(
+                    dataSetRecord -> HOSECodeShiftStatistics.insert(dataSetRecord.getDataSet(), maxSphere, true, false,
+                                                                    hoseCodeShifts))
             .doAfterTerminate(() -> {
                 System.out.println(" -> hoseCodeShifts size: "
                                            + hoseCodeShifts.size());
-                final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = this.buildHOSECodeShiftStatistics(
+                final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(
                         hoseCodeShifts);
                 System.out.println(" -> hoseCodeShiftStatistics size: "
                                            + hoseCodeShiftStatistics.size());
@@ -108,36 +109,11 @@ public class HOSECodeController {
 
                 this.hoseCodeServiceImplementation.insertMany(hoseCodeRecordFlux)
                                                   .doOnError(Throwable::printStackTrace)
-                                                  .doAfterTerminate(() -> {
-                                                      System.out.println(" -> done");
-                                                      this.saveAllAsMap();
-                                                  })
+                                                  .doAfterTerminate(this::saveAllAsMap)
                                                   .subscribe();
             })
             .doOnError(Throwable::printStackTrace)
             .subscribe();
-    }
-
-    private Map<String, Map<String, Double[]>> buildHOSECodeShiftStatistics(
-            final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts) {
-
-        final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = new HashMap<>();
-        List<Double> values;
-        for (final Map.Entry<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodes : hoseCodeShifts.entrySet()) {
-            hoseCodeShiftStatistics.put(hoseCodes.getKey(), new HashMap<>());
-            for (final Map.Entry<String, ConcurrentLinkedQueue<Double>> solvents : hoseCodes.getValue()
-                                                                                            .entrySet()) {
-                values = new ArrayList<>(solvents.getValue());
-                Statistics.removeOutliers(values, 1.5);
-                hoseCodeShiftStatistics.get(hoseCodes.getKey())
-                                       .put(solvents.getKey(),
-                                            new Double[]{(double) values.size(), Collections.min(values),
-                                                         Statistics.getMean(values), Statistics.getMedian(values),
-                                                         Collections.max(values)});
-            }
-        }
-
-        return hoseCodeShiftStatistics;
     }
 
     public Flux<DataSetRecord> getByDataSetSpectrumNuclei(final String[] nuclei) {
