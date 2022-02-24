@@ -259,8 +259,6 @@ public class CoreController {
                                                                           resultRecordResponseEntity.getStatusCode());
                             return transferResponseEntity;
                         }
-                        System.out.println("resultRecord: "
-                                                   + resultRecordResponseEntity.getBody());
                         responseTransfer.setResultRecord(resultRecordResponseEntity.getBody());
                     } catch (final Exception e) {
                         responseTransfer.setErrorMessage(e.getMessage());
