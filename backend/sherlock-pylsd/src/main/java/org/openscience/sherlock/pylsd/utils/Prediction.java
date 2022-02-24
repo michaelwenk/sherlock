@@ -12,6 +12,7 @@ import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.io.MDLV3000Writer;
 import org.openscience.cdk.layout.StructureDiagramGenerator;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
+import org.openscience.cdk.smiles.SmilesGenerator;
 import org.openscience.cdk.smiles.SmilesParser;
 import org.openscience.nmrshiftdb.util.AtomUtils;
 import org.openscience.nmrshiftdb.util.ExtendedHOSECodeGenerator;
@@ -184,6 +185,8 @@ public class Prediction {
             } else {
                 Utils.convertExplicitToImplicitHydrogens(structure);
                 dataSet.setStructure(new StructureCompact(structure));
+                dataSet.addMetaInfo("smiles", SmilesGenerator.generic()
+                                                             .create(structure));
 
                 dataSet.setSpectrum(new SpectrumCompact(predictedSpectrum));
                 assignment = new Assignment();
