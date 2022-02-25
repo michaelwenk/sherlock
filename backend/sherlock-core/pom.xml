@@ -52,6 +52,11 @@
             <artifactId>casekit</artifactId>
             <version>1.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.openscience.nmrshiftdb</groupId>
+            <artifactId>predictorc</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>

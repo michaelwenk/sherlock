@@ -46,20 +46,28 @@ import java.util.List;
 @ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Transfer {
-    private List<DataSet> dataSetList;
-    private Correlations correlations;
-    private Spectrum querySpectrum;
-    private String mf;
+
     private String queryType;
+    private Spectrum querySpectrum;
+    private String requestID;
+    private List<DataSet> dataSetList;
+
     private DereplicationOptions dereplicationOptions;
+
+    private Correlations correlations;
+    private String mf;
+    private List<String> pyLSDInputFileContentList;
+    private Boolean pyLSDRunWasSuccessful;
     private ElucidationOptions elucidationOptions;
     private DetectionOptions detectionOptions;
     private Detections detections;
     private Grouping grouping;
-    private String requestID;
-    private ResultRecord resultRecord;
-    // internal only
-    private Boolean pyLSDRunWasSuccessful;
+    // for (ranked) SDF parsing
+    private String pathToSmilesFile;
+    private List<String> smilesList;
     // error message
     private String errorMessage;
+
+    private ResultRecord resultRecord;
+
 }

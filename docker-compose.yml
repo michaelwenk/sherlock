@@ -35,17 +35,6 @@ services:
       - "8082:8080"
     depends_on:
       - sherlock-discovery-server
-
-  sherlock-pylsd:
-    container_name: sherlock-pylsd
-    build:
-      context: ./backend/sherlock-pylsd
-      dockerfile: Dockerfile
-    image: michaelwenk/sherlock-pylsd
-    ports:
-      - "8083:8080"
-    depends_on:
-      - sherlock-discovery-server
     volumes:
       - hosecode-file-storage:/data/hosecode
 

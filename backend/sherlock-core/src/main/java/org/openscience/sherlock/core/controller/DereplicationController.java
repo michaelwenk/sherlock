@@ -24,15 +24,12 @@
 
 package org.openscience.sherlock.core.controller;
 
-import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
 import org.openscience.sherlock.core.model.db.DataSetRecord;
 import org.openscience.sherlock.core.model.exchange.Transfer;
-import org.openscience.sherlock.core.utils.DereplicationResultFilter;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -45,19 +42,16 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "/dereplication")
 public class DereplicationController {
 
-    private final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
     private final WebClient.Builder webClientBuilder;
     private final ExchangeStrategies exchangeStrategies;
 
@@ -77,21 +71,6 @@ public class DereplicationController {
         // accept a 1D query spectrum only
         if (querySpectrum.getNuclei().length
                 == 1) {
-            final Map<String, int[]> multiplicitySectionsSettings;
-            try {
-                final Mono<Map<String, int[]>> multiplicitySectionsSettingsMono = this.getMultiplicitySectionsSettings();
-                multiplicitySectionsSettings = multiplicitySectionsSettingsMono.block();
-            } catch (final Exception e) {
-                responseTransfer.setErrorMessage(e.getMessage());
-                return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
-            }
-            this.multiplicitySectionsBuilder.setMinLimit(
-                    multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[0]);
-            this.multiplicitySectionsBuilder.setMaxLimit(
-                    multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[1]);
-            this.multiplicitySectionsBuilder.setStepSize(
-                    multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[2]);
-
             try {
                 final List<DataSetRecord> dataSetRecordList = this.getDataSetRecordFlux(querySpectrum,
                                                                                         requestTransfer.getMf(),
@@ -101,11 +80,9 @@ public class DereplicationController {
                                                                   .block();
                 if (dataSetRecordList
                         != null) {
-                    final List<DataSet> dataSetList = DereplicationResultFilter.filterBySpectralSimilarity(
-                            dataSetRecordList.stream()
-                                             .map(DataSetRecord::getDataSet)
-                                             .collect(Collectors.toList()), querySpectrum,
-                            requestTransfer.getDereplicationOptions(), this.multiplicitySectionsBuilder);
+                    final List<DataSet> dataSetList = dataSetRecordList.stream()
+                                                                       .map(DataSetRecord::getDataSet)
+                                                                       .collect(Collectors.toList());
                     responseTransfer.setDataSetList(dataSetList);
                 }
             } catch (final Exception e) {
@@ -118,20 +95,6 @@ public class DereplicationController {
 
         responseTransfer.setDataSetList(new ArrayList<>());
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
-    }
-
-    public Mono<Map<String, int[]>> getMultiplicitySectionsSettings() {
-        final WebClient webClient = this.webClientBuilder.baseUrl(
-                                                "http://sherlock-gateway:8080/sherlock-db-service-dataset/getMultiplicitySectionsSettings")
-                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                        MediaType.APPLICATION_JSON_VALUE)
-                                                         .exchangeStrategies(this.exchangeStrategies)
-                                                         .build();
-
-        return webClient.get()
-                        .retrieve()
-                        .bodyToMono(new ParameterizedTypeReference<Map<String, int[]>>() {
-                        });
     }
 
     public Flux<DataSetRecord> getDataSetRecordFlux(final Spectrum querySpectrum, final String mf,

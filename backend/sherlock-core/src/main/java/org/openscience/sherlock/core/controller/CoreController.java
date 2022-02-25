@@ -24,13 +24,17 @@
 
 package org.openscience.sherlock.core.controller;
 
+import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.nmrium.Correlations;
 import casekit.nmr.utils.Utils;
 import org.openscience.sherlock.core.model.db.ResultRecord;
 import org.openscience.sherlock.core.model.exchange.Transfer;
-import org.openscience.sherlock.core.utils.Ranking;
+import org.openscience.sherlock.core.utils.FilterAndRank;
+import org.openscience.sherlock.core.utils.Utilities;
+import org.openscience.sherlock.core.utils.detection.Detection;
+import org.openscience.sherlock.core.utils.elucidation.PyLSD;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -39,6 +43,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
+import reactor.core.publisher.Mono;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -51,13 +56,16 @@ public class CoreController {
     private final ExchangeStrategies exchangeStrategies;
     private final DereplicationController dereplicationController;
     private final ElucidationController elucidationController;
+    private final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
 
     @Autowired
-    public CoreController(final WebClient.Builder webClientBuilder, final ExchangeStrategies exchangeStrategies) {
+    public CoreController(final WebClient.Builder webClientBuilder, final ExchangeStrategies exchangeStrategies,
+                          final DereplicationController dereplicationController,
+                          final ElucidationController elucidationController) {
         this.webClientBuilder = webClientBuilder;
         this.exchangeStrategies = exchangeStrategies;
-        this.dereplicationController = new DereplicationController(this.webClientBuilder, this.exchangeStrategies);
-        this.elucidationController = new ElucidationController(this.webClientBuilder, this.exchangeStrategies);
+        this.dereplicationController = dereplicationController;
+        this.elucidationController = elucidationController;
     }
 
     @PostMapping(value = "/core", consumes = "application/json", produces = "application/json")
@@ -153,10 +161,8 @@ public class CoreController {
                 }
                 final List<DataSet> dataSetList = Objects.requireNonNull(transferResponseEntity.getBody())
                                                          .getDataSetList();
-                Ranking.rankDataSetList(dataSetList);
-
                 // unique the dereplication result
-                final List<DataSet> uniqueDataSetList = new ArrayList<>();
+                List<DataSet> uniqueDataSetList = new ArrayList<>();
                 final Set<String> uniqueDataSetIDs = new HashSet<>();
                 String id;
                 for (final DataSet dataSet : dataSetList) {
@@ -166,6 +172,33 @@ public class CoreController {
                         uniqueDataSetIDs.add(id);
                         uniqueDataSetList.add(dataSet);
                     }
+                }
+
+                final Map<String, int[]> multiplicitySectionsSettings;
+                try {
+                    final Mono<Map<String, int[]>> multiplicitySectionsSettingsMono = Utilities.getMultiplicitySectionsSettings(
+                            this.webClientBuilder, this.exchangeStrategies);
+                    multiplicitySectionsSettings = multiplicitySectionsSettingsMono.block();
+                    this.multiplicitySectionsBuilder.setMinLimit(
+                            multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[0]);
+                    this.multiplicitySectionsBuilder.setMaxLimit(
+                            multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[1]);
+                    this.multiplicitySectionsBuilder.setStepSize(
+                            multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[2]);
+
+                    uniqueDataSetList = FilterAndRank.filterAndRank(dataSetList, querySpectrum,
+                                                                    requestTransfer.getDereplicationOptions()
+                                                                                   .getShiftTolerance(),
+                                                                    requestTransfer.getDereplicationOptions()
+                                                                                   .getMaxAverageDeviation(),
+                                                                    requestTransfer.getDereplicationOptions()
+                                                                                   .isCheckMultiplicity(),
+                                                                    requestTransfer.getDereplicationOptions()
+                                                                                   .isCheckEquivalencesCount(),
+                                                                    this.multiplicitySectionsBuilder, false);
+                } catch (final Exception e) {
+                    responseTransfer.setErrorMessage(e.getMessage());
+                    return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
                 }
                 responseTransfer.getResultRecord()
                                 .setDataSetList(uniqueDataSetList);
@@ -216,7 +249,7 @@ public class CoreController {
 
                 // store results in DB if not empty and replace resultRecord in responseTransfer
                 if (!dataSetList.isEmpty()) {
-                    Ranking.rankDataSetList(dataSetList);
+                    FilterAndRank.rank(dataSetList);
 
                     final SimpleDateFormat formatter = new SimpleDateFormat("EE MMM d y H:m:s ZZZ");
                     final String dateString = formatter.format(new Date());
@@ -283,11 +316,6 @@ public class CoreController {
             // DETECTION
             if (requestTransfer.getQueryType()
                                .equals("detection")) {
-                final WebClient webClient = this.webClientBuilder.baseUrl(
-                                                        "http://sherlock-gateway:8080/sherlock-pylsd/detect")
-                                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                                MediaType.APPLICATION_JSON_VALUE)
-                                                                 .build();
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setCorrelations(requestTransfer.getResultRecord()
                                                              .getCorrelations());
@@ -299,16 +327,7 @@ public class CoreController {
                 queryTransfer.setElucidationOptions(requestTransfer.getResultRecord()
                                                                    .getElucidationOptions());
 
-                final Transfer queryResultTransfer = webClient.post()
-                                                              .bodyValue(queryTransfer)
-                                                              .retrieve()
-                                                              .bodyToMono(Transfer.class)
-                                                              .block();
-                if (queryResultTransfer
-                        == null) {
-                    responseTransfer.setErrorMessage("Could not detect connectivities!");
-                    return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
-                }
+                final Transfer queryResultTransfer = Detection.detect(this.webClientBuilder, queryTransfer);
                 responseTransfer.getResultRecord()
                                 .setCorrelations(queryResultTransfer.getCorrelations());
                 responseTransfer.getResultRecord()
@@ -331,13 +350,6 @@ public class CoreController {
 
     @GetMapping(value = "/cancel")
     public ResponseEntity<Transfer> cancel() {
-        final WebClient webClient = this.webClientBuilder.baseUrl("http://sherlock-gateway:8080/sherlock-pylsd/cancel")
-                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                        MediaType.APPLICATION_JSON_VALUE)
-                                                         .build();
-        return webClient.get()
-                        .retrieve()
-                        .toEntity(Transfer.class)
-                        .block();
+        return PyLSD.cancel();
     }
 }

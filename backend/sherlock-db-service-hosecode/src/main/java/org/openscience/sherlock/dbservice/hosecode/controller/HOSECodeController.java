@@ -81,12 +81,15 @@ public class HOSECodeController {
     }
 
     @PostMapping(value = "/replaceAll")
-    public void replaceAll(@RequestParam final String[] nuclei, final int maxSphere) {
+    public void replaceAll(@RequestParam final String[] nuclei, final int maxSphere, final String source) {
+        System.out.println(" --> delete all DB entries...");
         this.deleteAll()
             .block();
+        System.out.println(" --> deleted all DB entries!");
 
+        System.out.println(" --> fetching all datasets, build HOSE code statistics and store...");
         final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts = new ConcurrentHashMap<>();
-        this.getByDataSetSpectrumNuclei(nuclei)
+        this.getByDataSetSpectrumNucleiAndSource(nuclei, source)
             .doOnNext(
                     dataSetRecord -> HOSECodeShiftStatistics.insert(dataSetRecord.getDataSet(), maxSphere, true, false,
                                                                     hoseCodeShifts))
@@ -116,7 +119,7 @@ public class HOSECodeController {
             .subscribe();
     }
 
-    public Flux<DataSetRecord> getByDataSetSpectrumNuclei(final String[] nuclei) {
+    public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndSource(final String[] nuclei, final String source) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
                                                 "http://sherlock-gateway:8080/sherlock-db-service-dataset/")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
@@ -128,8 +131,15 @@ public class HOSECodeController {
                                           .reduce("", (concat, current) -> concat
                                                   + current);
         final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-        uriComponentsBuilder.path("/getByNuclei")
-                            .queryParam("nuclei", nucleiString);
+        if (source
+                == null) {
+            uriComponentsBuilder.path("/getByNuclei")
+                                .queryParam("nuclei", nucleiString);
+        } else {
+            uriComponentsBuilder.path("/getByNucleiAndSource")
+                                .queryParam("nuclei", nucleiString)
+                                .queryParam("source", source);
+        }
 
         return webClient.get()
                         .uri(uriComponentsBuilder.toUriString())
