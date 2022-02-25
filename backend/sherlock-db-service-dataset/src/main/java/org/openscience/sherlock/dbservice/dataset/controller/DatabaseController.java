@@ -104,6 +104,12 @@ public class DatabaseController {
         return this.dataSetServiceImplementation.findByDataSetSpectrumNuclei(nuclei);
     }
 
+    @GetMapping(value = "/getByNucleiAndSource", produces = "application/stream+json")
+    public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndSource(@RequestParam final String[] nuclei,
+                                                                   @RequestParam final String source) {
+        return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndSource(nuclei, source);
+    }
+
     @GetMapping(value = "/getByNucleiAndSignalCount", produces = "application/stream+json")
     public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(
             @RequestParam final String[] nuclei, @RequestParam final int signalCount) {
@@ -169,7 +175,7 @@ public class DatabaseController {
             MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord;
             for (final String nucleus : nuclei) {
                 multiplicitySectionsSettingsRecord = this.multiplicitySectionsSettingsServiceImplementation.findByNucleus(
-                        nucleus)
+                                                                 nucleus)
                                                                                                            .block();
                 this.multiplicitySectionsSettings.put(multiplicitySectionsSettingsRecord.getNucleus(),
                                                       multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings());
@@ -355,7 +361,7 @@ public class DatabaseController {
             settings[2] = stepSizes.get(nucleus);
             this.multiplicitySectionsSettings.put(nucleus, settings);
             this.multiplicitySectionsSettingsServiceImplementation.insert(
-                    new MultiplicitySectionsSettingsRecord(null, nucleus, settings))
+                        new MultiplicitySectionsSettingsRecord(null, nucleus, settings))
                                                                   .block();
         }
 
