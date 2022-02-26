@@ -107,12 +107,10 @@ public class PyLSD {
                         final String pathToSmilesFile = pathToPyLSDResultFileFolder
                                 + requestID
                                 + "_0.smiles";
-                        responseTransfer.setPathToSmilesFile(pathToSmilesFile);
 
-                        transferResponseEntity = Prediction.parseAndPredictFromSmilesFile(responseTransfer,
-                                                                                          hoseCodeDBEntriesMap,
-                                                                                          webClientBuilder,
-                                                                                          exchangeStrategies);
+                        transferResponseEntity = Prediction.parseAndPredictFromSmilesFile(
+                                responseTransfer.getCorrelations(), responseTransfer.getElucidationOptions(),
+                                hoseCodeDBEntriesMap, pathToSmilesFile, webClientBuilder, exchangeStrategies);
                         if (transferResponseEntity.getStatusCode()
                                                   .isError()) {
                             return transferResponseEntity;

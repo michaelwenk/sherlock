@@ -25,13 +25,13 @@
 package org.openscience.sherlock.core.controller;
 
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
+import casekit.nmr.filterandrank.FilterAndRank;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.nmrium.Correlations;
 import casekit.nmr.utils.Utils;
 import org.openscience.sherlock.core.model.db.ResultRecord;
 import org.openscience.sherlock.core.model.exchange.Transfer;
-import org.openscience.sherlock.core.utils.FilterAndRank;
 import org.openscience.sherlock.core.utils.Utilities;
 import org.openscience.sherlock.core.utils.detection.Detection;
 import org.openscience.sherlock.core.utils.elucidation.PyLSD;
@@ -190,7 +190,7 @@ public class CoreController {
                                                                     requestTransfer.getDereplicationOptions()
                                                                                    .getShiftTolerance(),
                                                                     requestTransfer.getDereplicationOptions()
-                                                                                   .getMaxAverageDeviation(),
+                                                                                   .getMaximumAverageDeviation(),
                                                                     requestTransfer.getDereplicationOptions()
                                                                                    .isCheckMultiplicity(),
                                                                     requestTransfer.getDereplicationOptions()

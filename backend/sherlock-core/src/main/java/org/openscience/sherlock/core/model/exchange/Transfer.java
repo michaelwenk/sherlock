@@ -62,9 +62,7 @@ public class Transfer {
     private DetectionOptions detectionOptions;
     private Detections detections;
     private Grouping grouping;
-    // for (ranked) SDF parsing
-    private String pathToSmilesFile;
-    private List<String> smilesList;
+
     // error message
     private String errorMessage;
 
