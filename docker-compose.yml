@@ -73,20 +73,20 @@ services:
   sherlock-db-instance-dataset:
     container_name: sherlock-db-instance-dataset
     ports:
-      - 27020:27017
+      - "27020:27017"
     command:
       --wiredTigerCacheSizeGB 2
 
   sherlock-db-instance-statistics:
     container_name: sherlock-db-instance-statistics
     ports:
-      - 27021:27017
+      - "27021:27017"
 
   sherlock-db-instance-result:
     image: mongo:4
     container_name: sherlock-db-instance-result
     ports:
-      - 27022:27017
+      - "27022:27017"
     environment:
       - MONGO_INITDB_DATABASE=result
       - MONGO_INITDB_ROOT_USERNAME=admin

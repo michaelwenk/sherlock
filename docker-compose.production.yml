@@ -43,7 +43,7 @@ services:
     image: mongo:4
     container_name: sherlock-db-instance-hosecode
     ports:
-      - 27023:27017
+      - "27023:27017"
     volumes:
       - "./backend/db-instance-hosecode/data/db/hosecode:/data/db"
     environment:
