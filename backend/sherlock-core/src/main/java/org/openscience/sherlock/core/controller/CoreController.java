@@ -195,6 +195,7 @@ public class CoreController {
                                                                     requestTransfer.getDereplicationOptions()
                                                                                    .isCheckEquivalencesCount(),
                                                                     this.multiplicitySectionsBuilder, false);
+                    Utilities.addMolFileToDataSets(uniqueDataSetList);
                 } catch (final Exception e) {
                     responseTransfer.setErrorMessage(e.getMessage());
                     return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
@@ -249,6 +250,7 @@ public class CoreController {
                 // store results in DB if not empty and replace resultRecord in responseTransfer
                 if (!dataSetList.isEmpty()) {
                     FilterAndRank.rank(dataSetList);
+                    Utilities.addMolFileToDataSets(dataSetList);
 
                     final SimpleDateFormat formatter = new SimpleDateFormat("EE MMM d y H:m:s ZZZ");
                     final String dateString = formatter.format(new Date());
