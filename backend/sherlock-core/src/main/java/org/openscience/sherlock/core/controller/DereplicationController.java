@@ -73,9 +73,10 @@ public class DereplicationController {
                 == 1) {
             try {
                 final List<DataSetRecord> dataSetRecordList = this.getDataSetRecordFlux(querySpectrum,
-                                                                                        requestTransfer.getMf(),
                                                                                         requestTransfer.getDereplicationOptions()
-                                                                                                       .isUseMF())
+                                                                                                       .isUseMF()
+                                                                                        ? requestTransfer.getMf()
+                                                                                        : null)
                                                                   .collectList()
                                                                   .block();
                 if (dataSetRecordList
@@ -97,8 +98,7 @@ public class DereplicationController {
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
-    public Flux<DataSetRecord> getDataSetRecordFlux(final Spectrum querySpectrum, final String mf,
-                                                    final boolean useMF) {
+    public Flux<DataSetRecord> getDataSetRecordFlux(final Spectrum querySpectrum, final String mf) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
                                                 "http://sherlock-gateway:8080/sherlock-db-service-dataset/")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
@@ -111,8 +111,7 @@ public class DereplicationController {
         final String nucleiString = Arrays.stream(querySpectrum.getNuclei())
                                           .reduce("", (concat, current) -> concat
                                                   + current);
-        if (useMF
-                && mf
+        if (mf
                 != null) {
             uriComponentsBuilder.path("/getByNucleiAndSignalCountAndMf")
                                 .queryParam("nuclei", nucleiString)
