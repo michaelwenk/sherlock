@@ -40,6 +40,7 @@ public class Prediction {
                 // @TODO method modifications for different nuclei and solvent needed
                 final String nucleus = "13C";
                 final int maxSphere = 6;
+                final int nThreads = 2;
                 final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(correlations.getValues(), nucleus);
                 final List<IAtomContainer> structureList = new ArrayList<>();
                 for (final String smiles : smilesList) {
@@ -50,7 +51,7 @@ public class Prediction {
                         elucidationOptions.getMaximumAverageDeviation(), maxSphere, structureList, hoseCodeDBEntriesMap,
                         Objects.requireNonNull(
                                 Utilities.getMultiplicitySectionsSettings(webClientBuilder, exchangeStrategies)
-                                         .block()));
+                                         .block()), nThreads);
                 responseTransfer.setDataSetList(dataSetList);
             } catch (final Exception e) {
                 responseTransfer.setErrorMessage(e.getMessage());
