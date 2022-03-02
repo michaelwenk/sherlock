@@ -51,6 +51,13 @@ public interface DataSetRepository
     @Query(value = "{\"dataSet.spectrum.nuclei\": ?0, \"dataSet.meta.source\": \"?1\"}")
     Flux<DataSetRecord> findByDataSetSpectrumNucleiAndSource(final String[] nuclei, final String source);
 
+    @Query(value = "{\"dataSet.spectrum.nuclei\": ?0, \"dataSet.attachment.setBits\": ?1}")
+    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndAttachmentSetBits(final String[] nuclei, final int[] setBits);
+
+    @Query(value = "{\"dataSet.spectrum.nuclei\": ?0, \"dataSet.attachment.setBits\": ?1, \"dataSet.meta.mf\": \"?2\"}")
+    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndAttachmentSetBitsAndMf(final String[] nuclei, final int[] setBits,
+                                                                             final String mf);
+
 
     @Query(value = "{\"dataSet.spectrum.nuclei\": ?0, \"dataSet.spectrum.signals\": {$size: ?1}}")
     Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei,

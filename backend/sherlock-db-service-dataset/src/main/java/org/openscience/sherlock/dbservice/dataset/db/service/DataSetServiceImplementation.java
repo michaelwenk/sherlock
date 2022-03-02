@@ -76,6 +76,19 @@ public class DataSetServiceImplementation
     }
 
     @Override
+    public Flux<DataSetRecord> findByDataSetSpectrumNucleiAndAttachmentSetBits(final String[] nuclei,
+                                                                               final int[] setBits) {
+        return this.dataSetRepository.findByDataSetSpectrumNucleiAndAttachmentSetBits(nuclei, setBits);
+    }
+
+    @Override
+    public Flux<DataSetRecord> findByDataSetSpectrumNucleiAndAttachmentSetBitsAndMf(final String[] nuclei,
+                                                                                    final int[] setBits,
+                                                                                    final String mf) {
+        return this.dataSetRepository.findByDataSetSpectrumNucleiAndAttachmentSetBitsAndMf(nuclei, setBits, mf);
+    }
+
+    @Override
     public Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei,
                                                                                         final int signalCount) {
         return this.dataSetRepository.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(nuclei, signalCount);

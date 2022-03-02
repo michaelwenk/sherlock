@@ -110,6 +110,20 @@ public class DatabaseController {
         return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndSource(nuclei, source);
     }
 
+    @GetMapping(value = "/getByNucleiAndSetBits", produces = "application/stream+json")
+    public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndAttachmentSetBits(@RequestParam final String[] nuclei,
+                                                                              @RequestParam final int[] setBits) {
+        return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndAttachmentSetBits(nuclei, setBits);
+    }
+
+    @GetMapping(value = "/getByNucleiAndSetBitsAndMf", produces = "application/stream+json")
+    public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndAttachmentSetBitsAndMf(@RequestParam final String[] nuclei,
+                                                                                   @RequestParam final int[] setBits,
+                                                                                   final String mf) {
+        return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndAttachmentSetBitsAndMf(nuclei, setBits,
+                                                                                                      mf);
+    }
+
     @GetMapping(value = "/getByNucleiAndSignalCount", produces = "application/stream+json")
     public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(
             @RequestParam final String[] nuclei, @RequestParam final int signalCount) {
@@ -242,6 +256,7 @@ public class DatabaseController {
                 insertedKeys.add(id);
                 continue;
             }
+            // avoid storage of completely identical spectra
             for (final Spectrum insertedSpectrum : new ArrayList<>(insertedMap.get(id)
                                                                               .get(nucleus))) {
                 averageDeviation = Similarity.calculateAverageDeviation(insertedSpectrum, spectrum, 0, 0, 0.0, true,
@@ -286,8 +301,10 @@ public class DatabaseController {
                                                                      dataSet.getSpectrum()
                                                                             .toSpectrum(), 0,
                                                                      multiplicitySectionsBuilder);
-                                                             final String setBitsString = Arrays.toString(
-                                                                     bitSetFingerprint.getSetbits());
+
+                                                             dataSet.addAttachment("fpSize", bitSetFingerprint.size());
+                                                             dataSet.addAttachment("setBits",
+                                                                                   bitSetFingerprint.getSetbits());
 
                                                              dataSet.addMetaInfo("fpSize", String.valueOf(
                                                                      bitSetFingerprint.size()));

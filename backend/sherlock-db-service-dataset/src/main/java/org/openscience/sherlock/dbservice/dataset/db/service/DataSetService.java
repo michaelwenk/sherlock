@@ -44,6 +44,11 @@ public interface DataSetService {
 
     Flux<DataSetRecord> findByDataSetSpectrumNucleiAndSource(final String[] nuclei, final String source);
 
+    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndAttachmentSetBits(final String[] nuclei, final int[] setBits);
+
+    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndAttachmentSetBitsAndMf(final String[] nuclei, final int[] setBits,
+                                                                             final String mf);
+
     Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei,
                                                                                  final int signalCount);
 
