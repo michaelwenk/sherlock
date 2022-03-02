@@ -159,13 +159,12 @@ public class CoreController {
 
                     return transferResponseEntity;
                 }
-                final List<DataSet> dataSetList = Objects.requireNonNull(transferResponseEntity.getBody())
-                                                         .getDataSetList();
                 // unique the dereplication result
                 List<DataSet> uniqueDataSetList = new ArrayList<>();
                 final Set<String> uniqueDataSetIDs = new HashSet<>();
                 String id;
-                for (final DataSet dataSet : dataSetList) {
+                for (final DataSet dataSet : Objects.requireNonNull(transferResponseEntity.getBody())
+                                                    .getDataSetList()) {
                     id = dataSet.getMeta()
                                 .get("id");
                     if (!uniqueDataSetIDs.contains(id)) {
@@ -186,7 +185,7 @@ public class CoreController {
                     this.multiplicitySectionsBuilder.setStepSize(
                             multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[2]);
 
-                    uniqueDataSetList = FilterAndRank.filterAndRank(dataSetList, querySpectrum,
+                    uniqueDataSetList = FilterAndRank.filterAndRank(uniqueDataSetList, querySpectrum,
                                                                     requestTransfer.getDereplicationOptions()
                                                                                    .getShiftTolerance(),
                                                                     requestTransfer.getDereplicationOptions()
