@@ -29,9 +29,14 @@ import casekit.nmr.dbservice.COCONUT;
 import casekit.nmr.dbservice.NMRShiftDB;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
+import casekit.nmr.model.SpectrumCompact;
 import casekit.nmr.similarity.Similarity;
+import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
+import org.openscience.cdk.interfaces.IAtom;
+import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
 import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
 import org.openscience.sherlock.dbservice.dataset.db.model.MultiplicitySectionsSettingsRecord;
 import org.openscience.sherlock.dbservice.dataset.db.service.DataSetServiceImplementation;
@@ -70,7 +75,6 @@ public class DatabaseController {
                                                          "/data/coconut/acd_coconut_16.sdf",
                                                          "/data/coconut/acd_coconut_17.sdf",
                                                          "/data/coconut/acd_coconut_18.sdf"};
-    private final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
     private final Map<String, int[]> multiplicitySectionsSettings = new HashMap<>();
 
     public DatabaseController(final DataSetServiceImplementation dataSetServiceImplementation,
@@ -151,14 +155,18 @@ public class DatabaseController {
 
     @PostMapping(value = "/replaceAll")
     public void replaceAll(@RequestParam final String[] nuclei, @RequestParam final boolean setLimits) {
+        System.out.println(" -> Deleting all DB entries...");
         this.deleteAll()
             .block();
+        System.out.println(" -> Deleted all DB entries!");
 
         // detect bitset ranges and store in DB
         List<DataSet> dataSetList;
         if (setLimits) {
+            System.out.println(" -> Setting new limits...");
             try {
                 dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(this.pathToNMRShiftDB, nuclei);
+                this.setMultiplicityByProtonsCount(dataSetList, "13C");
                 Map<String, Integer[]> limits = this.setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(dataSetList,
                                                                                                          new HashMap<>());
                 System.out.println("dataset size NMRShiftDB -> "
@@ -172,6 +180,7 @@ public class DatabaseController {
                                                + " -> "
                                                + this.pathsToCOCONUT[i]);
                     dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(this.pathsToCOCONUT[i], nuclei);
+                    this.setMultiplicityByProtonsCount(dataSetList, "13C");
                     System.out.println("dataset size COCONUT "
                                                + i
                                                + " -> "
@@ -185,6 +194,7 @@ public class DatabaseController {
             } catch (final FileNotFoundException | CDKException e) {
                 e.printStackTrace();
             }
+            System.out.println(" -> Set new limits!");
         } else {
             MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord;
             for (final String nucleus : nuclei) {
@@ -199,32 +209,64 @@ public class DatabaseController {
         // store datasets in DB
         // with checks whether a dataset with identical spectrum already exists
         try {
+            System.out.println(" -> dataset creations...");
             dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(this.pathToNMRShiftDB, nuclei);
-            System.out.println("dataset size NMRShiftDB -> "
+            this.setMultiplicityByProtonsCount(dataSetList, "13C");
+            System.out.println(" -> dataset size NMRShiftDB -> "
                                        + dataSetList.size());
             this.filterAndInsertDataSetRecords(dataSetList, new HashMap<>());
-            System.out.println("stored for NMRShiftDB done -> "
-                                       + this.getCount()
-                                             .block());
+            System.out.println(" -> stored for NMRShiftDB done");
             final Map<String, Map<String, List<Spectrum>>> inserted = new HashMap<>(); // molecule id -> nucleus -> spectra list
             Flux.fromArray(this.pathsToCOCONUT)
                 .doOnNext(pathToCOCONUT -> {
                     try {
                         System.out.println("storing -> "
                                                    + pathToCOCONUT);
-                        this.filterAndInsertDataSetRecords(
-                                COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(pathToCOCONUT, nuclei), inserted);
+                        final List<DataSet> dataSetListTemp = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(
+                                pathToCOCONUT, nuclei);
+                        this.setMultiplicityByProtonsCount(dataSetListTemp, "13C");
+                        this.filterAndInsertDataSetRecords(dataSetListTemp, inserted);
                         System.out.println(pathToCOCONUT
-                                                   + " -> done -> "
-                                                   + this.getCount()
-                                                         .block());
+                                                   + " -> done");
                     } catch (final CDKException | FileNotFoundException e) {
                         e.printStackTrace();
                     }
                 })
                 .subscribe();
+
         } catch (final FileNotFoundException | CDKException e) {
             e.printStackTrace();
+        }
+    }
+
+    /**
+     * Overwrite (non-)existing multiplicity value through protons count in signals from given nucleus type
+     *
+     * @param dataSetList
+     * @param nucleus
+     */
+    private void setMultiplicityByProtonsCount(final List<DataSet> dataSetList, final String nucleus) {
+        Spectrum spectrum;
+        IAtomContainer structure;
+        IAtom atom;
+        for (final DataSet dataSet : dataSetList) {
+            spectrum = dataSet.getSpectrum()
+                              .toSpectrum();
+            if (!spectrum.getNuclei()[0].equals(nucleus)) {
+                continue;
+            }
+            structure = dataSet.getStructure()
+                               .toAtomContainer();
+            for (int i = 0; i
+                    < spectrum.getSignals()
+                              .size(); i++) {
+                atom = structure.getAtom(dataSet.getAssignment()
+                                                .getAssignment(0, i, 0));
+                spectrum.getSignal(i)
+                        .setMultiplicity(Utils.getMultiplicityFromProtonsCount(
+                                AtomContainerManipulator.countHydrogens(structure, atom)));
+            }
+            dataSet.setSpectrum(new SpectrumCompact(spectrum));
         }
     }
 
@@ -306,10 +348,6 @@ public class DatabaseController {
                                                              dataSet.addAttachment("setBits",
                                                                                    bitSetFingerprint.getSetbits());
 
-                                                             dataSet.addMetaInfo("fpSize", String.valueOf(
-                                                                     bitSetFingerprint.size()));
-                                                             dataSet.addMetaInfo("setBits", setBitsString);
-
                                                              return new DataSetRecord(null, dataSet);
                                                          }))
                                          .subscribe();
@@ -334,8 +372,8 @@ public class DatabaseController {
     private Map<String, Integer[]> setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(final List<DataSet> dataSetList,
                                                                                        final Map<String, Integer[]> prevLimits) {
         final Map<String, Integer> stepSizes = new HashMap<>();
-        stepSizes.put("13C", 5);
-        stepSizes.put("15N", 10);
+        stepSizes.put("13C", 2);
+        stepSizes.put("15N", 2);
         stepSizes.put("1H", 1);
         final Map<String, Integer[]> limits = new HashMap<>(prevLimits); // min/max limit per nucleus
         String nucleus;
