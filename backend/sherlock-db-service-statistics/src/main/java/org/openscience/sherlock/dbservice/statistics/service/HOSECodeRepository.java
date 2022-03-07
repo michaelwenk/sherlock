@@ -22,10 +22,10 @@
  * SOFTWARE.
  */
 
-package org.openscience.sherlock.dbservice.hosecode.service;
+package org.openscience.sherlock.dbservice.statistics.service;
 
 
-import org.openscience.sherlock.dbservice.hosecode.service.model.HOSECodeRecord;
+import org.openscience.sherlock.dbservice.statistics.service.model.HOSECodeRecord;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Mono;

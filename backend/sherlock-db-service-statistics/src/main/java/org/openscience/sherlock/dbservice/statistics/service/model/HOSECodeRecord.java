@@ -22,7 +22,7 @@
  * SOFTWARE.
  */
 
-package org.openscience.sherlock.dbservice.hosecode.service.model;
+package org.openscience.sherlock.dbservice.statistics.service.model;
 
 
 import lombok.AllArgsConstructor;

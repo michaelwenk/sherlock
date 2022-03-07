@@ -1,14 +1,14 @@
-package org.openscience.sherlock.dbservice.hosecode.controller;
+package org.openscience.sherlock.dbservice.statistics.controller;
 
 import casekit.io.FileSystem;
 import casekit.nmr.analysis.HOSECodeShiftStatistics;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.http.HttpHeaders;
-import org.openscience.sherlock.dbservice.hosecode.service.HOSECodeServiceImplementation;
-import org.openscience.sherlock.dbservice.hosecode.service.model.DataSetRecord;
-import org.openscience.sherlock.dbservice.hosecode.service.model.HOSECode;
-import org.openscience.sherlock.dbservice.hosecode.service.model.HOSECodeRecord;
+import org.openscience.sherlock.dbservice.statistics.service.HOSECodeServiceImplementation;
+import org.openscience.sherlock.dbservice.statistics.service.model.DataSetRecord;
+import org.openscience.sherlock.dbservice.statistics.service.model.HOSECode;
+import org.openscience.sherlock.dbservice.statistics.service.model.HOSECodeRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
@@ -27,7 +27,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 @RestController
-@RequestMapping(value = "/")
+@RequestMapping(value = "/hosecode")
 public class HOSECodeController {
 
     private final WebClient.Builder webClientBuilder;
@@ -40,8 +40,6 @@ public class HOSECodeController {
         this.webClientBuilder = webClientBuilder;
         this.exchangeStrategies = exchangeStrategies;
         this.hoseCodeServiceImplementation = hoseCodeServiceImplementation;
-
-        this.saveAllAsMap();
     }
 
     private String decode(final String value) {
@@ -160,10 +158,8 @@ public class HOSECodeController {
         stringBuilder.append("[");
 
         this.getAll()
-            .doOnNext(hoseCodeObject -> {
-                stringBuilder.append(gson.toJson(hoseCodeObject))
-                             .append(",");
-            })
+            .doOnNext(hoseCodeObject -> stringBuilder.append(gson.toJson(hoseCodeObject))
+                                                     .append(","))
             .doAfterTerminate(() -> {
                 stringBuilder.deleteCharAt(stringBuilder.length()
                                                    - 1);

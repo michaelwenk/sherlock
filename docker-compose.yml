@@ -57,6 +57,8 @@ services:
     depends_on:
       - sherlock-discovery-server
       - sherlock-db-instance-statistics
+    volumes:
+      - hosecode-file-storage:/data/hosecode
 
   sherlock-db-service-result:
     container_name: sherlock-db-service-result
