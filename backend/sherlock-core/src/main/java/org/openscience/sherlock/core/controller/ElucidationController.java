@@ -1,6 +1,9 @@
 package org.openscience.sherlock.core.controller;
 
+import casekit.nmr.model.DataSet;
+import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.sherlock.core.model.exchange.Transfer;
+import org.openscience.sherlock.core.utils.elucidation.Prediction;
 import org.openscience.sherlock.core.utils.elucidation.PyLSD;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -12,6 +15,8 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -61,5 +66,24 @@ public class ElucidationController {
         }
 
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
+    }
+
+    @PostMapping(value = "/repredict")
+    public ResponseEntity<Transfer> repredict(@RequestBody final Transfer requestTransfer) {
+        List<DataSet> dataSetList = requestTransfer.getDataSetList()
+                                            != null
+                                    ? requestTransfer.getDataSetList()
+                                    : new ArrayList<>();
+        final List<IAtomContainer> structureList = new ArrayList<>();
+        for (final DataSet dataSet : dataSetList) {
+            structureList.add(dataSet.getStructure()
+                                     .toAtomContainer());
+        }
+        dataSetList = Prediction.predict(requestTransfer.getCorrelations(), structureList,
+                                         requestTransfer.getElucidationOptions(), this.hoseCodeDBEntriesMap,
+                                         this.webClientBuilder, this.exchangeStrategies);
+        requestTransfer.setDataSetList(dataSetList);
+
+        return new ResponseEntity<>(requestTransfer, HttpStatus.OK);
     }
 }

@@ -43,7 +43,7 @@ public class PyLSD {
                                                                       + "_forbidden.deff", pathToNeighborsFilesFolder
                                                                       + requestTransfer.getRequestID()
                                                                       + "_set.deff"});
-        final Transfer queryResultTransfer = createPyLSDInputFile(webClientBuilder, requestTransfer);
+        final Transfer queryResultTransfer = createPyLSDInputFiles(webClientBuilder, requestTransfer);
         final Transfer responseTransfer = new Transfer();
         responseTransfer.setRequestID(requestTransfer.getRequestID());
         responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
@@ -206,8 +206,8 @@ public class PyLSD {
         return new ResponseEntity<>(Detection.detect(webClientBuilder, requestTransfer), HttpStatus.OK);
     }
 
-    public static Transfer createPyLSDInputFile(final WebClient.Builder webClientBuilder,
-                                                final Transfer requestTransfer) {
+    public static Transfer createPyLSDInputFiles(final WebClient.Builder webClientBuilder,
+                                                 final Transfer requestTransfer) {
         System.out.println("-> detected data was already given?: "
                                    + (requestTransfer.getDetections()
                 != null));

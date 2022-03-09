@@ -25,11 +25,14 @@
 package org.openscience.sherlock.core.controller;
 
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
+import casekit.nmr.elucidation.model.Detections;
+import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.filterandrank.FilterAndRank;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.nmrium.Correlations;
 import casekit.nmr.utils.Utils;
+import org.openscience.cdk.exception.CDKException;
 import org.openscience.sherlock.core.model.db.ResultRecord;
 import org.openscience.sherlock.core.model.exchange.Transfer;
 import org.openscience.sherlock.core.utils.Utilities;
@@ -246,70 +249,22 @@ public class CoreController {
                                                           != null
                                                   ? queryResultTransfer.getDataSetList()
                                                   : new ArrayList<>();
+                transferResponseEntity = this.rankAndStore(requestTransfer, correlations,
+                                                           queryResultTransfer.getDetections(),
+                                                           queryResultTransfer.getGrouping(), dataSetList);
+                if (transferResponseEntity.getStatusCode()
+                                          .isError()) {
+                    System.out.println("ELUCIDATION -> Configuration and storage request failed: "
+                                               + transferResponseEntity.getBody()
+                                                                       .getErrorMessage());
+                    responseTransfer.setErrorMessage("ELUCIDATION -> Configuration and storage of result failed: "
+                                                             + transferResponseEntity.getStatusCode());
 
-                // store results in DB if not empty and replace resultRecord in responseTransfer
-                if (!dataSetList.isEmpty()) {
-                    FilterAndRank.rank(dataSetList);
-                    Utilities.addMolFileToDataSets(dataSetList);
-
-                    final SimpleDateFormat formatter = new SimpleDateFormat("EE MMM d y H:m:s ZZZ");
-                    final String dateString = formatter.format(new Date());
-                    final ResultRecord queryResultRecord = new ResultRecord();
-                    queryResultRecord.setDataSetList(dataSetList);
-                    queryResultRecord.setName(requestTransfer.getResultRecord()
-                                                             .getName());
-                    queryResultRecord.setDataSetListSize(dataSetList.size());
-                    queryResultRecord.setDate(dateString);
-                    queryResultRecord.setPreviewDataSet(dataSetList.get(0));
-                    queryResultRecord.setCorrelations(correlations);
-                    queryResultRecord.setDetections(queryResultTransfer.getDetections());
-                    queryResultRecord.setGrouping(queryResultTransfer.getGrouping());
-                    queryResultRecord.setDetectionOptions(requestTransfer.getResultRecord()
-                                                                         .getDetectionOptions());
-                    queryResultRecord.setElucidationOptions(requestTransfer.getResultRecord()
-                                                                           .getElucidationOptions());
-
-                    final WebClient webClient = this.webClientBuilder.baseUrl(
-                                                            "http://sherlock-gateway:8080/sherlock-db-service-result/insert")
-                                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                                    MediaType.APPLICATION_JSON_VALUE)
-                                                                     .exchangeStrategies(this.exchangeStrategies)
-                                                                     .build();
-                    try {
-                        final ResponseEntity<ResultRecord> resultRecordResponseEntity = webClient.post()
-                                                                                                 .bodyValue(
-                                                                                                         queryResultRecord)
-                                                                                                 .retrieve()
-                                                                                                 .toEntity(
-                                                                                                         ResultRecord.class)
-                                                                                                 .block();
-                        if (resultRecordResponseEntity.getStatusCode()
-                                                      .isError()) {
-                            System.out.println("Result storage request failed: "
-                                                       + resultRecordResponseEntity.getStatusCode());
-                            responseTransfer.setErrorMessage("Result storage request failed: "
-                                                                     + resultRecordResponseEntity.getStatusCode());
-                            transferResponseEntity = new ResponseEntity<>(responseTransfer,
-                                                                          resultRecordResponseEntity.getStatusCode());
-                            return transferResponseEntity;
-                        }
-                        responseTransfer.setResultRecord(resultRecordResponseEntity.getBody());
-                    } catch (final Exception e) {
-                        responseTransfer.setErrorMessage(e.getMessage());
-                        return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
-                    }
-                } else {
-                    responseTransfer.getResultRecord()
-                                    .setDataSetList(new ArrayList<>());
-                    responseTransfer.getResultRecord()
-                                    .setDataSetListSize(0);
-                    responseTransfer.getResultRecord()
-                                    .setPreviewDataSet(null);
-                    responseTransfer.getResultRecord()
-                                    .setDate(null);
-                    responseTransfer.getResultRecord()
-                                    .setId(null);
+                    return new ResponseEntity<>(responseTransfer, transferResponseEntity.getStatusCode());
                 }
+
+                responseTransfer.setResultRecord(transferResponseEntity.getBody()
+                                                                       .getResultRecord());
 
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
@@ -337,6 +292,56 @@ public class CoreController {
                                 .setGrouping(queryResultTransfer.getGrouping());
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
+
+            // RE-PREDICTION
+            if (requestTransfer.getQueryType()
+                               .equals("reprediction")) {
+                final Transfer queryTransfer = new Transfer();
+                queryTransfer.setCorrelations(requestTransfer.getResultRecord()
+                                                             .getCorrelations());
+                queryTransfer.setDetectionOptions(requestTransfer.getResultRecord()
+                                                                 .getDetectionOptions());
+                queryTransfer.setElucidationOptions(requestTransfer.getResultRecord()
+                                                                   .getElucidationOptions());
+                queryTransfer.setDetections(requestTransfer.getResultRecord()
+                                                           .getDetections());
+                queryTransfer.setGrouping(requestTransfer.getResultRecord()
+                                                         .getGrouping());
+                queryTransfer.setMf(mf);
+                queryTransfer.setDataSetList(requestTransfer.getResultRecord()
+                                                            .getDataSetList());
+
+                ResponseEntity<Transfer> transferResponseEntity = this.elucidationController.repredict(queryTransfer);
+                if (transferResponseEntity.getStatusCode()
+                                          .isError()) {
+                    System.out.println("RE-PREDICTION -> prediction failed: "
+                                               + transferResponseEntity.getBody()
+                                                                       .getErrorMessage());
+                    responseTransfer.setErrorMessage("RE-PREDICTION -> prediction failed: "
+                                                             + transferResponseEntity.getStatusCode());
+
+                    return new ResponseEntity<>(responseTransfer, transferResponseEntity.getStatusCode());
+                }
+
+                transferResponseEntity = this.rankAndStore(requestTransfer, correlations, queryTransfer.getDetections(),
+                                                           queryTransfer.getGrouping(), transferResponseEntity.getBody()
+                                                                                                              .getDataSetList());
+                if (transferResponseEntity.getStatusCode()
+                                          .isError()) {
+                    System.out.println("ELUCIDATION -> Configuration and storage request failed: "
+                                               + transferResponseEntity.getBody()
+                                                                       .getErrorMessage());
+                    responseTransfer.setErrorMessage("ELUCIDATION -> Configuration and storage of result failed: "
+                                                             + transferResponseEntity.getStatusCode());
+
+                    return new ResponseEntity<>(responseTransfer, transferResponseEntity.getStatusCode());
+                }
+
+                responseTransfer.setResultRecord(transferResponseEntity.getBody()
+                                                                       .getResultRecord());
+
+                return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
+            }
         } catch (final Exception e) {
             System.err.println("An error occurred: ");
             e.printStackTrace();
@@ -352,5 +357,79 @@ public class CoreController {
     @GetMapping(value = "/cancel")
     public ResponseEntity<Transfer> cancel() {
         return PyLSD.cancel();
+    }
+
+    private ResponseEntity<Transfer> rankAndStore(final Transfer requestTransfer, final Correlations correlations,
+                                                  final Detections detections, final Grouping grouping,
+                                                  final List<DataSet> dataSetList) {
+        final Transfer responseTransfer = new Transfer();
+        try {
+            Utilities.addMolFileToDataSets(dataSetList);
+
+            final SimpleDateFormat formatter = new SimpleDateFormat("EE MMM d y H:m:s ZZZ");
+            final String dateString = formatter.format(new Date());
+            final ResultRecord queryResultRecord = new ResultRecord();
+            queryResultRecord.setName(requestTransfer.getResultRecord()
+                                                     .getName());
+            queryResultRecord.setCorrelations(correlations);
+            queryResultRecord.setDetections(detections);
+            queryResultRecord.setGrouping(grouping);
+            queryResultRecord.setDetectionOptions(requestTransfer.getResultRecord()
+                                                                 .getDetectionOptions());
+            queryResultRecord.setElucidationOptions(requestTransfer.getResultRecord()
+                                                                   .getElucidationOptions());
+            // store results in DB if not empty and replace resultRecord in responseTransfer
+            if (!dataSetList.isEmpty()) {
+                FilterAndRank.rank(dataSetList);
+
+                queryResultRecord.setDate(dateString);
+                queryResultRecord.setDataSetList(dataSetList);
+                queryResultRecord.setDataSetListSize(dataSetList.size());
+                queryResultRecord.setPreviewDataSet(dataSetList.get(0));
+
+                final WebClient webClient = this.webClientBuilder.baseUrl(
+                                                        "http://sherlock-gateway:8080/sherlock-db-service-result/insert")
+                                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                                MediaType.APPLICATION_JSON_VALUE)
+                                                                 .exchangeStrategies(this.exchangeStrategies)
+                                                                 .build();
+                try {
+                    final ResponseEntity<ResultRecord> resultRecordResponseEntity = webClient.post()
+                                                                                             .bodyValue(
+                                                                                                     queryResultRecord)
+                                                                                             .retrieve()
+                                                                                             .toEntity(
+                                                                                                     ResultRecord.class)
+                                                                                             .block();
+                    if (resultRecordResponseEntity.getStatusCode()
+                                                  .isError()) {
+                        responseTransfer.setErrorMessage("Result storage request failed: "
+                                                                 + resultRecordResponseEntity.getStatusCode());
+                        return new ResponseEntity<>(responseTransfer, resultRecordResponseEntity.getStatusCode());
+                    }
+                    responseTransfer.setResultRecord(resultRecordResponseEntity.getBody());
+                } catch (final Exception e) {
+                    responseTransfer.setErrorMessage(e.getMessage());
+                    return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
+                }
+            } else {
+                responseTransfer.setResultRecord(queryResultRecord);
+
+                responseTransfer.getResultRecord()
+                                .setDataSetList(new ArrayList<>());
+                responseTransfer.getResultRecord()
+                                .setDataSetListSize(0);
+                responseTransfer.getResultRecord()
+                                .setPreviewDataSet(null);
+                responseTransfer.getResultRecord()
+                                .setDate(null);
+                responseTransfer.getResultRecord()
+                                .setId(null);
+            }
+        } catch (final CDKException e) {
+            e.printStackTrace();
+        }
+
+        return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 }
