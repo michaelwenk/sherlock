@@ -254,10 +254,10 @@ public class CoreController {
                                                            queryResultTransfer.getGrouping(), dataSetList);
                 if (transferResponseEntity.getStatusCode()
                                           .isError()) {
-                    System.out.println("ELUCIDATION -> Configuration and storage request failed: "
+                    System.out.println("ELUCIDATION -> configuration and storage request failed: "
                                                + transferResponseEntity.getBody()
                                                                        .getErrorMessage());
-                    responseTransfer.setErrorMessage("ELUCIDATION -> Configuration and storage of result failed: "
+                    responseTransfer.setErrorMessage("ELUCIDATION -> configuration and storage of result failed: "
                                                              + transferResponseEntity.getStatusCode());
 
                     return new ResponseEntity<>(responseTransfer, transferResponseEntity.getStatusCode());
@@ -293,9 +293,9 @@ public class CoreController {
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
 
-            // RE-PREDICTION
+            // (RE-)PREDICTION
             if (requestTransfer.getQueryType()
-                               .equals("reprediction")) {
+                               .equals("prediction")) {
                 final Transfer queryTransfer = new Transfer();
                 queryTransfer.setCorrelations(requestTransfer.getResultRecord()
                                                              .getCorrelations());
@@ -311,13 +311,13 @@ public class CoreController {
                 queryTransfer.setDataSetList(requestTransfer.getResultRecord()
                                                             .getDataSetList());
 
-                ResponseEntity<Transfer> transferResponseEntity = this.elucidationController.repredict(queryTransfer);
+                ResponseEntity<Transfer> transferResponseEntity = this.elucidationController.predict(queryTransfer);
                 if (transferResponseEntity.getStatusCode()
                                           .isError()) {
-                    System.out.println("RE-PREDICTION -> prediction failed: "
+                    System.out.println("(RE-)PREDICTION -> prediction failed: "
                                                + transferResponseEntity.getBody()
                                                                        .getErrorMessage());
-                    responseTransfer.setErrorMessage("RE-PREDICTION -> prediction failed: "
+                    responseTransfer.setErrorMessage("(RE-)PREDICTION -> prediction failed: "
                                                              + transferResponseEntity.getStatusCode());
 
                     return new ResponseEntity<>(responseTransfer, transferResponseEntity.getStatusCode());
@@ -328,10 +328,10 @@ public class CoreController {
                                                                                                               .getDataSetList());
                 if (transferResponseEntity.getStatusCode()
                                           .isError()) {
-                    System.out.println("ELUCIDATION -> Configuration and storage request failed: "
+                    System.out.println("(RE-)PREDICTION -> configuration and storage request failed: "
                                                + transferResponseEntity.getBody()
                                                                        .getErrorMessage());
-                    responseTransfer.setErrorMessage("ELUCIDATION -> Configuration and storage of result failed: "
+                    responseTransfer.setErrorMessage("(RE-)PREDICTION -> configuration and storage of result failed: "
                                                              + transferResponseEntity.getStatusCode());
 
                     return new ResponseEntity<>(responseTransfer, transferResponseEntity.getStatusCode());

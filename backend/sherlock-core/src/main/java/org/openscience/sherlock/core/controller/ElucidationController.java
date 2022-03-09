@@ -68,8 +68,8 @@ public class ElucidationController {
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
-    @PostMapping(value = "/repredict")
-    public ResponseEntity<Transfer> repredict(@RequestBody final Transfer requestTransfer) {
+    @PostMapping(value = "/predict")
+    public ResponseEntity<Transfer> predict(@RequestBody final Transfer requestTransfer) {
         List<DataSet> dataSetList = requestTransfer.getDataSetList()
                                             != null
                                     ? requestTransfer.getDataSetList()
