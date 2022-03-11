@@ -44,7 +44,7 @@ public class ConnectivityDetection {
                 < correlationList.size(); i++) {
             correlation = correlationList.get(i);
             multiplicity = Utils.getMultiplicityFromProtonsCount(correlation);
-            signal = Utils.extractSignalFromCorrelation(correlation);
+            signal = Utils.extractFirstSignalFromCorrelation(correlation);
             if (!correlation.getAtomType()
                             .equals("H")
                     && multiplicity
@@ -110,7 +110,7 @@ public class ConnectivityDetection {
                 < correlationList.size(); i++) {
             correlation = correlationList.get(i);
             multiplicity = Utils.getMultiplicityFromProtonsCount(correlation);
-            signal = Utils.extractSignalFromCorrelation(correlation);
+            signal = Utils.extractFirstSignalFromCorrelation(correlation);
             if (!correlation.getAtomType()
                             .equals("H")
                     && multiplicity

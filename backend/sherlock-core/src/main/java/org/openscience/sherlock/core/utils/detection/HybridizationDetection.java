@@ -33,7 +33,7 @@ public class HybridizationDetection {
                 < correlationList.size(); i++) {
             correlation = correlationList.get(i);
             multiplicity = Utils.getMultiplicityFromProtonsCount(correlation);
-            signal = Utils.extractSignalFromCorrelation(correlation);
+            signal = Utils.extractFirstSignalFromCorrelation(correlation);
             if (!correlation.getAtomType()
                             .equals("H")
                     && Constants.nucleiMap.containsKey(correlation.getAtomType())
