@@ -40,6 +40,8 @@ public interface DataSetService {
 
     Flux<DataSetRecord> findByMf(final String mf);
 
+    Flux<DataSetRecord> findBySource(final String source);
+
     Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
 
     Flux<DataSetRecord> findByDataSetSpectrumNucleiAndSource(final String[] nuclei, final String source);

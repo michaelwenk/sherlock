@@ -46,6 +46,9 @@ public interface DataSetRepository
     @Query(value = "{\"dataSet.meta.mf\": \"?0\"}")
     Flux<DataSetRecord> findByMf(final String mf);
 
+    @Query(value = "{\"dataSet.meta.source\": \"?0\"}")
+    Flux<DataSetRecord> findBySource(final String source);
+
     Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
 
     @Query(value = "{\"dataSet.spectrum.nuclei\": ?0, \"dataSet.meta.source\": \"?1\"}")

@@ -66,6 +66,12 @@ public class DataSetServiceImplementation
     }
 
     @Override
+    public Flux<DataSetRecord> findBySource(final String source) {
+        return this.dataSetRepository.findBySource(source);
+    }
+
+
+    @Override
     public Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei) {
         return this.dataSetRepository.findByDataSetSpectrumNuclei(nuclei);
     }

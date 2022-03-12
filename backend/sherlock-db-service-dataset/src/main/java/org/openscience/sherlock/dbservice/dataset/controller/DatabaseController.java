@@ -103,6 +103,11 @@ public class DatabaseController {
         return this.dataSetServiceImplementation.findByMf(mf);
     }
 
+    @GetMapping(value = "/getBySource", produces = "application/stream+json")
+    public Flux<DataSetRecord> getBySource(@RequestParam final String source) {
+        return this.dataSetServiceImplementation.findBySource(source);
+    }
+
     @GetMapping(value = "/getByNuclei", produces = "application/stream+json")
     public Flux<DataSetRecord> getByDataSetSpectrumNuclei(@RequestParam final String[] nuclei) {
         return this.dataSetServiceImplementation.findByDataSetSpectrumNuclei(nuclei);
