@@ -1,5 +1,6 @@
 package org.openscience.sherlock.core.utils.detection;
 
+import casekit.nmr.utils.Utils;
 import org.openscience.sherlock.core.model.db.HeavyAtomStatisticsRecord;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -43,8 +44,22 @@ public class HeavyAtomStatisticsDetection {
         return detectedHeavyAtomStatistics;
     }
 
-    public static boolean checkOccurrence(final Map<String, Integer> detectedHeavyAtomStatistics,
-                                          final double threshold) {
+    public static boolean checkAllowanceOfHeteroAtom(final WebClient.Builder webClientBuilder, final String mf,
+                                                     final double threshold) {
+        final Map<String, Integer> elementCounts = Utils.getMolecularFormulaElementCounts(mf);
+        final int sumHeteroAtomsByMf = elementCounts.entrySet()
+                                                    .stream()
+                                                    .filter(entry -> !entry.getKey()
+                                                                           .equals("C")
+                                                            && !entry.getKey()
+                                                                     .equals("H"))
+                                                    .map(Map.Entry::getValue)
+                                                    .reduce(0, Integer::sum);
+        if (sumHeteroAtomsByMf
+                <= 1) {
+            return false;
+        }
+        final Map<String, Integer> detectedHeavyAtomStatistics = detect(webClientBuilder, mf);
         int sumHeteroAtoms = 0;
         String[] split;
         for (final Map.Entry<String, Integer> entry : detectedHeavyAtomStatistics.entrySet()) {
@@ -58,7 +73,6 @@ public class HeavyAtomStatisticsDetection {
         final int sumAll = detectedHeavyAtomStatistics.values()
                                                       .stream()
                                                       .reduce(0, Integer::sum);
-
         return sumHeteroAtoms
                 / (double) sumAll
                 > threshold;

@@ -38,7 +38,8 @@ public class Detection {
         responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
         responseTransfer.getElucidationOptions()
                         .setAllowHeteroHeteroBonds(
-                                HeavyAtomStatisticsDetection.checkOccurrence(detectedHeavyAtomStatistics, 0.01));
+                                HeavyAtomStatisticsDetection.checkAllowanceOfHeteroAtom(webClientBuilder,
+                                                                                        requestTransfer.getMf(), 0.01));
 
         // DETECTIONS
         final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedOccurrenceForbidden = ConnectivityDetection.detectByOccurrenceCounts(
