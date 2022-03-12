@@ -290,6 +290,8 @@ public class CoreController {
                                 .setDetections(queryResultTransfer.getDetections());
                 responseTransfer.getResultRecord()
                                 .setGrouping(queryResultTransfer.getGrouping());
+                responseTransfer.getResultRecord()
+                                .setElucidationOptions(queryResultTransfer.getElucidationOptions());
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
 

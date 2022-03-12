@@ -30,6 +30,18 @@ public class Detection {
             correlationList.get(entry.getKey())
                            .setHybridization(entry.getValue());
         }
+        // HEAVY ATOM STATISTICS
+        final Map<String, Integer> detectedHeavyAtomStatistics = HeavyAtomStatisticsDetection.detect(webClientBuilder,
+                                                                                                     requestTransfer.getMf());
+        System.out.println("detectedHeavyAtomStatistics: "
+                                   + detectedHeavyAtomStatistics);
+        responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
+        if (HeavyAtomStatisticsDetection.checkOccurrence(detectedHeavyAtomStatistics, 0.01)) {
+            responseTransfer.getElucidationOptions()
+                            .setAllowHeteroHeteroBonds(true);
+            System.out.println(" -> detected to allow hetero-hetero bonds");
+        }
+
         // DETECTIONS
         final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedOccurrenceForbidden = ConnectivityDetection.detectByOccurrenceCounts(
                 webClientBuilder, correlationList, shiftTolDetection, requestTransfer.getDetectionOptions()
@@ -45,41 +57,6 @@ public class Detection {
 
         System.out.println("detectedOccurrenceAllowed: "
                                    + detectedOccurrenceAllowed);
-        //        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedConnectivityCounts = ConnectivityDetection.detectByConnectivityCounts(
-        //                webClientBuilder, correlationList, shiftTolDetection, requestTransfer.getDetectionOptions()
-        //                                                                                     .getLowerElementCountThreshold(),
-        //                requestTransfer.getMf(), false);
-        //
-        //        System.out.println("detectedConnectivityCounts: "
-        //                                   + detectedConnectivityCounts);
-        //
-        //        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> forbiddenNeighbors = ForbiddenNeighborDetection.detectForbiddenNeighbors(
-        //                detectedConnectivityCounts, requestTransfer.getMf());
-        //        reduce(forbiddenNeighbors);
-        //
-        //        final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> setNeighbors = ConnectivityDetection.detectByConnectivityCounts(
-        //                webClientBuilder, correlationList, shiftTolDetection, requestTransfer.getDetectionOptions()
-        //                                                                                     .getUpperElementCountThreshold(),
-        //                requestTransfer.getMf(), false);
-        //        reduce(setNeighbors);
-        //        // remove carbons from forbidden/set neighbors list
-        //        //        for (final Map.Entry<Integer, Map<String, Map<Integer, Set<Integer>>>> entryPerCorrelation : forbiddenNeighbors.entrySet()) {
-        //        //            entryPerCorrelation.getValue()
-        //        //                               .remove("C");
-        //        //        }
-        //        //        for (final Map.Entry<Integer, Map<String, Map<Integer, Set<Integer>>>> entryPerCorrelation : setNeighbors.entrySet()) {
-        //        //            entryPerCorrelation.getValue()
-        //        //                               .remove("C");
-        //        //        }
-        //
-        //
-        //        // @TODO for now: avoid different neighbor hybridizations
-        //        simplifyHybridizations(forbiddenNeighbors);
-        //        simplifyHybridizations(setNeighbors);
-        //        System.out.println("-> forbiddenNeighbors: "
-        //                                   + forbiddenNeighbors);
-        //        System.out.println("-> setNeighbors: "
-        //                                   + setNeighbors);
 
         final Map<Integer, Set<Integer>> fixedNeighbors = requestTransfer.getDetections()
                                                                   != null
@@ -125,94 +102,28 @@ public class Detection {
         responseTransfer.setGrouping(detectGroups(responseTransfer.getCorrelations()));
         System.out.println("grouping: "
                                    + responseTransfer.getGrouping());
+        boolean stop = false;
+        for (final Map.Entry<String, Map<Integer, List<Integer>>> entryPerAtomType : responseTransfer.getGrouping()
+                                                                                                     .getGroups()
+                                                                                                     .entrySet()) {
+            for (final Map.Entry<Integer, List<Integer>> entryPerGroup : entryPerAtomType.getValue()
+                                                                                         .entrySet()) {
+                if (entryPerGroup.getValue()
+                                 .size()
+                        > 1) {
+                    responseTransfer.getElucidationOptions()
+                                    .setUseCombinatorics(true);
+                    stop = true;
+                    break;
+                }
+                if (stop) {
+                    break;
+                }
+            }
+        }
 
         return responseTransfer;
     }
-
-
-    //    private static void reduce(final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> neighbors) {
-    //        for (final Map.Entry<Integer, Map<String, Map<Integer, Set<Integer>>>> entryPerCorrelation : neighbors.entrySet()) {
-    //            for (final Map.Entry<String, Map<Integer, Set<Integer>>> entryPerAtomType : entryPerCorrelation.getValue()
-    //                                                                                                           .entrySet()) {
-    //                final Set<Integer> defaultHybridizations = Arrays.stream(
-    //                                                                         Constants.defaultHybridizationMap.get(entryPerAtomType.getKey()))
-    //                                                                 .boxed()
-    //                                                                 .collect(Collectors.toSet());
-    //                if (entryPerAtomType.getValue()
-    //                                    .keySet()
-    //                                    .containsAll(defaultHybridizations)) {
-    //                    final Set<Integer> defaultProtonsCounts = Arrays.stream(
-    //                                                                            Constants.defaultProtonsCountPerValencyMap.get(entryPerAtomType.getKey()))
-    //                                                                    .boxed()
-    //                                                                    .collect(Collectors.toSet());
-    //                    for (final int protonsCount : defaultProtonsCounts) {
-    //                        boolean foundInAllHybridizations = true;
-    //                        for (final Map.Entry<Integer, Set<Integer>> entryPerHybridization : entryPerAtomType.getValue()
-    //                                                                                                            .entrySet()) {
-    //                            if (entryPerHybridization.getKey()
-    //                                    != -1
-    //                                    && !entryPerHybridization.getValue()
-    //                                                             .contains(protonsCount)) {
-    //                                foundInAllHybridizations = false;
-    //                                break;
-    //                            }
-    //                        }
-    //                        if (foundInAllHybridizations) {
-    //                            // remove protonsCount from hybridization
-    //                            for (final Map.Entry<Integer, Set<Integer>> entryPerHybridization : entryPerAtomType.getValue()
-    //                                                                                                                .entrySet()) {
-    //                                if (entryPerHybridization.getKey()
-    //                                        != -1) {
-    //                                    entryPerHybridization.getValue()
-    //                                                         .remove(protonsCount);
-    //                                }
-    //                            }
-    //                            // add protonsCount to -1 which means all hybridization states
-    //                            entryPerAtomType.getValue()
-    //                                            .putIfAbsent(-1, new HashSet<>());
-    //                            entryPerAtomType.getValue()
-    //                                            .get(-1)
-    //                                            .add(protonsCount);
-    //                        }
-    //                    }
-    //                }
-    //                final Set<Integer> hybridizationsToRemove = new HashSet<>();
-    //                for (final Map.Entry<Integer, Set<Integer>> entryPerHybridization : entryPerAtomType.getValue()
-    //                                                                                                    .entrySet()) {
-    //                    if (entryPerHybridization.getValue()
-    //                                             .isEmpty()) {
-    //                        hybridizationsToRemove.add(entryPerHybridization.getKey());
-    //                    }
-    //                }
-    //                for (final int hybrid : hybridizationsToRemove) {
-    //                    entryPerAtomType.getValue()
-    //                                    .remove(hybrid);
-    //                }
-    //            }
-    //        }
-    //    }
-    //
-    //    private static void simplifyHybridizations(final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> neighbors) {
-    //        for (final Map.Entry<Integer, Map<String, Map<Integer, Set<Integer>>>> entryPerCorrelation : neighbors.entrySet()) {
-    //            for (final Map.Entry<String, Map<Integer, Set<Integer>>> entryPerNeighborAtom : entryPerCorrelation.getValue()
-    //                                                                                                               .entrySet()) {
-    //                for (final int neighborHybridization : new ArrayList<>(entryPerNeighborAtom.getValue()
-    //                                                                                           .keySet())) {
-    //                    if (neighborHybridization
-    //                            != -1) {
-    //                        entryPerNeighborAtom.getValue()
-    //                                            .putIfAbsent(-1, new HashSet<>());
-    //                        entryPerNeighborAtom.getValue()
-    //                                            .get(-1)
-    //                                            .addAll(entryPerNeighborAtom.getValue()
-    //                                                                        .get(neighborHybridization));
-    //                        entryPerNeighborAtom.getValue()
-    //                                            .remove(neighborHybridization);
-    //                    }
-    //                }
-    //            }
-    //        }
-    //    }
 
     public static Grouping detectGroups(final Correlations correlations) {
         return Utilities.buildGroups(correlations.getValues(), (Map<String, Double>) correlations.getOptions()

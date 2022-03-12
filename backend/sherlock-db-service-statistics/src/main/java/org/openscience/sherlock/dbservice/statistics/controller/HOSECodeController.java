@@ -4,24 +4,20 @@ import casekit.io.FileSystem;
 import casekit.nmr.analysis.HOSECodeShiftStatistics;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import org.apache.http.HttpHeaders;
 import org.openscience.sherlock.dbservice.statistics.service.HOSECodeServiceImplementation;
-import org.openscience.sherlock.dbservice.statistics.service.model.DataSetRecord;
 import org.openscience.sherlock.dbservice.statistics.service.model.HOSECode;
 import org.openscience.sherlock.dbservice.statistics.service.model.HOSECodeRecord;
+import org.openscience.sherlock.dbservice.statistics.utils.Utilities;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -87,62 +83,33 @@ public class HOSECodeController {
 
         System.out.println(" --> fetching all datasets, build HOSE code statistics and store...");
         final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts = new ConcurrentHashMap<>();
-        this.getByDataSetSpectrumNucleiAndSource(nuclei, source)
-            .doOnNext(
-                    dataSetRecord -> HOSECodeShiftStatistics.insert(dataSetRecord.getDataSet(), maxSphere, true, false,
-                                                                    hoseCodeShifts))
-            .doAfterTerminate(() -> {
-                System.out.println(" -> hoseCodeShifts size: "
-                                           + hoseCodeShifts.size());
-                final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(
-                        hoseCodeShifts);
-                System.out.println(" -> hoseCodeShiftStatistics size: "
-                                           + hoseCodeShiftStatistics.size());
+        Utilities.getByDataSetSpectrumNucleiAndSource(this.webClientBuilder, this.exchangeStrategies, nuclei, source)
+                 .doOnNext(dataSetRecord -> HOSECodeShiftStatistics.insert(dataSetRecord.getDataSet(), maxSphere, true,
+                                                                           false, hoseCodeShifts))
+                 .doAfterTerminate(() -> {
+                     System.out.println(" -> hoseCodeShifts size: "
+                                                + hoseCodeShifts.size());
+                     final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(
+                             hoseCodeShifts);
+                     System.out.println(" -> hoseCodeShiftStatistics size: "
+                                                + hoseCodeShiftStatistics.size());
 
-                final Flux<HOSECodeRecord> hoseCodeRecordFlux = Flux.fromStream(hoseCodeShiftStatistics.keySet()
-                                                                                                       .stream()
-                                                                                                       .map(hoseCode -> new HOSECodeRecord(
-                                                                                                               hoseCode,
-                                                                                                               new HOSECode(
-                                                                                                                       hoseCode,
-                                                                                                                       hoseCodeShiftStatistics.get(
-                                                                                                                               hoseCode)))));
+                     final Flux<HOSECodeRecord> hoseCodeRecordFlux = Flux.fromStream(hoseCodeShiftStatistics.keySet()
+                                                                                                            .stream()
+                                                                                                            .map(hoseCode -> new HOSECodeRecord(
+                                                                                                                    hoseCode,
+                                                                                                                    new HOSECode(
+                                                                                                                            hoseCode,
+                                                                                                                            hoseCodeShiftStatistics.get(
+                                                                                                                                    hoseCode)))));
 
-                this.hoseCodeServiceImplementation.insertMany(hoseCodeRecordFlux)
-                                                  .doOnError(Throwable::printStackTrace)
-                                                  .doAfterTerminate(this::saveAllAsMap)
-                                                  .subscribe();
-            })
-            .doOnError(Throwable::printStackTrace)
-            .subscribe();
-    }
-
-    public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndSource(final String[] nuclei, final String source) {
-        final WebClient webClient = this.webClientBuilder.baseUrl(
-                                                "http://sherlock-gateway:8080/sherlock-db-service-dataset/")
-                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                        MediaType.APPLICATION_JSON_VALUE)
-                                                         .exchangeStrategies(this.exchangeStrategies)
-                                                         .build();
-        // @TODO take the nuclei order into account when matching -> now it's just an exact array match
-        final String nucleiString = Arrays.stream(nuclei)
-                                          .reduce("", (concat, current) -> concat
-                                                  + current);
-        final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-        if (source
-                == null) {
-            uriComponentsBuilder.path("/getByNuclei")
-                                .queryParam("nuclei", nucleiString);
-        } else {
-            uriComponentsBuilder.path("/getByNucleiAndSource")
-                                .queryParam("nuclei", nucleiString)
-                                .queryParam("source", source);
-        }
-
-        return webClient.get()
-                        .uri(uriComponentsBuilder.toUriString())
-                        .retrieve()
-                        .bodyToFlux(DataSetRecord.class);
+                     this.hoseCodeServiceImplementation.insertMany(hoseCodeRecordFlux)
+                                                       .doOnError(Throwable::printStackTrace)
+                                                       .doAfterTerminate(this::saveAllAsMap)
+                                                       .subscribe();
+                 })
+                 .doOnError(Throwable::printStackTrace)
+                 .subscribe();
     }
 
     @GetMapping(value = "/saveAllAsMap")

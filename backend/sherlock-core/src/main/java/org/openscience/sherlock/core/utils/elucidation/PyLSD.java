@@ -217,6 +217,7 @@ public class PyLSD {
                 == null) {
             final Transfer detectionTransfer = Detection.detect(webClientBuilder, requestTransfer);
             requestTransfer.setDetections(detectionTransfer.getDetections());
+            requestTransfer.setElucidationOptions(detectionTransfer.getElucidationOptions());
             System.out.println(" -> new detections: "
                                        + requestTransfer.getDetections());
         }

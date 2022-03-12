@@ -191,6 +191,7 @@ public class HybridizationController {
                                      this.hybridizationServiceImplementation.insert(
                                                  new HybridizationRecord(null, nucleus, shift, multiplicity, elementsString,
                                                                          hybridizationCounts))
+                                                                            .doOnError(Throwable::printStackTrace)
                                                                             .subscribe();
                                  }
                              }

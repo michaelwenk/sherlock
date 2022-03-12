@@ -21,6 +21,5 @@ public class ConnectivityRecord {
     private String hybridization;
     private String multiplicity;
     private int shift;
-    private Map<String, Map<String, Map<Integer, Integer>>> connectivityCounts; // connected atom symbol -> connected atom hybridization -> connected atom protons count -> occurrence
     private Map<String, Map<String, Integer[]>> occurrenceCounts; // "elemental composition" -> connected atom symbol -> [#found, #notFound]
 }
