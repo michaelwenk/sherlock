@@ -36,11 +36,9 @@ public class Detection {
         System.out.println("detectedHeavyAtomStatistics: "
                                    + detectedHeavyAtomStatistics);
         responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
-        if (HeavyAtomStatisticsDetection.checkOccurrence(detectedHeavyAtomStatistics, 0.01)) {
-            responseTransfer.getElucidationOptions()
-                            .setAllowHeteroHeteroBonds(true);
-            System.out.println(" -> detected to allow hetero-hetero bonds");
-        }
+        responseTransfer.getElucidationOptions()
+                        .setAllowHeteroHeteroBonds(
+                                HeavyAtomStatisticsDetection.checkOccurrence(detectedHeavyAtomStatistics, 0.01));
 
         // DETECTIONS
         final Map<Integer, Map<String, Map<Integer, Set<Integer>>>> detectedOccurrenceForbidden = ConnectivityDetection.detectByOccurrenceCounts(
@@ -102,7 +100,7 @@ public class Detection {
         responseTransfer.setGrouping(detectGroups(responseTransfer.getCorrelations()));
         System.out.println("grouping: "
                                    + responseTransfer.getGrouping());
-        boolean stop = false;
+        boolean multipleGroupMembersExist = false;
         for (final Map.Entry<String, Map<Integer, List<Integer>>> entryPerAtomType : responseTransfer.getGrouping()
                                                                                                      .getGroups()
                                                                                                      .entrySet()) {
@@ -113,13 +111,17 @@ public class Detection {
                         > 1) {
                     responseTransfer.getElucidationOptions()
                                     .setUseCombinatorics(true);
-                    stop = true;
+                    multipleGroupMembersExist = true;
                     break;
                 }
-                if (stop) {
+                if (multipleGroupMembersExist) {
                     break;
                 }
             }
+        }
+        if (!multipleGroupMembersExist) {
+            responseTransfer.getElucidationOptions()
+                            .setUseCombinatorics(false);
         }
 
         return responseTransfer;
