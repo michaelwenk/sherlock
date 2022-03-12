@@ -52,8 +52,6 @@ public class Prediction {
             //            System.out.println("--> could not parse SMILES file: "
             //                                       + requestTransfer.getPathToSmilesFile());
             responseTransfer.setDataSetList(new ArrayList<>());
-            responseTransfer.setErrorMessage(e.getMessage());
-            return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
