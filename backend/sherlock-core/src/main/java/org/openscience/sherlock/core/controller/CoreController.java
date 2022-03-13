@@ -164,14 +164,19 @@ public class CoreController {
                 }
                 // unique the dereplication result
                 List<DataSet> uniqueDataSetList = new ArrayList<>();
-                final Set<String> uniqueDataSetIDs = new HashSet<>();
-                String id;
+                final Set<String> uniqueDataSetBySourceAndID = new HashSet<>();
+                String id, source, sourceAndIDKey;
                 for (final DataSet dataSet : Objects.requireNonNull(transferResponseEntity.getBody())
                                                     .getDataSetList()) {
+                    source = dataSet.getMeta()
+                                    .get("source");
                     id = dataSet.getMeta()
                                 .get("id");
-                    if (!uniqueDataSetIDs.contains(id)) {
-                        uniqueDataSetIDs.add(id);
+                    sourceAndIDKey = source
+                            + "_"
+                            + id;
+                    if (!uniqueDataSetBySourceAndID.contains(sourceAndIDKey)) {
+                        uniqueDataSetBySourceAndID.add(sourceAndIDKey);
                         uniqueDataSetList.add(dataSet);
                     }
                 }
