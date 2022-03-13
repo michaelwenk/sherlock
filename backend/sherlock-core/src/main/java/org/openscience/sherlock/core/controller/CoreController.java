@@ -24,7 +24,6 @@
 
 package org.openscience.sherlock.core.controller;
 
-import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.elucidation.model.Detections;
 import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.filterandrank.FilterAndRank;
@@ -46,7 +45,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -59,7 +57,6 @@ public class CoreController {
     private final ExchangeStrategies exchangeStrategies;
     private final DereplicationController dereplicationController;
     private final ElucidationController elucidationController;
-    private final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
 
     @Autowired
     public CoreController(final WebClient.Builder webClientBuilder, final ExchangeStrategies exchangeStrategies,
@@ -164,56 +161,13 @@ public class CoreController {
 
                     return transferResponseEntity;
                 }
-                // unique the dereplication result
-                List<DataSet> uniqueDataSetList = new ArrayList<>();
-                final Set<String> uniqueDataSetBySourceAndID = new HashSet<>();
-                String id, source, sourceAndIDKey;
-                for (final DataSet dataSet : Objects.requireNonNull(transferResponseEntity.getBody())
-                                                    .getDataSetList()) {
-                    source = dataSet.getMeta()
-                                    .get("source");
-                    id = dataSet.getMeta()
-                                .get("id");
-                    sourceAndIDKey = source
-                            + "_"
-                            + id;
-                    if (!uniqueDataSetBySourceAndID.contains(sourceAndIDKey)) {
-                        uniqueDataSetBySourceAndID.add(sourceAndIDKey);
-                        uniqueDataSetList.add(dataSet);
-                    }
-                }
-
-                final Map<String, int[]> multiplicitySectionsSettings;
-                try {
-                    final Mono<Map<String, int[]>> multiplicitySectionsSettingsMono = Utilities.getMultiplicitySectionsSettings(
-                            this.webClientBuilder, this.exchangeStrategies);
-                    multiplicitySectionsSettings = multiplicitySectionsSettingsMono.block();
-                    this.multiplicitySectionsBuilder.setMinLimit(
-                            multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[0]);
-                    this.multiplicitySectionsBuilder.setMaxLimit(
-                            multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[1]);
-                    this.multiplicitySectionsBuilder.setStepSize(
-                            multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[2]);
-
-                    uniqueDataSetList = FilterAndRank.filterAndRank(uniqueDataSetList, querySpectrum,
-                                                                    requestTransfer.getDereplicationOptions()
-                                                                                   .getShiftTolerance(),
-                                                                    requestTransfer.getDereplicationOptions()
-                                                                                   .getMaximumAverageDeviation(),
-                                                                    requestTransfer.getDereplicationOptions()
-                                                                                   .isCheckMultiplicity(),
-                                                                    requestTransfer.getDereplicationOptions()
-                                                                                   .isCheckEquivalencesCount(),
-                                                                    this.multiplicitySectionsBuilder, false);
-                    Utilities.addMolFileToDataSets(uniqueDataSetList);
-                } catch (final Exception e) {
-                    responseTransfer.setErrorMessage(e.getMessage());
-                    return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
-                }
                 responseTransfer.getResultRecord()
-                                .setDataSetList(uniqueDataSetList);
+                                .setDataSetList(transferResponseEntity.getBody()
+                                                                      .getDataSetList());
                 responseTransfer.getResultRecord()
-                                .setDataSetListSize(uniqueDataSetList.size());
+                                .setDataSetListSize(transferResponseEntity.getBody()
+                                                                          .getDataSetList()
+                                                                          .size());
 
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
