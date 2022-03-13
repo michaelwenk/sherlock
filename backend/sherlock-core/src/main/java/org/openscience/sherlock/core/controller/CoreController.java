@@ -74,8 +74,10 @@ public class CoreController {
     @PostMapping(value = "/core", consumes = "application/json", produces = "application/json")
     public ResponseEntity<Transfer> core(@RequestBody final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
+        // set all input data to the output data
+        // and overwrite certain parts later
         responseTransfer.setQueryType(requestTransfer.getQueryType());
-        responseTransfer.setDereplicationOptions(responseTransfer.getDereplicationOptions());
+        responseTransfer.setDereplicationOptions(requestTransfer.getDereplicationOptions());
         responseTransfer.setResultRecord(requestTransfer.getResultRecord());
 
         final Correlations correlations = requestTransfer.getResultRecord()
