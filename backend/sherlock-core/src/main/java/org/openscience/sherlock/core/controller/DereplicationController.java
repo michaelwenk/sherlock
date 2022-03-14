@@ -84,11 +84,31 @@ public class DereplicationController {
                                                                   .block();
                 if (dataSetRecordList
                         != null) {
-                    final List<DataSet> dataSetList = dataSetRecordList.stream()
-                                                                       .map(DataSetRecord::getDataSet)
-                                                                       .collect(Collectors.toList());
+                    List<DataSet> dataSetList = dataSetRecordList.stream()
+                                                                 .map(DataSetRecord::getDataSet)
+                                                                 .collect(Collectors.toList());
+                    final Mono<Map<String, int[]>> multiplicitySectionsSettingsMono = Utilities.getMultiplicitySectionsSettings(
+                            this.webClientBuilder, this.exchangeStrategies);
+                    final Map<String, int[]> multiplicitySectionsSettings = multiplicitySectionsSettingsMono.block();
+                    this.multiplicitySectionsBuilder.setMinLimit(
+                            multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[0]);
+                    this.multiplicitySectionsBuilder.setMaxLimit(
+                            multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[1]);
+                    this.multiplicitySectionsBuilder.setStepSize(
+                            multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[2]);
+
+                    dataSetList = FilterAndRank.filterAndRank(dataSetList, querySpectrum,
+                                                              requestTransfer.getDereplicationOptions()
+                                                                             .getShiftTolerance(),
+                                                              requestTransfer.getDereplicationOptions()
+                                                                             .getMaximumAverageDeviation(),
+                                                              requestTransfer.getDereplicationOptions()
+                                                                             .isCheckMultiplicity(),
+                                                              requestTransfer.getDereplicationOptions()
+                                                                             .isCheckEquivalencesCount(),
+                                                              this.multiplicitySectionsBuilder, false);
                     // unique the dereplication result
-                    List<DataSet> uniqueDataSetList = new ArrayList<>();
+                    final List<DataSet> uniqueDataSetList = new ArrayList<>();
                     final Set<String> uniqueDataSetBySourceAndID = new HashSet<>();
                     String id, source, sourceAndIDKey;
                     for (final DataSet dataSet : dataSetList) {
@@ -104,27 +124,6 @@ public class DereplicationController {
                             uniqueDataSetList.add(dataSet);
                         }
                     }
-                    final Map<String, int[]> multiplicitySectionsSettings;
-                    final Mono<Map<String, int[]>> multiplicitySectionsSettingsMono = Utilities.getMultiplicitySectionsSettings(
-                            this.webClientBuilder, this.exchangeStrategies);
-                    multiplicitySectionsSettings = multiplicitySectionsSettingsMono.block();
-                    this.multiplicitySectionsBuilder.setMinLimit(
-                            multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[0]);
-                    this.multiplicitySectionsBuilder.setMaxLimit(
-                            multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[1]);
-                    this.multiplicitySectionsBuilder.setStepSize(
-                            multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[2]);
-
-                    uniqueDataSetList = FilterAndRank.filterAndRank(uniqueDataSetList, querySpectrum,
-                                                                    requestTransfer.getDereplicationOptions()
-                                                                                   .getShiftTolerance(),
-                                                                    requestTransfer.getDereplicationOptions()
-                                                                                   .getMaximumAverageDeviation(),
-                                                                    requestTransfer.getDereplicationOptions()
-                                                                                   .isCheckMultiplicity(),
-                                                                    requestTransfer.getDereplicationOptions()
-                                                                                   .isCheckEquivalencesCount(),
-                                                                    this.multiplicitySectionsBuilder, false);
                     Utilities.addMolFileToDataSets(uniqueDataSetList);
 
                     responseTransfer.setDataSetList(uniqueDataSetList);
