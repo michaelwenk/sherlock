@@ -41,8 +41,9 @@ public class Prediction {
                 for (final String smiles : smilesList) {
                     structureList.add(smilesParser.parseSmiles(smiles));
                 }
-                final List<DataSet> dataSetList = predict(correlations, structureList, elucidationOptions,
-                                                          hoseCodeDBEntriesMap, webClientBuilder, exchangeStrategies);
+                final List<DataSet> dataSetList = predictAndFilter(correlations, structureList, elucidationOptions,
+                                                                   hoseCodeDBEntriesMap, webClientBuilder,
+                                                                   exchangeStrategies);
                 responseTransfer.setDataSetList(dataSetList);
             } catch (final Exception e) {
                 responseTransfer.setErrorMessage(e.getMessage());
@@ -57,11 +58,12 @@ public class Prediction {
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
-    public static List<DataSet> predict(final Correlations correlations, final List<IAtomContainer> structureList,
-                                        final ElucidationOptions elucidationOptions,
-                                        final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
-                                        final WebClient.Builder webClientBuilder,
-                                        final ExchangeStrategies exchangeStrategies) {
+    public static List<DataSet> predictAndFilter(final Correlations correlations,
+                                                 final List<IAtomContainer> structureList,
+                                                 final ElucidationOptions elucidationOptions,
+                                                 final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
+                                                 final WebClient.Builder webClientBuilder,
+                                                 final ExchangeStrategies exchangeStrategies) {
         // @TODO method modifications for different nuclei and solvent needed
         final String nucleus = "13C";
         final int maxSphere = 6;
@@ -71,13 +73,19 @@ public class Prediction {
         return casekit.nmr.prediction.Prediction.predict1DByStereoHOSECodeAndFilter(querySpectrum,
                                                                                     elucidationOptions.getShiftTolerance(),
                                                                                     elucidationOptions.getMaximumAverageDeviation(),
-                                                                                    maxSphere, structureList,
-                                                                                    hoseCodeDBEntriesMap,
+                                                                                    true, true, false, maxSphere,
+                                                                                    structureList, hoseCodeDBEntriesMap,
                                                                                     Objects.requireNonNull(
                                                                                             Utilities.getMultiplicitySectionsSettings(
                                                                                                              webClientBuilder,
                                                                                                              exchangeStrategies)
                                                                                                      .block()),
                                                                                     nThreads);
+    }
+
+    public static DataSet predict(final IAtomContainer structure, final String nucleus, final int maxSphere,
+                                  final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap) {
+        return casekit.nmr.prediction.Prediction.predict1DByStereoHOSECode(structure, nucleus, maxSphere,
+                                                                           hoseCodeDBEntriesMap);
     }
 }

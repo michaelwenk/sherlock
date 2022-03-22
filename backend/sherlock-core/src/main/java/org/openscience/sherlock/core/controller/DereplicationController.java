@@ -106,6 +106,9 @@ public class DereplicationController {
                                                                              .isCheckMultiplicity(),
                                                               requestTransfer.getDereplicationOptions()
                                                                              .isCheckEquivalencesCount(),
+                                                              // equivalences are not checked then also allow lower equivalence count
+                                                              !requestTransfer.getDereplicationOptions()
+                                                                              .isCheckEquivalencesCount(),
                                                               this.multiplicitySectionsBuilder, false);
                     // unique the dereplication result
                     final List<DataSet> uniqueDataSetList = new ArrayList<>();
