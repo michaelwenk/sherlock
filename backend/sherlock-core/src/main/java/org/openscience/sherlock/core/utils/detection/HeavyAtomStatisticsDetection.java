@@ -44,8 +44,8 @@ public class HeavyAtomStatisticsDetection {
         return detectedHeavyAtomStatistics;
     }
 
-    public static boolean checkAllowanceOfHeteroAtom(final WebClient.Builder webClientBuilder, final String mf,
-                                                     final double threshold) {
+    public static boolean checkAllowanceOfHeteroHeteroBonds(final WebClient.Builder webClientBuilder, final String mf,
+                                                            final double threshold) {
         final Map<String, Integer> elementCounts = Utils.getMolecularFormulaElementCounts(mf);
         final int sumHeteroAtomsByMf = elementCounts.entrySet()
                                                     .stream()
