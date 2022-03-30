@@ -215,7 +215,7 @@ public class CoreController {
                                                   : new ArrayList<>();
                 transferResponseEntity = this.rankAndStore(requestTransfer, correlations,
                                                            queryResultTransfer.getDetections(),
-                                                           queryResultTransfer.getGrouping(), dataSetList);
+                                                           queryResultTransfer.getGrouping(), dataSetList, 1000);
                 if (transferResponseEntity.getStatusCode()
                                           .isError()) {
                     System.out.println("ELUCIDATION -> configuration and storage request failed: "
@@ -329,7 +329,7 @@ public class CoreController {
 
     private ResponseEntity<Transfer> rankAndStore(final Transfer requestTransfer, final Correlations correlations,
                                                   final Detections detections, final Grouping grouping,
-                                                  final List<DataSet> dataSetList) {
+                                                  final List<DataSet> dataSetList, final int maxDataSetListSize) {
         final Transfer responseTransfer = new Transfer();
         try {
             Utilities.addMolFileToDataSets(dataSetList);
@@ -350,10 +350,20 @@ public class CoreController {
             if (!dataSetList.isEmpty()) {
                 FilterAndRank.rank(dataSetList);
 
+                final List<DataSet> cutDataSetList = new ArrayList<>();
+                for (int i = 0; i
+                        < maxDataSetListSize; i++) {
+                    if (i
+                            >= dataSetList.size()) {
+                        break;
+                    }
+                    cutDataSetList.add(dataSetList.get(i));
+                }
+
                 queryResultRecord.setDate(dateString);
-                queryResultRecord.setDataSetList(dataSetList);
-                queryResultRecord.setDataSetListSize(dataSetList.size());
-                queryResultRecord.setPreviewDataSet(dataSetList.get(0));
+                queryResultRecord.setDataSetList(cutDataSetList);
+                queryResultRecord.setDataSetListSize(cutDataSetList.size());
+                queryResultRecord.setPreviewDataSet(cutDataSetList.get(0));
                 queryResultRecord.setQuerySpectrum(
                         new SpectrumCompact(Utils.correlationListToSpectrum1D(correlations.getValues(), "13C")));
 
