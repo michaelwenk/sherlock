@@ -110,7 +110,8 @@ public class PyLSD {
 
                         transferResponseEntity = Prediction.parseAndPredictFromSmilesFile(
                                 responseTransfer.getCorrelations(), responseTransfer.getElucidationOptions(),
-                                hoseCodeDBEntriesMap, pathToSmilesFile, webClientBuilder, exchangeStrategies);
+                                responseTransfer.getDetections(), hoseCodeDBEntriesMap, pathToSmilesFile,
+                                webClientBuilder, exchangeStrategies);
                         if (transferResponseEntity.getStatusCode()
                                                   .isError()) {
                             return transferResponseEntity;

@@ -1,5 +1,6 @@
 package org.openscience.sherlock.core.utils.elucidation;
 
+import casekit.nmr.elucidation.model.Detections;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.nmrium.Correlations;
@@ -26,6 +27,7 @@ public class Prediction {
 
     public static ResponseEntity<Transfer> parseAndPredictFromSmilesFile(final Correlations correlations,
                                                                          final ElucidationOptions elucidationOptions,
+                                                                         final Detections detections,
                                                                          final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
                                                                          final String pathToSmilesFile,
                                                                          final WebClient.Builder webClientBuilder,
@@ -42,7 +44,7 @@ public class Prediction {
                     structureList.add(smilesParser.parseSmiles(smiles));
                 }
                 final List<DataSet> dataSetList = predictAndFilter(correlations, structureList, elucidationOptions,
-                                                                   hoseCodeDBEntriesMap, webClientBuilder,
+                                                                   detections, hoseCodeDBEntriesMap, webClientBuilder,
                                                                    exchangeStrategies);
                 responseTransfer.setDataSetList(dataSetList);
             } catch (final Exception e) {
@@ -61,6 +63,7 @@ public class Prediction {
     public static List<DataSet> predictAndFilter(final Correlations correlations,
                                                  final List<IAtomContainer> structureList,
                                                  final ElucidationOptions elucidationOptions,
+                                                 final Detections detections,
                                                  final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
                                                  final WebClient.Builder webClientBuilder,
                                                  final ExchangeStrategies exchangeStrategies) {
@@ -73,8 +76,9 @@ public class Prediction {
         return casekit.nmr.prediction.Prediction.predict1DByStereoHOSECodeAndFilter(querySpectrum,
                                                                                     elucidationOptions.getShiftTolerance(),
                                                                                     elucidationOptions.getMaximumAverageDeviation(),
-                                                                                    true, true, false, maxSphere,
-                                                                                    structureList, hoseCodeDBEntriesMap,
+                                                                                    true, true, false, detections,
+                                                                                    maxSphere, structureList,
+                                                                                    hoseCodeDBEntriesMap,
                                                                                     Objects.requireNonNull(
                                                                                             Utilities.getMultiplicitySectionsSettings(
                                                                                                              webClientBuilder,
