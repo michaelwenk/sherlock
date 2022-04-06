@@ -260,56 +260,6 @@ public class CoreController {
                                 .setQuerySpectrum(new SpectrumCompact(querySpectrum));
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
-
-            //            // (RE-)PREDICTION
-            //            if (requestTransfer.getQueryType()
-            //                               .equals("prediction")) {
-            //                final Transfer queryTransfer = new Transfer();
-            //                queryTransfer.setCorrelations(requestTransfer.getResultRecord()
-            //                                                             .getCorrelations());
-            //                queryTransfer.setDetectionOptions(requestTransfer.getResultRecord()
-            //                                                                 .getDetectionOptions());
-            //                queryTransfer.setElucidationOptions(requestTransfer.getResultRecord()
-            //                                                                   .getElucidationOptions());
-            //                queryTransfer.setDetections(requestTransfer.getResultRecord()
-            //                                                           .getDetections());
-            //                queryTransfer.setGrouping(requestTransfer.getResultRecord()
-            //                                                         .getGrouping());
-            //                queryTransfer.setMf(mf);
-            //                queryTransfer.setDataSetList(requestTransfer.getResultRecord()
-            //                                                            .getDataSetList());
-            //
-            //                ResponseEntity<Transfer> transferResponseEntity = this.elucidationController.predict(queryTransfer);
-            //                if (transferResponseEntity.getStatusCode()
-            //                                          .isError()) {
-            //                    System.out.println("(RE-)PREDICTION -> prediction failed: "
-            //                                               + transferResponseEntity.getBody()
-            //                                                                       .getErrorMessage());
-            //                    responseTransfer.setErrorMessage("(RE-)PREDICTION -> prediction failed: "
-            //                                                             + transferResponseEntity.getStatusCode());
-            //
-            //                    return new ResponseEntity<>(responseTransfer, transferResponseEntity.getStatusCode());
-            //                }
-            //
-            //                transferResponseEntity = this.rankAndStore(requestTransfer, correlations, queryTransfer.getDetections(),
-            //                                                           queryTransfer.getGrouping(), transferResponseEntity.getBody()
-            //                                                                                                              .getDataSetList());
-            //                if (transferResponseEntity.getStatusCode()
-            //                                          .isError()) {
-            //                    System.out.println("(RE-)PREDICTION -> configuration and storage request failed: "
-            //                                               + transferResponseEntity.getBody()
-            //                                                                       .getErrorMessage());
-            //                    responseTransfer.setErrorMessage("(RE-)PREDICTION -> configuration and storage of result failed: "
-            //                                                             + transferResponseEntity.getStatusCode());
-            //
-            //                    return new ResponseEntity<>(responseTransfer, transferResponseEntity.getStatusCode());
-            //                }
-            //
-            //                responseTransfer.setResultRecord(transferResponseEntity.getBody()
-            //                                                                       .getResultRecord());
-            //
-            //                return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
-            //            }
         } catch (final Exception e) {
             System.err.println("An error occurred: ");
             e.printStackTrace();

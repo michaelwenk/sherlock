@@ -15,8 +15,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -66,25 +64,6 @@ public class ElucidationController {
         }
 
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
-    }
-
-    @PostMapping(value = "/predict")
-    public ResponseEntity<Transfer> predict(@RequestBody final Transfer requestTransfer) {
-        List<DataSet> dataSetList = requestTransfer.getDataSetList()
-                                            != null
-                                    ? requestTransfer.getDataSetList()
-                                    : new ArrayList<>();
-        final List<IAtomContainer> structureList = new ArrayList<>();
-        for (final DataSet dataSet : dataSetList) {
-            structureList.add(dataSet.getStructure()
-                                     .toAtomContainer());
-        }
-        dataSetList = Prediction.predictAndFilter(requestTransfer.getCorrelations(), structureList,
-                                                  requestTransfer.getElucidationOptions(), this.hoseCodeDBEntriesMap,
-                                                  this.webClientBuilder, this.exchangeStrategies);
-        requestTransfer.setDataSetList(dataSetList);
-
-        return new ResponseEntity<>(requestTransfer, HttpStatus.OK);
     }
 
     @GetMapping(value = "/predictBySmiles")
