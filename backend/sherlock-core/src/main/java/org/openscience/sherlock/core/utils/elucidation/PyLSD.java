@@ -30,6 +30,9 @@ public class PyLSD {
     private final static String pathToPyLSDInputFileFolder = "/data/lsd/PyLSD/Variant/";
     private final static String pathToPyLSDResultFileFolder = "/data/lsd/PyLSD/Variant/";
     private final static String pathToNeighborsFilesFolder = "/data/lsd/PyLSD/Variant/";
+    private final static String[] directoriesToCheck = new String[]{pathToPyLSDInputFileFolder,
+                                                                    pathToPyLSDResultFileFolder,
+                                                                    pathToNeighborsFilesFolder};
 
 
     public static ResponseEntity<Transfer> runPyLSD(final Transfer requestTransfer,
@@ -52,8 +55,6 @@ public class PyLSD {
         responseTransfer.setGrouping(queryResultTransfer.getGrouping());
         responseTransfer.setDetectionOptions(queryResultTransfer.getDetectionOptions());
 
-        final String[] directoriesToCheck = new String[]{pathToPyLSDInputFileFolder, pathToPyLSDResultFileFolder,
-                                                         pathToNeighborsFilesFolder};
 
         System.out.println("\n ---> file content list size to process: "
                                    + queryResultTransfer.getPyLSDInputFileContentList()
@@ -65,6 +66,7 @@ public class PyLSD {
         final List<DataSet> dataSetList = new ArrayList<>();
         boolean pyLSDRunWasSuccessful;
         ResponseEntity<Transfer> transferResponseEntity;
+        boolean stop = false;
         for (int i = 0; i
                 < queryResultTransfer.getPyLSDInputFileContentList()
                                      .size(); i++) {
@@ -135,15 +137,18 @@ public class PyLSD {
                     } else {
                         //                        System.out.println("--> run was NOT successful -> killing PyLSD run if it still exist");
                         cancel();
-                        break;
+                        stop = true;
                     }
                 } catch (final Exception e) {
                     e.printStackTrace();
                     responseTransfer.setPyLSDRunWasSuccessful(false);
-                    break;
+                    stop = true;
                 }
                 // cleanup of created files and folder
                 FileSystem.cleanup(directoriesToCheck, requestID);
+                if (stop) {
+                    break;
+                }
             } else {
                 //                System.out.println("--> input file creation failed at "
                 //                                           + pathToPyLSDInputFile);
@@ -161,6 +166,8 @@ public class PyLSD {
 
     public static ResponseEntity<Transfer> cancel() {
         final Transfer responseTransfer = new Transfer();
+
+        FileSystem.cleanup(directoriesToCheck, ".lsd");
 
         while (ProcessHandle.allProcesses()
                             .anyMatch(processHandle -> processHandle.isAlive()
