@@ -164,23 +164,27 @@ public class PyLSD {
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
+    private static boolean isStillRunning(final ProcessHandle processHandle) {
+        return processHandle.isAlive()
+                && (processHandle.info()
+                                 .command()
+                                 .orElse("unknown")
+                                 .contains("python2.7")
+                || processHandle.info()
+                                .command()
+                                .orElse("unknown")
+                                .contains("LSD/lsd"));
+    }
+
     public static ResponseEntity<Transfer> cancel() {
         final Transfer responseTransfer = new Transfer();
 
         FileSystem.cleanup(directoriesToCheck, ".lsd");
 
         while (ProcessHandle.allProcesses()
-                            .anyMatch(processHandle -> processHandle.isAlive()
-                                    && processHandle.info()
-                                                    .command()
-                                                    .orElse("unknown")
-                                                    .contains("LSD/lsd"))) {
+                            .anyMatch(PyLSD::isStillRunning)) {
             ProcessHandle.allProcesses()
-                         .filter(processHandle -> processHandle.isAlive()
-                                 && processHandle.info()
-                                                 .command()
-                                                 .orElse("unknown")
-                                                 .contains("LSD/lsd"))
+                         .filter(PyLSD::isStillRunning)
                          .findFirst()
                          .ifPresent(processHandleLSD -> {
                              System.out.println("-> killing PID "
