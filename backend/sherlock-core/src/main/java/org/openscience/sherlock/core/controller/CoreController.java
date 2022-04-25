@@ -32,6 +32,7 @@ import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.SpectrumCompact;
 import casekit.nmr.model.nmrium.Correlations;
 import casekit.nmr.utils.Utils;
+import org.bson.types.ObjectId;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.sherlock.core.model.db.ResultRecord;
 import org.openscience.sherlock.core.model.exchange.Transfer;
@@ -46,6 +47,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -215,7 +217,7 @@ public class CoreController {
                                                   : new ArrayList<>();
                 transferResponseEntity = this.rankAndStore(requestTransfer, correlations,
                                                            queryResultTransfer.getDetections(),
-                                                           queryResultTransfer.getGrouping(), dataSetList, 1000);
+                                                           queryResultTransfer.getGrouping(), dataSetList, requestID);
                 if (transferResponseEntity.getStatusCode()
                                           .isError()) {
                     System.out.println("ELUCIDATION -> configuration and storage request failed: "
@@ -279,7 +281,7 @@ public class CoreController {
 
     private ResponseEntity<Transfer> rankAndStore(final Transfer requestTransfer, final Correlations correlations,
                                                   final Detections detections, final Grouping grouping,
-                                                  final List<DataSet> dataSetList, final int maxDataSetListSize) {
+                                                  final List<DataSet> dataSetList, final String requestID) {
         final Transfer responseTransfer = new Transfer();
         try {
             Utilities.addMolFileToDataSets(dataSetList);
@@ -299,21 +301,10 @@ public class CoreController {
             // store results in DB if not empty and replace resultRecord in responseTransfer
             if (!dataSetList.isEmpty()) {
                 FilterAndRank.rank(dataSetList);
-
-                final List<DataSet> cutDataSetList = new ArrayList<>();
-                for (int i = 0; i
-                        < maxDataSetListSize; i++) {
-                    if (i
-                            >= dataSetList.size()) {
-                        break;
-                    }
-                    cutDataSetList.add(dataSetList.get(i));
-                }
-
                 queryResultRecord.setDate(dateString);
-                queryResultRecord.setDataSetList(cutDataSetList);
-                queryResultRecord.setDataSetListSize(cutDataSetList.size());
-                queryResultRecord.setPreviewDataSet(cutDataSetList.get(0));
+                queryResultRecord.setDataSetList(dataSetList);
+                queryResultRecord.setDataSetListSize(dataSetList.size());
+                queryResultRecord.setPreviewDataSet(dataSetList.get(0));
                 queryResultRecord.setQuerySpectrum(
                         new SpectrumCompact(Utils.correlationListToSpectrum1D(correlations.getValues(), "13C")));
 
@@ -323,21 +314,28 @@ public class CoreController {
                                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                                  .exchangeStrategies(this.exchangeStrategies)
                                                                  .build();
+                final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
+                uriComponentsBuilder.queryParam("requestID", requestID);
                 try {
-                    final ResponseEntity<ResultRecord> resultRecordResponseEntity = webClient.post()
-                                                                                             .bodyValue(
-                                                                                                     queryResultRecord)
-                                                                                             .retrieve()
-                                                                                             .toEntity(
-                                                                                                     ResultRecord.class)
-                                                                                             .block();
-                    if (resultRecordResponseEntity.getStatusCode()
-                                                  .isError()) {
+
+                    final ResponseEntity<ObjectId> resultStorageResponseEntity = webClient.post()
+                                                                                          .uri(uriComponentsBuilder.toUriString())
+                                                                                          .bodyValue(queryResultRecord)
+                                                                                          .retrieve()
+                                                                                          .toEntity(ObjectId.class)
+                                                                                          .block();
+                    if (resultStorageResponseEntity.getStatusCode()
+                                                   .isError()
+                            || resultStorageResponseEntity.getBody()
+                            == null) {
                         responseTransfer.setErrorMessage("Result storage request failed: "
-                                                                 + resultRecordResponseEntity.getStatusCode());
-                        return new ResponseEntity<>(responseTransfer, resultRecordResponseEntity.getStatusCode());
+                                                                 + resultStorageResponseEntity.getStatusCode());
+                        return new ResponseEntity<>(responseTransfer, resultStorageResponseEntity.getStatusCode());
                     }
-                    responseTransfer.setResultRecord(resultRecordResponseEntity.getBody());
+                    responseTransfer.setResultRecord(queryResultRecord);
+                    responseTransfer.getResultRecord()
+                                    .setId(resultStorageResponseEntity.getBody()
+                                                                      .toString());
                 } catch (final Exception e) {
                     responseTransfer.setErrorMessage(e.getMessage());
                     return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
