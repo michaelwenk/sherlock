@@ -215,7 +215,7 @@ public class CoreController {
                                                   : new ArrayList<>();
                 transferResponseEntity = this.rankAndStore(requestTransfer, correlations,
                                                            queryResultTransfer.getDetections(),
-                                                           queryResultTransfer.getGrouping(), dataSetList, requestID);
+                                                           queryResultTransfer.getGrouping(), dataSetList);
                 if (transferResponseEntity.getStatusCode()
                                           .isError()) {
                     System.out.println("ELUCIDATION -> configuration and storage request failed: "
@@ -279,7 +279,7 @@ public class CoreController {
 
     private ResponseEntity<Transfer> rankAndStore(final Transfer requestTransfer, final Correlations correlations,
                                                   final Detections detections, final Grouping grouping,
-                                                  final List<DataSet> dataSetList, final String requestID) {
+                                                  final List<DataSet> dataSetList) {
         final Transfer responseTransfer = new Transfer();
         try {
             Utilities.addMolFileToDataSets(dataSetList);
@@ -297,9 +297,19 @@ public class CoreController {
             // store results in DB if not empty and replace resultRecord in responseTransfer
             if (!dataSetList.isEmpty()) {
                 FilterAndRank.rank(dataSetList);
-                queryResultRecord.setDataSetList(dataSetList);
-                queryResultRecord.setDataSetListSize(dataSetList.size());
-                queryResultRecord.setPreviewDataSet(dataSetList.get(0));
+
+                final List<DataSet> cutDataSetList = new ArrayList<>();
+                for (int i = 0; i
+                        < 500; i++) {
+                    if (i
+                            >= dataSetList.size()) {
+                        break;
+                    }
+                    cutDataSetList.add(dataSetList.get(i));
+                }
+                queryResultRecord.setDataSetList(cutDataSetList);
+                queryResultRecord.setDataSetListSize(cutDataSetList.size());
+                queryResultRecord.setPreviewDataSet(cutDataSetList.get(0));
                 queryResultRecord.setQuerySpectrum(
                         new SpectrumCompact(Utils.correlationListToSpectrum1D(correlations.getValues(), "13C")));
 
