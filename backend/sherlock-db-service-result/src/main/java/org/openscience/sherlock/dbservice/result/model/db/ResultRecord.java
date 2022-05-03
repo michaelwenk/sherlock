@@ -35,7 +35,6 @@ import org.openscience.sherlock.dbservice.result.model.ElucidationOptions;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.io.Serializable;
 import java.util.List;
 
 @NoArgsConstructor
@@ -45,14 +44,12 @@ import java.util.List;
 @ToString
 
 @Document(collection = "results")
-public class ResultRecord
-        implements Serializable {
-
-    private static final long serialVersionUID = 7341850003137665937L;
+public class ResultRecord {
 
     @Id
     private String id;
     private String name;
+    private String date;
     private List<DataSet> dataSetList;
     private DataSet previewDataSet;
     private int dataSetListSize;

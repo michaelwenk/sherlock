@@ -48,6 +48,8 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 @RestController
@@ -298,6 +300,8 @@ public class CoreController {
             if (!dataSetList.isEmpty()) {
                 FilterAndRank.rank(dataSetList);
 
+                queryResultRecord.setDate(LocalDateTime.now(ZoneId.of("UTC"))
+                                                       .toString());
                 final List<DataSet> cutDataSetList = new ArrayList<>();
                 for (int i = 0; i
                         < 500; i++) {
