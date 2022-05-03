@@ -48,7 +48,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.text.SimpleDateFormat;
 import java.util.*;
 
 @RestController
@@ -285,8 +284,6 @@ public class CoreController {
         try {
             Utilities.addMolFileToDataSets(dataSetList);
 
-            final SimpleDateFormat formatter = new SimpleDateFormat("EE MMM d y H:m:s ZZZ");
-            final String dateString = formatter.format(new Date());
             final ResultRecord queryResultRecord = new ResultRecord();
             queryResultRecord.setName(requestTransfer.getResultRecord()
                                                      .getName());
@@ -300,7 +297,6 @@ public class CoreController {
             // store results in DB if not empty and replace resultRecord in responseTransfer
             if (!dataSetList.isEmpty()) {
                 FilterAndRank.rank(dataSetList);
-                queryResultRecord.setDate(dateString);
                 queryResultRecord.setDataSetList(dataSetList);
                 queryResultRecord.setDataSetListSize(dataSetList.size());
                 queryResultRecord.setPreviewDataSet(dataSetList.get(0));
@@ -345,8 +341,6 @@ public class CoreController {
                                 .setDataSetListSize(0);
                 responseTransfer.getResultRecord()
                                 .setPreviewDataSet(null);
-                responseTransfer.getResultRecord()
-                                .setDate(null);
                 responseTransfer.getResultRecord()
                                 .setId(null);
             }
