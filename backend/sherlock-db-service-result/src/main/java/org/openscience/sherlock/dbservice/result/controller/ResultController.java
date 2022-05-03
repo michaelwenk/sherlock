@@ -25,6 +25,7 @@ import java.nio.channels.Channels;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.UUID;
 
 @RestController
 @RequestMapping(value = "/")
@@ -73,8 +74,9 @@ public class ResultController {
     }
 
     @PostMapping(value = "/insert", consumes = "application/json", produces = "application/json")
-    public Mono<ObjectId> insert(@RequestBody final ResultRecord resultRecord, @RequestParam final String requestID) {
-        return this.reactiveGridFsTemplate.store(this.resultRecordToDataBufferFlux(resultRecord), requestID);
+    public Mono<ObjectId> insert(@RequestBody final ResultRecord resultRecord) {
+        return this.reactiveGridFsTemplate.store(this.resultRecordToDataBufferFlux(resultRecord), UUID.randomUUID()
+                                                                                                      .toString());
     }
 
     @DeleteMapping(value = "/deleteById")

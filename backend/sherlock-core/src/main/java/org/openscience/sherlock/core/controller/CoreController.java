@@ -47,7 +47,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.text.SimpleDateFormat;
 import java.util.*;
@@ -75,7 +74,7 @@ public class CoreController {
     public ResponseEntity<Transfer> core(@RequestBody final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
         // set all input data to the output data
-        // and overwrite certain parts later
+        // and overwrite certain parts after that
         responseTransfer.setQueryType(requestTransfer.getQueryType());
         responseTransfer.setDereplicationOptions(requestTransfer.getDereplicationOptions());
         responseTransfer.setResultRecord(requestTransfer.getResultRecord());
@@ -314,12 +313,9 @@ public class CoreController {
                                                                                 MediaType.APPLICATION_JSON_VALUE)
                                                                  .exchangeStrategies(this.exchangeStrategies)
                                                                  .build();
-                final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-                uriComponentsBuilder.queryParam("requestID", requestID);
                 try {
 
                     final ResponseEntity<ObjectId> resultStorageResponseEntity = webClient.post()
-                                                                                          .uri(uriComponentsBuilder.toUriString())
                                                                                           .bodyValue(queryResultRecord)
                                                                                           .retrieve()
                                                                                           .toEntity(ObjectId.class)
@@ -360,4 +356,134 @@ public class CoreController {
 
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
+
+    // @TODO preparation for using multipart/form-data
+
+    //    ## multipart settings
+    //    #spring.servlet.multipart.max-file-size=-1
+    //    #spring.servlet.multipart.max-request-size=-1
+
+    //    @PostMapping(value = "/core", consumes = "multipart/form-data", produces = "application/json")
+    //    public ResponseEntity<Transfer> core(@RequestParam("data") final MultipartFile multipartFile) {
+    //        final Transfer responseTransfer = new Transfer();
+    //        final Transfer requestTransfer;
+    //        try {
+    //            requestTransfer = this.inputStreamToTransfer(multipartFile.getResource()
+    //                                                                      .getInputStream());
+    //        } catch (final IOException e) {
+    //            e.printStackTrace();
+    //            responseTransfer.setErrorMessage("Could not parse request data properly!!!");
+    //            return new ResponseEntity<>(responseTransfer, HttpStatus.BAD_REQUEST);
+    //        }
+    //    }
+
+    //    public <T> List<T> parseObjectList(final JsonReader jsonReader, final Class<T> clazz) throws IOException {
+    //        final List<T> objectList = new ArrayList<>();
+    //
+    //        jsonReader.beginArray();
+    //        while (jsonReader.hasNext()) {
+    //            objectList.add(this.gson.fromJson(jsonReader, clazz));
+    //        }
+    //        jsonReader.endArray();
+    //        return objectList;
+    //    }
+    //
+    //    private ResultRecord parseResultRecord(final JsonReader jsonReader) throws IOException {
+    //        final ResultRecord resultRecord = new ResultRecord();
+    //        jsonReader.beginObject();
+    //        while (jsonReader.hasNext()) {
+    //            switch (jsonReader.nextName()) {
+    //                case "id":
+    //                    resultRecord.setId(jsonReader.nextString());
+    //                    break;
+    //                case "name":
+    //                    resultRecord.setName(jsonReader.nextString());
+    //                    break;
+    //                case "date":
+    //                    resultRecord.setDate(jsonReader.nextString());
+    //                    break;
+    //                case "dataSetList":
+    //                    resultRecord.setDataSetList(this.parseObjectList(jsonReader, DataSet.class));
+    //                    break;
+    //                case "previewDataSet":
+    //                    resultRecord.setPreviewDataSet(this.gson.fromJson(jsonReader, DataSet.class));
+    //                    break;
+    //                case "dataSetListSize":
+    //                    resultRecord.setDataSetListSize(jsonReader.nextInt());
+    //                    break;
+    //                case "correlations":
+    //                    resultRecord.setCorrelations(this.gson.fromJson(jsonReader, Correlations.class));
+    //                    break;
+    //                case "detections":
+    //                    resultRecord.setDetections(this.gson.fromJson(jsonReader, Detections.class));
+    //                    break;
+    //                case "detectionOptions":
+    //                    resultRecord.setDetectionOptions(this.gson.fromJson(jsonReader, DetectionOptions.class));
+    //                    break;
+    //                case "elucidationOptions":
+    //                    resultRecord.setElucidationOptions(this.gson.fromJson(jsonReader, ElucidationOptions.class));
+    //                    break;
+    //                case "grouping":
+    //                    resultRecord.setGrouping(this.gson.fromJson(jsonReader, Grouping.class));
+    //                    break;
+    //                case "querySpectrum":
+    //                    resultRecord.setQuerySpectrum(this.gson.fromJson(jsonReader, SpectrumCompact.class));
+    //                    break;
+    //                //                case "nmriumDataJsonParts":
+    //                //                    resultRecord.setNmriumDataJsonParts(this.parseObjectList(jsonReader, String.class));
+    //                //                    System.out.println(resultRecord.getNmriumDataJsonParts()
+    //                //                                                   .isEmpty()
+    //                //                                       ? " -> no NMRium data parts"
+    //                //                                       : " -> NMRium data part count: "
+    //                //                                               + resultRecord.getNmriumDataJsonParts()
+    //                //                                                             .size());
+    //                //                    break;
+    //                default:
+    //                    jsonReader.skipValue();
+    //                    break;
+    //            }
+    //        }
+    //        jsonReader.endObject();
+    //
+    //        return resultRecord;
+    //    }
+    //
+    //    private Transfer inputStreamToTransfer(final InputStream inputStream) {
+    //
+    //        try {
+    //            final Transfer transfer = new Transfer();
+    //            final JsonReader jsonReader = new JsonReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
+    //            jsonReader.beginObject();
+    //            while (jsonReader.hasNext()) {
+    //                switch (jsonReader.nextName()) {
+    //                    case "queryType":
+    //                        transfer.setQueryType(jsonReader.nextString());
+    //                        break;
+    //                    case "dereplicationOptions":
+    //                        transfer.setDereplicationOptions(this.gson.fromJson(jsonReader, DereplicationOptions.class));
+    //                        break;
+    //                    case "resultRecord":
+    //                        transfer.setResultRecord(this.parseResultRecord(jsonReader));
+    //                        break;
+    //                    default:
+    //                        jsonReader.skipValue();
+    //                        break;
+    //                }
+    //            }
+    //            jsonReader.endObject();
+    //            jsonReader.close();
+    //
+    //            return transfer;
+    //
+    //            //            final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+    //            //            byteArrayOutputStream.writeBytes(inputStream.readAllBytes());
+    //            //            final String resultString = byteArrayOutputStream.toString(StandardCharsets.UTF_8);
+    //            //
+    //            //            return this.gson.fromJson(resultString, Transfer.class);
+    //        } catch (final IOException e) {
+    //            e.printStackTrace();
+    //        }
+    //
+    //        return null;
+    //    }
 }
