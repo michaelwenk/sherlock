@@ -75,7 +75,8 @@ public class HOSECodeController {
     }
 
     @PostMapping(value = "/replaceAll")
-    public void replaceAll(@RequestParam final String[] nuclei, final int maxSphere, final String source) {
+    public void replaceAll(@RequestParam final String[] nuclei, @RequestParam final int maxSphere,
+                           final String source) {
         System.out.println(" --> delete all DB entries...");
         this.deleteAll()
             .block();

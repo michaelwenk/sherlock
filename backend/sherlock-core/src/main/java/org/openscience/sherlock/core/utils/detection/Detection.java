@@ -26,9 +26,17 @@ public class Detection {
         System.out.println("detectedHybridizations: "
                                    + detectedHybridizations);
         // set hybridization of correlations from detection
+        Set<Integer> hybridizationSet;
         for (final Map.Entry<Integer, List<Integer>> entry : detectedHybridizations.entrySet()) {
+            hybridizationSet = new HashSet<>(entry.getValue());
+            if (correlationList.get(entry.getKey())
+                               .getHybridization()
+                    != null) {
+                hybridizationSet.addAll(correlationList.get(entry.getKey())
+                                                       .getHybridization());
+            }
             correlationList.get(entry.getKey())
-                           .setHybridization(entry.getValue());
+                           .setHybridization(new ArrayList<>(hybridizationSet));
         }
         // HEAVY ATOM STATISTICS
         final Map<String, Integer> detectedHeavyAtomStatistics = HeavyAtomStatisticsDetection.detect(webClientBuilder,
@@ -79,11 +87,10 @@ public class Detection {
         responseTransfer.setCorrelations(requestTransfer.getCorrelations());
         responseTransfer.setDetections(
                 new Detections(detectedHybridizations, new HashMap<>(), detectedOccurrenceForbidden,
-                               detectedOccurrenceAllowed,//detectedConnectivityCounts, forbiddenNeighbors, setNeighbors,
-                               fixedNeighbors));
+                               detectedOccurrenceAllowed, fixedNeighbors));
         responseTransfer.setDetectionOptions(requestTransfer.getDetectionOptions());
 
-        //        // in case of no hetero hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
+        //        // in case of no hetero-hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
         //        if (responseTransfer.getDetectionOptions()
         //                            .isUseNeighborDetections()
         //                && responseTransfer.getDetections()
