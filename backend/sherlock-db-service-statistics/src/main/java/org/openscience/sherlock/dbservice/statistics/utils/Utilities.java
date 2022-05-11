@@ -30,7 +30,7 @@ public class Utilities {
                                                   final ExchangeStrategies exchangeStrategies, final String source) {
         final WebClient webClient = webClientBuilder.baseUrl(
                                                             "http://sherlock-gateway:8080/sherlock-db-service-dataset/")
-                                                    .defaultHeader(org.apache.http.HttpHeaders.CONTENT_TYPE,
+                                                    .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .exchangeStrategies(exchangeStrategies)
                                                     .build();
@@ -76,7 +76,7 @@ public class Utilities {
                                                                           final String[] nuclei, final String source) {
         final WebClient webClient = webClientBuilder.baseUrl(
                                                             "http://sherlock-gateway:8080/sherlock-db-service-dataset/")
-                                                    .defaultHeader(org.apache.http.HttpHeaders.CONTENT_TYPE,
+                                                    .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .exchangeStrategies(exchangeStrategies)
                                                     .build();
