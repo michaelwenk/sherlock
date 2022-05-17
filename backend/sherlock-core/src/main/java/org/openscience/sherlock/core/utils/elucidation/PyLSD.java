@@ -30,6 +30,7 @@ public class PyLSD {
     private final static String pathToPyLSDInputFileFolder = "/data/lsd/PyLSD/Variant/";
     private final static String pathToPyLSDResultFileFolder = "/data/lsd/PyLSD/Variant/";
     private final static String pathToNeighborsFilesFolder = "/data/lsd/PyLSD/Variant/";
+    private final static String pathToFragmentsFilesFolder = "/data/lsd/PyLSD/Variant/";
     private final static String[] directoriesToCheck = new String[]{pathToPyLSDInputFileFolder,
                                                                     pathToPyLSDResultFileFolder,
                                                                     pathToNeighborsFilesFolder};
@@ -43,9 +44,18 @@ public class PyLSD {
         requestTransfer.getElucidationOptions()
                        .setPathsToNeighborsFiles(new String[]{pathToNeighborsFilesFolder
                                                                       + requestTransfer.getRequestID()
-                                                                      + "_forbidden.deff", pathToNeighborsFilesFolder
+                                                                      + "_neighbor_forbidden.deff",
+                                                              pathToNeighborsFilesFolder
                                                                       + requestTransfer.getRequestID()
-                                                                      + "_set.deff"});
+                                                                      + "_neighbor_set.deff"});
+        requestTransfer.getElucidationOptions()
+                       .setPathToFragmentFiles(new String[]{
+                               //                               pathToFragmentsFilesFolder
+                               //                                                                    + requestTransfer.getRequestID()
+                               //                                                                    + "_fragments_forbidden.deff",
+                               pathToFragmentsFilesFolder
+                                       + requestTransfer.getRequestID()
+                                       + "_fragments_set.deff"});
         final Transfer queryResultTransfer = createPyLSDInputFiles(webClientBuilder, requestTransfer);
         final Transfer responseTransfer = new Transfer();
         responseTransfer.setRequestID(requestTransfer.getRequestID());
@@ -75,11 +85,11 @@ public class PyLSD {
             requestID = responseTransfer.getRequestID()
                     + "_"
                     + i;
-            //            System.out.println("\n----------------------\n -> i: "
-            //                                       + i
-            //                                       + " -> \n"
-            //                                       + pyLSDInputFileContent
-            //                                       + "\n----------------------\n");
+            System.out.println("\n----------------------\n -> i: "
+                                       + i
+                                       + " -> \n"
+                                       + pyLSDInputFileContent
+                                       + "\n----------------------\n");
 
             pathToPyLSDInputFile = pathToPyLSDInputFileFolder
                     + requestID
@@ -105,7 +115,7 @@ public class PyLSD {
                     pyLSDRunWasSuccessful = process.waitFor(responseTransfer.getElucidationOptions()
                                                                             .getTimeLimitTotal(), TimeUnit.MINUTES);
                     if (pyLSDRunWasSuccessful) {
-                        //                        System.out.println("--> run was successful");
+                        System.out.println("\n\n--> run was successful");
                         final String pathToSmilesFile = pathToPyLSDResultFileFolder
                                 + requestID
                                 + "_0.smiles";
@@ -118,12 +128,7 @@ public class PyLSD {
                                                   .isError()) {
                             return transferResponseEntity;
                         }
-                        //                        System.out.println("--> path to smiles file: "
-                        //                                                   + pathToSmilesFile
-                        //                                                   + "\n-->  number of parsed and ranked structures: "
-                        //                                                   + transferResponseEntity.getBody()
-                        //                                                                           .getDataSetList()
-                        //                                                                           .size());
+                        System.out.println("\n\n--> parse and prediction was successful");
                         for (final DataSet dataSet : transferResponseEntity.getBody()
                                                                            .getDataSetList()) {
                             if (dataSetList.stream()
@@ -244,22 +249,6 @@ public class PyLSD {
                                        + requestTransfer.getGrouping());
         }
 
-        // @TODO remove following hybridization replacements as soon as the frontend stores the same information into the NMRium data
-        if (requestTransfer.getDetectionOptions()
-                           .isUseHybridizationDetections()
-                && requestTransfer.getDetections()
-                != null) {
-            // set hybridization of correlations from previous detection
-            for (final Map.Entry<Integer, List<Integer>> entry : requestTransfer.getDetections()
-                                                                                .getDetectedHybridizations()
-                                                                                .entrySet()) {
-                requestTransfer.getCorrelations()
-                               .getValues()
-                               .get(entry.getKey())
-                               .setHybridization(entry.getValue());
-            }
-        }
-
         // add (custom) filters to elucidation options
         final String pathToFilterRing3 = "/data/lsd/PyLSD/LSD/Filters/ring3";
         final String pathToFilterRing4 = "/data/lsd/PyLSD/LSD/Filters/ring4";
@@ -294,7 +283,15 @@ public class PyLSD {
                 != null
                                                                            ? requestTransfer.getDetections()
                                                                                             .getFixedNeighbors()
-                                                                           : new HashMap<>());
+                                                                           : new HashMap<>(),
+                                                          requestTransfer.getDetections()
+                                                                  != null
+                                                                  && requestTransfer.getDetections()
+                                                                                    .getFunctionalGroups()
+                                                                  != null
+                                                          ? requestTransfer.getDetections()
+                                                                           .getFunctionalGroups()
+                                                          : new ArrayList<>());
         if (requestTransfer.getDetectionOptions()
                            .isUseHybridizationDetections()) {
             detectionsToUse.setDetectedHybridizations(requestTransfer.getDetections()

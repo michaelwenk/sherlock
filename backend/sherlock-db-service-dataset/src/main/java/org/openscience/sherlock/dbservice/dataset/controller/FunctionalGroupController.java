@@ -5,14 +5,11 @@ import casekit.nmr.fragments.FragmentUtilities;
 import casekit.nmr.fragments.functionalgroup.ErtlFunctionalGroupsUtilities;
 import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
-import casekit.nmr.model.Spectrum;
 import casekit.nmr.similarity.Similarity;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
-import org.openscience.sherlock.dbservice.dataset.db.model.FunctionalGroupLookupRecord;
 import org.openscience.sherlock.dbservice.dataset.db.model.FunctionalGroupRecord;
 import org.openscience.sherlock.dbservice.dataset.db.model.MultiplicitySectionsSettingsRecord;
 import org.openscience.sherlock.dbservice.dataset.db.service.DataSetServiceImplementation;
-import org.openscience.sherlock.dbservice.dataset.db.service.FunctionalGroupLookupServiceImplementation;
 import org.openscience.sherlock.dbservice.dataset.db.service.FunctionalGroupServiceImplementation;
 import org.openscience.sherlock.dbservice.dataset.db.service.MultiplicitySectionsSettingsServiceImplementation;
 import org.openscience.sherlock.dbservice.dataset.model.exchange.Transfer;
@@ -20,7 +17,8 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
 
 @RestController
@@ -28,16 +26,13 @@ import java.util.stream.Stream;
 public class FunctionalGroupController {
 
     private final FunctionalGroupServiceImplementation functionalGroupServiceImplementation;
-    private final FunctionalGroupLookupServiceImplementation functionalGroupLookupServiceImplementation;
     private final DataSetServiceImplementation dataSetServiceImplementation;
     private final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation;
 
     public FunctionalGroupController(final FunctionalGroupServiceImplementation functionalGroupServiceImplementation,
-                                     final FunctionalGroupLookupServiceImplementation functionalGroupLookupServiceImplementation,
                                      final DataSetServiceImplementation dataSetServiceImplementation,
                                      final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation) {
         this.functionalGroupServiceImplementation = functionalGroupServiceImplementation;
-        this.functionalGroupLookupServiceImplementation = functionalGroupLookupServiceImplementation;
         this.dataSetServiceImplementation = dataSetServiceImplementation;
         this.multiplicitySectionsSettingsServiceImplementation = multiplicitySectionsSettingsServiceImplementation;
     }
@@ -212,58 +207,5 @@ public class FunctionalGroupController {
         }
 
         return Flux.fromIterable(new ArrayList<>());
-    }
-
-    @PostMapping(value = "/buildLookup")
-    public void buildLookup() {
-        System.out.println(" -> delete lookup in DB...");
-        this.functionalGroupLookupServiceImplementation.deleteAll()
-                                                       .block();
-        System.out.println(" -> delete lookup in DB done");
-
-        System.out.println(" -> build lookup...");
-        final MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord = this.multiplicitySectionsSettingsServiceImplementation.findByNucleus(
-                                                                                                  "13C")
-                                                                                                                                            .block();
-        if (multiplicitySectionsSettingsRecord
-                != null) {
-            final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
-            multiplicitySectionsBuilder.setMinLimit(
-                    multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings()[0]);
-            multiplicitySectionsBuilder.setMaxLimit(
-                    multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings()[1]);
-            multiplicitySectionsBuilder.setStepSize(
-                    multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings()[2]);
-            final Map<Integer, Set<String>> entriesPerShift = new HashMap<>();
-            this.getAll()
-                .doOnNext(functionalGroupRecord -> {
-                    final DataSet dataSet = functionalGroupRecord.getDataSet();
-                    final Spectrum spectrum = dataSet.getSpectrum()
-                                                     .toSpectrum();
-                    final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(spectrum, 0,
-                                                                                                multiplicitySectionsBuilder);
-                    for (final int setBit : bitSetFingerprint.getSetbits()) {
-                        entriesPerShift.putIfAbsent(setBit, new HashSet<>());
-                        entriesPerShift.get(setBit)
-                                       .add(functionalGroupRecord.getId());
-                    }
-                })
-                .doAfterTerminate(() -> {
-                    System.out.println(" -> build lookup done");
-                    System.out.println(" -> store lookup in DB...");
-                    final Stream<FunctionalGroupLookupRecord> functionalGroupLookupRecordStream = entriesPerShift.entrySet()
-                                                                                                                 .stream()
-                                                                                                                 .map(entry -> new FunctionalGroupLookupRecord(
-                                                                                                                         null,
-                                                                                                                         entry.getKey(),
-                                                                                                                         entry.getValue()));
-                    this.functionalGroupLookupServiceImplementation.insertMany(
-                                Flux.fromStream(functionalGroupLookupRecordStream))
-                                                                   .doAfterTerminate(() -> System.out.println(
-                                                                           " -> store lookup in DB done"))
-                                                                   .subscribe();
-                })
-                .subscribe();
-        }
     }
 }
