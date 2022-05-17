@@ -19,7 +19,7 @@ public class Utilities {
     public static Mono<Map<String, int[]>> getMultiplicitySectionsSettings(final WebClient.Builder webClientBuilder,
                                                                            final ExchangeStrategies exchangeStrategies) {
         final WebClient webClient = webClientBuilder.baseUrl(
-                                                            "http://sherlock-gateway:8080/sherlock-db-service-dataset/getMultiplicitySectionsSettings")
+                                                            "http://sherlock-gateway:8080/sherlock-db-service-dataset/dataset/getMultiplicitySectionsSettings")
                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .exchangeStrategies(exchangeStrategies)
@@ -31,15 +31,21 @@ public class Utilities {
                         });
     }
 
+    public static DataSet addMolFileToDataSet(final DataSet dataSet) throws CDKException {
+        // store as MOL file
+        final MDLV3000Writer mdlv3000Writer = new MDLV3000Writer();
+        final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        mdlv3000Writer.setWriter(byteArrayOutputStream);
+        mdlv3000Writer.write(dataSet.getStructure()
+                                    .toAtomContainer());
+        dataSet.addMetaInfo("molfile", byteArrayOutputStream.toString());
+
+        return dataSet;
+    }
+
     public static List<DataSet> addMolFileToDataSets(final List<DataSet> dataSetList) throws CDKException {
         for (final DataSet dataSet : dataSetList) {
-            // store as MOL file
-            final MDLV3000Writer mdlv3000Writer = new MDLV3000Writer();
-            final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            mdlv3000Writer.setWriter(byteArrayOutputStream);
-            mdlv3000Writer.write(dataSet.getStructure()
-                                        .toAtomContainer());
-            dataSet.addMetaInfo("molfile", byteArrayOutputStream.toString());
+            addMolFileToDataSet(dataSet);
         }
 
         return dataSetList;

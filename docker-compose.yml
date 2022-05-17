@@ -35,6 +35,13 @@ services:
       - "8082:8080"
     depends_on:
       - sherlock-discovery-server
+      - sherlock-gateway
+      - sherlock-db-instance-dataset
+      - sherlock-db-service-dataset
+      - sherlock-db-instance-statistics
+      - sherlock-db-service-statistics
+      - sherlock-db-instance-result
+      - sherlock-db-service-result
     volumes:
       - hosecode-file-storage:/data/hosecode
 

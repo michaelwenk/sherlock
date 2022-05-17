@@ -145,7 +145,7 @@ public class DereplicationController {
 
     public Flux<DataSetRecord> getDataSetRecordFlux(final Spectrum querySpectrum, final String mf) {
         final WebClient webClient = this.webClientBuilder.baseUrl(
-                                                "http://sherlock-gateway:8080/sherlock-db-service-dataset/")
+                                                "http://sherlock-gateway:8080/sherlock-db-service-dataset/dataset")
                                                          .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                         MediaType.APPLICATION_JSON_VALUE)
                                                          .exchangeStrategies(this.exchangeStrategies)

@@ -177,10 +177,6 @@ public class CoreController {
                 return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
             }
 
-            // @TODO check possible structural input (incl. assignment) by NMRium
-
-            // @TODO SUBSTRUCTURE SEARCH
-
             if (requestTransfer.getQueryType()
                                .equals("elucidation")) {
                 // NEW UUID CREATION
@@ -188,6 +184,7 @@ public class CoreController {
                                              .toString();
                 // PyLSD RUN
                 final Transfer queryTransfer = new Transfer();
+                queryTransfer.setQuerySpectrum(querySpectrum);
                 queryTransfer.setCorrelations(requestTransfer.getResultRecord()
                                                              .getCorrelations());
                 queryTransfer.setDetectionOptions(requestTransfer.getResultRecord()
@@ -239,6 +236,7 @@ public class CoreController {
             if (requestTransfer.getQueryType()
                                .equals("detection")) {
                 final Transfer queryTransfer = new Transfer();
+                queryTransfer.setQuerySpectrum(querySpectrum);
                 queryTransfer.setCorrelations(requestTransfer.getResultRecord()
                                                              .getCorrelations());
                 queryTransfer.setDetectionOptions(requestTransfer.getResultRecord()

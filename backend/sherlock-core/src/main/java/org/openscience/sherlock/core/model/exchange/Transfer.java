@@ -37,6 +37,7 @@ import org.openscience.sherlock.core.model.ElucidationOptions;
 import org.openscience.sherlock.core.model.db.ResultRecord;
 
 import java.util.List;
+import java.util.Map;
 
 
 @AllArgsConstructor
@@ -68,4 +69,10 @@ public class Transfer {
 
     private ResultRecord resultRecord;
 
+    // for functional group detection
+    private List<List<Integer>> hybridizationList;
+    private Double shiftTol;
+    private Double maximumAverageDeviation;
+    private Boolean checkMultiplicity;
+    private Map<String, List<DataSet>> functionalGroups;
 }
