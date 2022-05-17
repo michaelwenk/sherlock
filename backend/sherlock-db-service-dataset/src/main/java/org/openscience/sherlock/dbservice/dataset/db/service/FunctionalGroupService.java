@@ -24,7 +24,7 @@
 
 package org.openscience.sherlock.dbservice.dataset.db.service;
 
-import org.openscience.sherlock.dbservice.dataset.db.model.FunctionalGroupRecord;
+import org.openscience.sherlock.dbservice.dataset.db.model.FragmentRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -32,22 +32,22 @@ public interface FunctionalGroupService {
 
     Mono<Long> count();
 
-    Flux<FunctionalGroupRecord> findAll();
+    Flux<FragmentRecord> findAll();
 
-    Flux<FunctionalGroupRecord> findAllById(Iterable<String> ids);
+    Flux<FragmentRecord> findAllById(Iterable<String> ids);
 
-    Mono<FunctionalGroupRecord> findById(final String id);
+    Mono<FragmentRecord> findById(final String id);
 
-    Flux<FunctionalGroupRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
+    Flux<FragmentRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
 
-    Flux<FunctionalGroupRecord> getByDataSetByNucleiAndSignalCountAndSetBits(final String[] nuclei,
-                                                                             final int signalCount, final int[] bits);
+    Flux<FragmentRecord> getByDataSetByNucleiAndSignalCountAndSetBits(final String[] nuclei, final int signalCount,
+                                                                      final int[] bits);
 
     // insertions/deletions
 
-    Mono<FunctionalGroupRecord> insert(final FunctionalGroupRecord functionalGroupRecord);
+    Mono<FragmentRecord> insert(final FragmentRecord functionalGroupRecord);
 
-    Flux<FunctionalGroupRecord> insertMany(final Flux<FunctionalGroupRecord> functionalGroupRecordFlux);
+    Flux<FragmentRecord> insertMany(final Flux<FragmentRecord> functionalGroupRecordFlux);
 
     Mono<Void> deleteAll();
 }

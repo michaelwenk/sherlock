@@ -24,7 +24,7 @@
 
 package org.openscience.sherlock.dbservice.dataset.db.service;
 
-import org.openscience.sherlock.dbservice.dataset.db.model.FunctionalGroupRecord;
+import org.openscience.sherlock.dbservice.dataset.db.model.FragmentRecord;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -46,42 +46,41 @@ public class FunctionalGroupServiceImplementation
     }
 
     @Override
-    public Flux<FunctionalGroupRecord> findAll() {
+    public Flux<FragmentRecord> findAll() {
         return this.functionalGroupRepository.findAll();
     }
 
     @Override
-    public Flux<FunctionalGroupRecord> findAllById(final Iterable<String> ids) {
+    public Flux<FragmentRecord> findAllById(final Iterable<String> ids) {
         return this.functionalGroupRepository.findAllById(ids);
     }
 
 
     @Override
-    public Mono<FunctionalGroupRecord> findById(final String id) {
+    public Mono<FragmentRecord> findById(final String id) {
         return this.functionalGroupRepository.findById(id);
     }
 
     @Override
-    public Flux<FunctionalGroupRecord> findByDataSetSpectrumNuclei(final String[] nuclei) {
+    public Flux<FragmentRecord> findByDataSetSpectrumNuclei(final String[] nuclei) {
         return this.functionalGroupRepository.findByDataSetSpectrumNuclei(nuclei);
     }
 
     @Override
-    public Flux<FunctionalGroupRecord> getByDataSetByNucleiAndSignalCountAndSetBits(final String[] nuclei,
-                                                                                    final int signalCount,
-                                                                                    final int[] bits) {
+    public Flux<FragmentRecord> getByDataSetByNucleiAndSignalCountAndSetBits(final String[] nuclei,
+                                                                             final int signalCount, final int[] bits) {
         return this.functionalGroupRepository.getByDataSetByNucleiAndSignalCountAndSetBits(nuclei, signalCount, bits);
     }
 
     // insertions/deletions
 
     @Override
-    public Mono<FunctionalGroupRecord> insert(final FunctionalGroupRecord functionalGroupRecord) {
-        return this.functionalGroupRepository.insert(functionalGroupRecord);
+    public Mono<FragmentRecord> insert(final FragmentRecord fragmentRecord) {
+        return this.functionalGroupRepository.insert(fragmentRecord);
     }
 
     @Override
-    public Flux<FunctionalGroupRecord> insertMany(final Flux<FunctionalGroupRecord> functionalGroupRecordFlux) {
+    public Flux<FragmentRecord> insertMany(final Flux<FragmentRecord> functionalGroupRecordFlux) {
         return this.functionalGroupRepository.insert(functionalGroupRecordFlux);
     }
 

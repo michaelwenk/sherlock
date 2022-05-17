@@ -7,7 +7,7 @@ import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.similarity.Similarity;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
-import org.openscience.sherlock.dbservice.dataset.db.model.FunctionalGroupRecord;
+import org.openscience.sherlock.dbservice.dataset.db.model.FragmentRecord;
 import org.openscience.sherlock.dbservice.dataset.db.model.MultiplicitySectionsSettingsRecord;
 import org.openscience.sherlock.dbservice.dataset.db.service.DataSetServiceImplementation;
 import org.openscience.sherlock.dbservice.dataset.db.service.FunctionalGroupServiceImplementation;
@@ -43,22 +43,22 @@ public class FunctionalGroupController {
     }
 
     @GetMapping(value = "/getById", produces = "application/json")
-    public Mono<FunctionalGroupRecord> getById(@RequestParam final String id) {
+    public Mono<FragmentRecord> getById(@RequestParam final String id) {
         return this.functionalGroupServiceImplementation.findById(id);
     }
 
     @GetMapping(value = "/getAll", produces = "application/stream+json")
-    public Flux<FunctionalGroupRecord> getAll() {
+    public Flux<FragmentRecord> getAll() {
         return this.functionalGroupServiceImplementation.findAll();
     }
 
     @GetMapping(value = "/getByNuclei", produces = "application/stream+json")
-    public Flux<FunctionalGroupRecord> getByDataSetSpectrumNuclei(@RequestParam final String[] nuclei) {
+    public Flux<FragmentRecord> getByDataSetSpectrumNuclei(@RequestParam final String[] nuclei) {
         return this.functionalGroupServiceImplementation.findByDataSetSpectrumNuclei(nuclei);
     }
 
     @PostMapping(value = "/insert", consumes = "application/json")
-    public Mono<FunctionalGroupRecord> insert(@RequestBody final FunctionalGroupRecord functionalGroupRecord) {
+    public Mono<FragmentRecord> insert(@RequestBody final FragmentRecord functionalGroupRecord) {
         return this.functionalGroupServiceImplementation.insert(functionalGroupRecord);
     }
 
@@ -97,26 +97,26 @@ public class FunctionalGroupController {
                                                  .doOnNext(dataSetRecord -> {
                                                      final List<DataSet> dataSetList = new ArrayList<>();
                                                      dataSetList.add(dataSetRecord.getDataSet());
-                                                     final Stream<FunctionalGroupRecord> functionalGroupRecordStream = ErtlFunctionalGroupsUtilities.buildFunctionalGroupDataSets(
-                                                                                                                                                            dataSetList, nucleiTemp)
-                                                                                                                                                    .stream()
-                                                                                                                                                    .map(functionalGroupDataSet -> {
-                                                                                                                                                        final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(
-                                                                                                                                                                functionalGroupDataSet.getSpectrum()
-                                                                                                                                                                                      .toSpectrum(),
-                                                                                                                                                                0,
-                                                                                                                                                                multiplicitySectionsBuilder);
-                                                                                                                                                        functionalGroupDataSet.addAttachment(
-                                                                                                                                                                "fpSize",
-                                                                                                                                                                bitSetFingerprint.size());
-                                                                                                                                                        functionalGroupDataSet.addAttachment(
-                                                                                                                                                                "setBits",
-                                                                                                                                                                bitSetFingerprint.getSetbits());
+                                                     final Stream<FragmentRecord> functionalGroupRecordStream = ErtlFunctionalGroupsUtilities.buildFunctionalGroupDataSets(
+                                                                                                                                                     dataSetList, nucleiTemp)
+                                                                                                                                             .stream()
+                                                                                                                                             .map(functionalGroupDataSet -> {
+                                                                                                                                                 final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(
+                                                                                                                                                         functionalGroupDataSet.getSpectrum()
+                                                                                                                                                                               .toSpectrum(),
+                                                                                                                                                         0,
+                                                                                                                                                         multiplicitySectionsBuilder);
+                                                                                                                                                 functionalGroupDataSet.addAttachment(
+                                                                                                                                                         "fpSize",
+                                                                                                                                                         bitSetFingerprint.size());
+                                                                                                                                                 functionalGroupDataSet.addAttachment(
+                                                                                                                                                         "setBits",
+                                                                                                                                                         bitSetFingerprint.getSetbits());
 
-                                                                                                                                                        return new FunctionalGroupRecord(
-                                                                                                                                                                null,
-                                                                                                                                                                functionalGroupDataSet);
-                                                                                                                                                    });
+                                                                                                                                                 return new FragmentRecord(
+                                                                                                                                                         null,
+                                                                                                                                                         functionalGroupDataSet);
+                                                                                                                                             });
                                                      this.functionalGroupServiceImplementation.insertMany(
                                                                  Flux.fromStream(functionalGroupRecordStream))
                                                                                               .subscribe();
@@ -130,9 +130,9 @@ public class FunctionalGroupController {
     }
 
     @GetMapping(value = "/getByDataSetByNucleiAndSignalCountAndSetBits", produces = "application/stream+json")
-    public Flux<FunctionalGroupRecord> getByDataSetByNucleiAndSignalCountAndSetBits(@RequestParam final String[] nuclei,
-                                                                                    @RequestParam final int signalCount,
-                                                                                    @RequestParam final int[] bits) {
+    public Flux<FragmentRecord> getByDataSetByNucleiAndSignalCountAndSetBits(@RequestParam final String[] nuclei,
+                                                                             @RequestParam final int signalCount,
+                                                                             @RequestParam final int[] bits) {
 
         return this.functionalGroupServiceImplementation.getByDataSetByNucleiAndSignalCountAndSetBits(nuclei,
                                                                                                       signalCount,
@@ -188,7 +188,7 @@ public class FunctionalGroupController {
                                                                      functionalGroupDetectionTransfer.getQuerySpectrum()
                                                                                                      .getSignalCount(),
                                                                      bitSetFingerprint.getSetbits())
-                       .map(FunctionalGroupRecord::getDataSet)
+                       .map(FragmentRecord::getDataSet)
                        .filter(dataSet -> {
                            // fine search
                            final Assignment matchAssignment = Similarity.matchSpectra(dataSet.getSpectrum()

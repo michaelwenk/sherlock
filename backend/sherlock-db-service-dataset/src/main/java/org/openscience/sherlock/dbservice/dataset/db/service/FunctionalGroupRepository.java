@@ -25,7 +25,7 @@
 package org.openscience.sherlock.dbservice.dataset.db.service;
 
 
-import org.openscience.sherlock.dbservice.dataset.db.model.FunctionalGroupRecord;
+import org.openscience.sherlock.dbservice.dataset.db.model.FragmentRecord;
 import org.springframework.data.mongodb.repository.Aggregation;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
@@ -35,20 +35,20 @@ import reactor.core.publisher.Mono;
 
 @Repository
 public interface FunctionalGroupRepository
-        extends ReactiveMongoRepository<FunctionalGroupRecord, String> {
+        extends ReactiveMongoRepository<FragmentRecord, String> {
 
     @Override
-    Mono<FunctionalGroupRecord> findById(final String id);
+    Mono<FragmentRecord> findById(final String id);
 
     @Override
-    Flux<FunctionalGroupRecord> findAllById(Iterable<String> iterable);
+    Flux<FragmentRecord> findAllById(Iterable<String> iterable);
 
-    Flux<FunctionalGroupRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
+    Flux<FragmentRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
 
     @Aggregation(pipeline = {"{$match: {\"dataSet.spectrum.nuclei\": ?0}}",
                              "{$project: {dataSet: 1, sizeOfSpectrum: {$size: \"$dataSet.spectrum.signals\"}}}, {$match: {\"sizeOfSpectrum\": {$lt: ?1}}}",
                              "{ $project: { \"dataSet\": 1, isSubset: { $setIsSubset: [ \"$dataSet.attachment.setBits\", ?2]}}}",
                              "{$match: {\"isSubset\": true}}"})
-    Flux<FunctionalGroupRecord> getByDataSetByNucleiAndSignalCountAndSetBits(final String[] nuclei,
-                                                                             final int signalCount, final int[] bits);
+    Flux<FragmentRecord> getByDataSetByNucleiAndSignalCountAndSetBits(final String[] nuclei, final int signalCount,
+                                                                      final int[] bits);
 }

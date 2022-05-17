@@ -12,7 +12,7 @@ import org.springframework.data.mongodb.core.mapping.Document;
 @ToString
 
 @Document(collection = "functionalGroups")
-public class FunctionalGroupRecord {
+public class FragmentRecord {
 
     @Id
     private String id;
