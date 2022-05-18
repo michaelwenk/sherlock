@@ -17,7 +17,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-public class FunctionalGroupDetection {
+public class FragmentsDetection {
 
     public static List<DataSet> detect(final WebClient.Builder webClientBuilder, final Spectrum querySpectrum,
                                        final List<Correlation> correlationsList, final String mf) {
@@ -26,7 +26,7 @@ public class FunctionalGroupDetection {
             hybridizationList.add(correlation.getHybridization());
         }
         final WebClient webClient = webClientBuilder.baseUrl(
-                                                            "http://sherlock-gateway:8080/sherlock-db-service-dataset/functionalGroup/getBySpectrumAndMfAndSetBits")
+                                                            "http://sherlock-gateway:8080/sherlock-db-service-dataset/fragment/getBySpectrumAndMfAndSetBits")
                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                    MediaType.APPLICATION_STREAM_JSON_VALUE)
                                                     .build();
@@ -35,7 +35,7 @@ public class FunctionalGroupDetection {
         queryTransfer.setQuerySpectrum(querySpectrum);
         queryTransfer.setMf(mf);
         queryTransfer.setHybridizationList(hybridizationList);
-        queryTransfer.setShiftTol(1.0);
+        queryTransfer.setShiftTol(0.5);
         queryTransfer.setMaximumAverageDeviation(0.5);
         queryTransfer.setCheckMultiplicity(true);
 

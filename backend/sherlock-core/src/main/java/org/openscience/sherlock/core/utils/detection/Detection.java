@@ -41,10 +41,9 @@ public class Detection {
         }
 
         // FUNCTIONAL GROUPS
-        final List<DataSet> detectedFunctionalGroups = FunctionalGroupDetection.detect(webClientBuilder,
-                                                                                       requestTransfer.getQuerySpectrum(),
-                                                                                       correlationList,
-                                                                                       requestTransfer.getMf());
+        final List<DataSet> detectedFragments = FragmentsDetection.detect(webClientBuilder,
+                                                                          requestTransfer.getQuerySpectrum(),
+                                                                          correlationList, requestTransfer.getMf());
 
         // HEAVY ATOM STATISTICS
         final Map<String, Integer> detectedHeavyAtomStatistics = HeavyAtomStatisticsDetection.detect(webClientBuilder,
@@ -95,7 +94,7 @@ public class Detection {
         responseTransfer.setCorrelations(requestTransfer.getCorrelations());
         responseTransfer.setDetections(
                 new Detections(detectedHybridizations, new HashMap<>(), detectedOccurrenceForbidden,
-                               detectedOccurrenceAllowed, fixedNeighbors, detectedFunctionalGroups));
+                               detectedOccurrenceAllowed, fixedNeighbors, detectedFragments));
         responseTransfer.setDetectionOptions(requestTransfer.getDetectionOptions());
 
         //        // in case of no hetero-hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics

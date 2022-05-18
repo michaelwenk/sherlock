@@ -287,10 +287,10 @@ public class PyLSD {
                                                           requestTransfer.getDetections()
                                                                   != null
                                                                   && requestTransfer.getDetections()
-                                                                                    .getFunctionalGroups()
+                                                                                    .getFragments()
                                                                   != null
                                                           ? requestTransfer.getDetections()
-                                                                           .getFunctionalGroups()
+                                                                           .getFragments()
                                                           : new ArrayList<>());
         if (requestTransfer.getDetectionOptions()
                            .isUseHybridizationDetections()) {
