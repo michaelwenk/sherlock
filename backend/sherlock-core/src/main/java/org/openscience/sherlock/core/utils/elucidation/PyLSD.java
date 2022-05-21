@@ -33,7 +33,8 @@ public class PyLSD {
     private final static String pathToFragmentsFilesFolder = "/data/lsd/PyLSD/Variant/";
     private final static String[] directoriesToCheck = new String[]{pathToPyLSDInputFileFolder,
                                                                     pathToPyLSDResultFileFolder,
-                                                                    pathToNeighborsFilesFolder};
+                                                                    pathToNeighborsFilesFolder,
+                                                                    pathToFragmentsFilesFolder};
 
 
     public static ResponseEntity<Transfer> runPyLSD(final Transfer requestTransfer,
@@ -42,20 +43,13 @@ public class PyLSD {
                                                     final ExchangeStrategies exchangeStrategies) {
         // build PyLSD input file
         requestTransfer.getElucidationOptions()
-                       .setPathsToNeighborsFiles(new String[]{pathToNeighborsFilesFolder
-                                                                      + requestTransfer.getRequestID()
-                                                                      + "_neighbor_forbidden.deff",
-                                                              pathToNeighborsFilesFolder
-                                                                      + requestTransfer.getRequestID()
-                                                                      + "_neighbor_set.deff"});
+                       .setPathToNeighborsFiles(pathToNeighborsFilesFolder
+                                                        + requestTransfer.getRequestID()
+                                                        + "_neighbor");
         requestTransfer.getElucidationOptions()
-                       .setPathToFragmentFiles(new String[]{
-                               //                               pathToFragmentsFilesFolder
-                               //                                                                    + requestTransfer.getRequestID()
-                               //                                                                    + "_fragments_forbidden.deff",
-                               pathToFragmentsFilesFolder
-                                       + requestTransfer.getRequestID()
-                                       + "_fragments_set.deff"});
+                       .setPathToFragmentFiles(pathToFragmentsFilesFolder
+                                                       + requestTransfer.getRequestID()
+                                                       + "_fragment");
         final Transfer queryResultTransfer = createPyLSDInputFiles(webClientBuilder, requestTransfer);
         final Transfer responseTransfer = new Transfer();
         responseTransfer.setRequestID(requestTransfer.getRequestID());

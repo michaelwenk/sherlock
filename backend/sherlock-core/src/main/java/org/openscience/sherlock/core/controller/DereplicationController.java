@@ -28,14 +28,11 @@ import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.filterandrank.FilterAndRank;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
-import casekit.nmr.utils.Utils;
 import org.openscience.sherlock.core.model.db.DataSetRecord;
 import org.openscience.sherlock.core.model.exchange.Transfer;
 import org.openscience.sherlock.core.utils.Utilities;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -43,8 +40,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.util.UriComponentsBuilder;
-import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.*;
@@ -75,13 +70,15 @@ public class DereplicationController {
         if (querySpectrum.getNuclei().length
                 == 1) {
             try {
-                final List<DataSetRecord> dataSetRecordList = this.getDataSetRecordFlux(querySpectrum,
-                                                                                        requestTransfer.getDereplicationOptions()
-                                                                                                       .isUseMF()
-                                                                                        ? requestTransfer.getMf()
-                                                                                        : null)
-                                                                  .collectList()
-                                                                  .block();
+                final List<DataSetRecord> dataSetRecordList = Utilities.getDataSetRecordFlux(this.webClientBuilder,
+                                                                                             this.exchangeStrategies,
+                                                                                             querySpectrum,
+                                                                                             requestTransfer.getDereplicationOptions()
+                                                                                                            .isUseMF()
+                                                                                             ? requestTransfer.getMf()
+                                                                                             : null)
+                                                                       .collectList()
+                                                                       .block();
                 if (dataSetRecordList
                         != null) {
                     List<DataSet> dataSetList = dataSetRecordList.stream()
@@ -141,36 +138,5 @@ public class DereplicationController {
 
         responseTransfer.setDataSetList(new ArrayList<>());
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
-    }
-
-    public Flux<DataSetRecord> getDataSetRecordFlux(final Spectrum querySpectrum, final String mf) {
-        final WebClient webClient = this.webClientBuilder.baseUrl(
-                                                "http://sherlock-gateway:8080/sherlock-db-service-dataset/dataset")
-                                                         .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                        MediaType.APPLICATION_JSON_VALUE)
-                                                         .exchangeStrategies(this.exchangeStrategies)
-                                                         .build();
-        final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-
-        // @TODO take the nuclei order into account when matching -> now it's just an exact array match
-        final String nucleiString = Arrays.stream(querySpectrum.getNuclei())
-                                          .reduce("", (concat, current) -> concat
-                                                  + current);
-        if (mf
-                != null) {
-            uriComponentsBuilder.path("/getByNucleiAndSignalCountAndMf")
-                                .queryParam("nuclei", nucleiString)
-                                .queryParam("signalCount", querySpectrum.getSignalCount())
-                                .queryParam("mf", Utils.getAlphabeticMF(mf));
-        } else {
-            uriComponentsBuilder.path("/getByNucleiAndSignalCount")
-                                .queryParam("nuclei", nucleiString)
-                                .queryParam("signalCount", querySpectrum.getSignalCount());
-        }
-
-        return webClient.get()
-                        .uri(uriComponentsBuilder.toUriString())
-                        .retrieve()
-                        .bodyToFlux(DataSetRecord.class);
     }
 }

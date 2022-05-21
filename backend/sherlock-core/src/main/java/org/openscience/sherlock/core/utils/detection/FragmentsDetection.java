@@ -1,6 +1,5 @@
 package org.openscience.sherlock.core.utils.detection;
 
-import casekit.nmr.fragments.FragmentUtilities;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.nmrium.Correlation;
@@ -12,9 +11,7 @@ import org.springframework.http.MediaType;
 import org.springframework.web.reactive.function.client.WebClient;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 public class FragmentsDetection {
@@ -35,52 +32,32 @@ public class FragmentsDetection {
         queryTransfer.setQuerySpectrum(querySpectrum);
         queryTransfer.setMf(mf);
         queryTransfer.setHybridizationList(hybridizationList);
-        queryTransfer.setShiftTol(0.5);
-        queryTransfer.setMaximumAverageDeviation(0.5);
+        queryTransfer.setShiftTol(2.0);
+        queryTransfer.setMaximumAverageDeviation(1.0);
         queryTransfer.setCheckMultiplicity(true);
 
-        final List<DataSet> functionalGroupList = webClient.post()
-                                                           .bodyValue(queryTransfer)
-                                                           .retrieve()
-                                                           .bodyToFlux(DataSet.class)
-                                                           .collectList()
-                                                           .block();
-        if (functionalGroupList
+        final List<DataSet> fragmentList = webClient.post()
+                                                    .bodyValue(queryTransfer)
+                                                    .retrieve()
+                                                    .bodyToFlux(DataSet.class)
+                                                    .collectList()
+                                                    .block();
+        if (fragmentList
                 == null) {
             return new ArrayList<>();
         }
-        final Map<String, List<DataSet>> smilesCollection = FragmentUtilities.collectBySmiles(functionalGroupList);
 
-        final LinkedHashMap<String, List<DataSet>> sortByFrequencies = FragmentUtilities.sortByFrequencies(
-                smilesCollection);
+        return fragmentList.stream()
+                           .map(dataSet -> {
+                               try {
+                                   Utilities.addMolFileToDataSet(dataSet);
+                               } catch (final CDKException e) {
+                                   e.printStackTrace();
+                               }
+                               dataSet.addAttachment("include", false);
 
-        long total = 0;
-        for (final Map.Entry<String, List<DataSet>> entry : sortByFrequencies.entrySet()) {
-            total += entry.getValue()
-                          .size();
-        }
-
-        final long finalTotal = total;
-        return sortByFrequencies.entrySet()
-                                .stream()
-                                .map(entry -> {
-                                    final DataSet dataSet = new DataSet();
-                                    dataSet.setStructure(entry.getValue()
-                                                              .get(0)
-                                                              .getStructure());
-                                    try {
-                                        Utilities.addMolFileToDataSet(dataSet);
-                                    } catch (final CDKException e) {
-                                        e.printStackTrace();
-                                    }
-                                    final long count = entry.getValue()
-                                                            .size();
-                                    dataSet.addAttachment("count", count);
-                                    dataSet.addAttachment("total", finalTotal);
-                                    dataSet.addAttachment("include", false);
-
-                                    return dataSet;
-                                })
-                                .collect(Collectors.toList());
+                               return dataSet;
+                           })
+                           .collect(Collectors.toList());
     }
 }

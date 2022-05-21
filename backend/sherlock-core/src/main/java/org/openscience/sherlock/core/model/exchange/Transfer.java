@@ -37,7 +37,6 @@ import org.openscience.sherlock.core.model.ElucidationOptions;
 import org.openscience.sherlock.core.model.db.ResultRecord;
 
 import java.util.List;
-import java.util.Map;
 
 
 @AllArgsConstructor
@@ -74,5 +73,4 @@ public class Transfer {
     private Double shiftTol;
     private Double maximumAverageDeviation;
     private Boolean checkMultiplicity;
-    private Map<String, List<DataSet>> functionalGroups;
 }

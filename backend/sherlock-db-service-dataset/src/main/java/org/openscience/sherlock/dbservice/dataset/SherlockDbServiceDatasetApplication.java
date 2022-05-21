@@ -27,7 +27,6 @@ public class SherlockDbServiceDatasetApplication {
                                                            "/data/coconut/acd_coconut_16.sdf",
                                                            "/data/coconut/acd_coconut_17.sdf",
                                                            "/data/coconut/acd_coconut_18.sdf"};
-    public static String PATH_TO_FUNCTIONAL_GROUP = "/data/functionalGroup/";
 
     public static void main(final String[] args) {
         SpringApplication.run(SherlockDbServiceDatasetApplication.class, args);
