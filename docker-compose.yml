@@ -35,6 +35,10 @@ services:
       - "8082:8080"
     depends_on:
       - sherlock-discovery-server
+      - sherlock-gateway
+      - sherlock-db-service-dataset
+      - sherlock-db-service-statistics
+      - sherlock-db-service-result
     volumes:
       - hosecode-file-storage:/data/hosecode
 
@@ -45,6 +49,7 @@ services:
     depends_on:
       - sherlock-discovery-server
       - sherlock-db-instance-dataset
+      - sherlock-db-instance-fragment
 
   sherlock-db-service-statistics:
     container_name: sherlock-db-service-statistics
@@ -76,8 +81,16 @@ services:
     container_name: sherlock-db-instance-dataset
     ports:
       - "27020:27017"
-    command:
-      --wiredTigerCacheSizeGB 2
+
+  sherlock-db-instance-fragment:
+    image: postgres:14
+    container_name: sherlock-db-instance-fragment
+    environment:
+        - POSTGRES_USER=admin
+        - POSTGRES_PASSWORD=password
+        - POSTGRES_DB=fragment
+    ports:
+      - "5432:5432"
 
   sherlock-db-instance-statistics:
     container_name: sherlock-db-instance-statistics

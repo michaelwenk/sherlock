@@ -37,6 +37,7 @@ import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.tools.manipulator.AtomContainerManipulator;
+import org.openscience.sherlock.dbservice.dataset.SherlockDbServiceDatasetApplication;
 import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
 import org.openscience.sherlock.dbservice.dataset.db.model.MultiplicitySectionsSettingsRecord;
 import org.openscience.sherlock.dbservice.dataset.db.service.DataSetServiceImplementation;
@@ -50,35 +51,16 @@ import java.util.*;
 
 
 @RestController
-@RequestMapping(value = "/")
-public class DatabaseController {
+@RequestMapping(value = "/dataset")
+public class DataSetController {
 
     private final DataSetServiceImplementation dataSetServiceImplementation;
     private final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation;
 
-    private final String pathToNMRShiftDB = "/data/nmrshiftdb/nmrshiftdb.sdf";
-    private final String[] pathsToCOCONUT = new String[]{"/data/coconut/acd_coconut_1.sdf",
-                                                         "/data/coconut/acd_coconut_2.sdf",
-                                                         "/data/coconut/acd_coconut_3.sdf",
-                                                         "/data/coconut/acd_coconut_4.sdf",
-                                                         "/data/coconut/acd_coconut_5.sdf",
-                                                         "/data/coconut/acd_coconut_6.sdf",
-                                                         "/data/coconut/acd_coconut_7.sdf",
-                                                         "/data/coconut/acd_coconut_8.sdf",
-                                                         "/data/coconut/acd_coconut_9.sdf",
-                                                         "/data/coconut/acd_coconut_10.sdf",
-                                                         "/data/coconut/acd_coconut_11.sdf",
-                                                         "/data/coconut/acd_coconut_12.sdf",
-                                                         "/data/coconut/acd_coconut_13.sdf",
-                                                         "/data/coconut/acd_coconut_14.sdf",
-                                                         "/data/coconut/acd_coconut_15.sdf",
-                                                         "/data/coconut/acd_coconut_16.sdf",
-                                                         "/data/coconut/acd_coconut_17.sdf",
-                                                         "/data/coconut/acd_coconut_18.sdf"};
     private final Map<String, int[]> multiplicitySectionsSettings = new HashMap<>();
 
-    public DatabaseController(final DataSetServiceImplementation dataSetServiceImplementation,
-                              final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation) {
+    public DataSetController(final DataSetServiceImplementation dataSetServiceImplementation,
+                             final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation) {
         this.dataSetServiceImplementation = dataSetServiceImplementation;
         this.multiplicitySectionsSettingsServiceImplementation = multiplicitySectionsSettingsServiceImplementation;
     }
@@ -170,7 +152,8 @@ public class DatabaseController {
         if (setLimits) {
             System.out.println(" -> Setting new limits...");
             try {
-                dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(this.pathToNMRShiftDB, nuclei);
+                dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(
+                        SherlockDbServiceDatasetApplication.PATH_TO_NMRSHIFTDB, nuclei);
                 this.setMultiplicityByProtonsCount(dataSetList, "13C");
                 Map<String, Integer[]> limits = this.setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(dataSetList,
                                                                                                          new HashMap<>());
@@ -179,12 +162,13 @@ public class DatabaseController {
                 System.out.println("limits NMRShiftDB: "
                                            + Arrays.toString(limits.get("13C")));
                 for (int i = 0; i
-                        < this.pathsToCOCONUT.length; i++) {
+                        < SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT.length; i++) {
                     System.out.println(" -> COCONUT "
                                                + i
                                                + " -> "
-                                               + this.pathsToCOCONUT[i]);
-                    dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(this.pathsToCOCONUT[i], nuclei);
+                                               + SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT[i]);
+                    dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(
+                            SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT[i], nuclei);
                     this.setMultiplicityByProtonsCount(dataSetList, "13C");
                     System.out.println("dataset size COCONUT "
                                                + i
@@ -215,14 +199,15 @@ public class DatabaseController {
         // with checks whether a dataset with identical spectrum already exists
         try {
             System.out.println(" -> dataset creations...");
-            dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(this.pathToNMRShiftDB, nuclei);
+            dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(SherlockDbServiceDatasetApplication.PATH_TO_NMRSHIFTDB,
+                                                               nuclei);
             this.setMultiplicityByProtonsCount(dataSetList, "13C");
             System.out.println(" -> dataset size NMRShiftDB -> "
                                        + dataSetList.size());
             this.filterAndInsertDataSetRecords(dataSetList, new HashMap<>());
             System.out.println(" -> stored for NMRShiftDB done");
             final Map<String, Map<String, List<Spectrum>>> inserted = new HashMap<>(); // molecule id -> nucleus -> spectra list
-            Flux.fromArray(this.pathsToCOCONUT)
+            Flux.fromArray(SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT)
                 .doOnNext(pathToCOCONUT -> {
                     try {
                         System.out.println("storing -> "

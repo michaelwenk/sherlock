@@ -68,4 +68,9 @@ public class Transfer {
 
     private ResultRecord resultRecord;
 
+    // for functional group detection
+    private List<List<Integer>> hybridizationList;
+    private Double shiftTol;
+    private Double maximumAverageDeviation;
+    private Boolean checkMultiplicity;
 }

@@ -15,36 +15,13 @@ public class Utilities {
     public static Flux<DataSetRecord> getAllDataSets(final WebClient.Builder webClientBuilder,
                                                      final ExchangeStrategies exchangeStrategies) {
         final WebClient webClient = webClientBuilder.baseUrl(
-                                                            "http://sherlock-gateway:8080/sherlock-db-service-dataset/getAll")
+                                                            "http://sherlock-gateway:8080/sherlock-db-service-dataset/dataset/getAll")
                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .exchangeStrategies(exchangeStrategies)
                                                     .build();
 
         return webClient.get()
-                        .retrieve()
-                        .bodyToFlux(DataSetRecord.class);
-    }
-
-    public static Flux<DataSetRecord> getBySource(final WebClient.Builder webClientBuilder,
-                                                  final ExchangeStrategies exchangeStrategies, final String source) {
-        final WebClient webClient = webClientBuilder.baseUrl(
-                                                            "http://sherlock-gateway:8080/sherlock-db-service-dataset/")
-                                                    .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                   MediaType.APPLICATION_JSON_VALUE)
-                                                    .exchangeStrategies(exchangeStrategies)
-                                                    .build();
-        final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-        if (source
-                == null) {
-            return getAllDataSets(webClientBuilder, exchangeStrategies);
-        } else {
-            uriComponentsBuilder.path("/getBySource")
-                                .queryParam("source", source);
-        }
-
-        return webClient.get()
-                        .uri(uriComponentsBuilder.toUriString())
                         .retrieve()
                         .bodyToFlux(DataSetRecord.class);
     }
@@ -52,7 +29,8 @@ public class Utilities {
     public static Flux<DataSetRecord> getByDataSetSpectrumNuclei(final WebClient.Builder webClientBuilder,
                                                                  final ExchangeStrategies exchangeStrategies,
                                                                  final String[] nuclei) {
-        final WebClient webClient = webClientBuilder.baseUrl("http://sherlock-gateway:8080/sherlock-db-service-dataset")
+        final WebClient webClient = webClientBuilder.baseUrl(
+                                                            "http://sherlock-gateway:8080/sherlock-db-service-dataset/dataset")
                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
                                                                    MediaType.APPLICATION_JSON_VALUE)
                                                     .exchangeStrategies(exchangeStrategies)
@@ -64,36 +42,6 @@ public class Utilities {
         final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
         uriComponentsBuilder.path("/getByNuclei")
                             .queryParam("nuclei", nucleiString);
-
-        return webClient.get()
-                        .uri(uriComponentsBuilder.toUriString())
-                        .retrieve()
-                        .bodyToFlux(DataSetRecord.class);
-    }
-
-    public static Flux<DataSetRecord> getByDataSetSpectrumNucleiAndSource(final WebClient.Builder webClientBuilder,
-                                                                          final ExchangeStrategies exchangeStrategies,
-                                                                          final String[] nuclei, final String source) {
-        final WebClient webClient = webClientBuilder.baseUrl(
-                                                            "http://sherlock-gateway:8080/sherlock-db-service-dataset/")
-                                                    .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                   MediaType.APPLICATION_JSON_VALUE)
-                                                    .exchangeStrategies(exchangeStrategies)
-                                                    .build();
-        // @TODO take the nuclei order into account when matching -> now it's just an exact array match
-        final String nucleiString = Arrays.stream(nuclei)
-                                          .reduce("", (concat, current) -> concat
-                                                  + current);
-        final UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
-        if (source
-                == null) {
-            uriComponentsBuilder.path("/getByNuclei")
-                                .queryParam("nuclei", nucleiString);
-        } else {
-            uriComponentsBuilder.path("/getByNucleiAndSource")
-                                .queryParam("nuclei", nucleiString)
-                                .queryParam("source", source);
-        }
 
         return webClient.get()
                         .uri(uriComponentsBuilder.toUriString())

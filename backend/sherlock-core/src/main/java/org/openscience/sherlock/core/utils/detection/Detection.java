@@ -3,6 +3,7 @@ package org.openscience.sherlock.core.utils.detection;
 import casekit.nmr.elucidation.Utilities;
 import casekit.nmr.elucidation.model.Detections;
 import casekit.nmr.elucidation.model.Grouping;
+import casekit.nmr.model.DataSet;
 import casekit.nmr.model.nmrium.Correlation;
 import casekit.nmr.model.nmrium.Correlations;
 import org.openscience.sherlock.core.model.exchange.Transfer;
@@ -38,6 +39,12 @@ public class Detection {
             correlationList.get(entry.getKey())
                            .setHybridization(new ArrayList<>(hybridizationSet));
         }
+
+        // FUNCTIONAL GROUPS
+        final List<DataSet> detectedFragments = FragmentsDetection.detect(webClientBuilder,
+                                                                          requestTransfer.getQuerySpectrum(),
+                                                                          correlationList, requestTransfer.getMf());
+
         // HEAVY ATOM STATISTICS
         final Map<String, Integer> detectedHeavyAtomStatistics = HeavyAtomStatisticsDetection.detect(webClientBuilder,
                                                                                                      requestTransfer.getMf());
@@ -87,7 +94,7 @@ public class Detection {
         responseTransfer.setCorrelations(requestTransfer.getCorrelations());
         responseTransfer.setDetections(
                 new Detections(detectedHybridizations, new HashMap<>(), detectedOccurrenceForbidden,
-                               detectedOccurrenceAllowed, fixedNeighbors));
+                               detectedOccurrenceAllowed, fixedNeighbors, detectedFragments));
         responseTransfer.setDetectionOptions(requestTransfer.getDetectionOptions());
 
         //        // in case of no hetero-hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics

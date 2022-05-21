@@ -1,18 +1,19 @@
 package org.openscience.sherlock.dbservice.dataset.model.exchange;
 
-import casekit.nmr.model.DataSet;
+import casekit.nmr.model.Spectrum;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import lombok.*;
+import lombok.Data;
 
 import java.util.List;
 
-@AllArgsConstructor
-@NoArgsConstructor
-@Getter
-@Setter
-@ToString
+@Data
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Transfer {
 
-    private List<DataSet> dataSetList;
+    final Spectrum querySpectrum;
+    final String mf;
+    final List<List<Integer>> hybridizationList;
+    final double shiftTol;
+    final double maximumAverageDeviation;
+    final boolean checkMultiplicity;
 }
