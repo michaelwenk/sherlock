@@ -12,7 +12,7 @@ public interface FragmentRepository
         extends JpaRepository<FragmentRecord, Long> {
 
     // SELECT COUNT(set_bits) FROM fragment WHERE nucleus = '13C' AND set_bits <@ ARRAY[71, 98, 146];
-    @Query(value = "SELECT * FROM fragment_record WHERE nucleus = ?1 AND signal_count < ?2 AND set_bits <@ CAST(?3 AS integer[])", nativeQuery = true)
+    @Query(value = "SELECT * FROM fragment_record WHERE nucleus = ?1 AND signal_count <= ?2 AND set_bits <@ CAST(?3 AS integer[])", nativeQuery = true)
     List<FragmentRecord> findByNucleusAndSignalCountAndSetBits(final String nucleus, final int signalCount,
                                                                final String setBitsString);
 }
