@@ -13,6 +13,12 @@ services:
       context: backend/db-instance-dataset
       dockerfile: Dockerfile.publish
 
+  sherlock-db-instance-fragment:
+    image: michaelwenk/sherlock-db-instance-fragment
+    build:
+      context: backend/db-instance-fragment
+      dockerfile: Dockerfile.publish
+
   sherlock-db-instance-statistics:
     image: michaelwenk/sherlock-db-instance-statistics
     build:

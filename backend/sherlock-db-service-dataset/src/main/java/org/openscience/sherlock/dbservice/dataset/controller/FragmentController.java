@@ -13,9 +13,11 @@ import com.google.gson.GsonBuilder;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.cdk.smiles.SmilesGenerator;
+import org.openscience.sherlock.dbservice.dataset.db.model.FragmentLookupRecord;
 import org.openscience.sherlock.dbservice.dataset.db.model.FragmentRecord;
 import org.openscience.sherlock.dbservice.dataset.db.model.MultiplicitySectionsSettingsRecord;
 import org.openscience.sherlock.dbservice.dataset.db.service.DataSetServiceImplementation;
+import org.openscience.sherlock.dbservice.dataset.db.service.FragmentLookupRepository;
 import org.openscience.sherlock.dbservice.dataset.db.service.FragmentRepository;
 import org.openscience.sherlock.dbservice.dataset.db.service.MultiplicitySectionsSettingsServiceImplementation;
 import org.openscience.sherlock.dbservice.dataset.model.exchange.Transfer;
@@ -31,13 +33,16 @@ public class FragmentController {
 
     private final Gson gson = new GsonBuilder().create();
     private final FragmentRepository fragmentRepository;
+    private final FragmentLookupRepository fragmentLookupRepository;
     private final DataSetServiceImplementation dataSetServiceImplementation;
     private final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation;
 
     public FragmentController(final FragmentRepository fragmentRepository,
+                              final FragmentLookupRepository fragmentLookupRepository,
                               final DataSetServiceImplementation dataSetServiceImplementation,
                               final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation) {
         this.fragmentRepository = fragmentRepository;
+        this.fragmentLookupRepository = fragmentLookupRepository;
         this.dataSetServiceImplementation = dataSetServiceImplementation;
         this.multiplicitySectionsSettingsServiceImplementation = multiplicitySectionsSettingsServiceImplementation;
     }
@@ -176,11 +181,14 @@ public class FragmentController {
             }
 
             final Map<String, DataSet> fragmentsMap = new HashMap<>();
-            this.getByNucleusAndSignalCountAndSetBits(fragmentsDetectionTransfer.getQuerySpectrum()
-                                                                                .getNuclei()[0],
-                                                      fragmentsDetectionTransfer.getQuerySpectrum()
-                                                                                .getSignalCount(),
-                                                      bitSetFingerprint.getSetbits())
+            //            this.getByNucleusAndSignalCountAndSetBits(fragmentsDetectionTransfer.getQuerySpectrum()
+            //                                                                                .getNuclei()[0],
+            //                                                      fragmentsDetectionTransfer.getQuerySpectrum()
+            //                                                                                .getSignalCount(),
+            //                                                      bitSetFingerprint.getSetbits())
+            this.lookupBySetBits(bitSetFingerprint.getSetbits())
+                .stream()
+                .map(fragmentRecord -> this.gson.fromJson(fragmentRecord.getSubDataSetString(), DataSet.class))
                 .forEach(fragment -> {
                     // fine search
                     final Spectrum spectrum = fragment.getSpectrum()
@@ -189,8 +197,7 @@ public class FragmentController {
                                                                                        fragmentsDetectionTransfer.getQuerySpectrum(),
                                                                                        0, 0,
                                                                                        fragmentsDetectionTransfer.getShiftTol(),
-                                                                                       fragmentsDetectionTransfer.isCheckMultiplicity(),
-                                                                                       true, true);
+                                                                                       true, true, true);
 
                     final boolean isMatch = FragmentUtilities.isMatch(fragment,
                                                                       fragmentsDetectionTransfer.getQuerySpectrum(),
@@ -199,14 +206,14 @@ public class FragmentController {
                                                                       fragmentsDetectionTransfer.getMaximumAverageDeviation(),
                                                                       fragmentsDetectionTransfer.getHybridizationList());
                     if (isMatch) {
-                        String smiles = fragment.getMeta()
-                                                .get("smiles");
+                        String smiles;
                         try {
                             smiles = SmilesGenerator.unique()
                                                     .create(fragment.getStructure()
                                                                     .toAtomContainer());
                         } catch (final CDKException e) {
-                            e.printStackTrace();
+                            smiles = fragment.getMeta()
+                                             .get("smiles");
                         }
                         if (!fragmentsMap.containsKey(smiles)) {
                             fragmentsMap.put(smiles, fragment);
@@ -243,5 +250,73 @@ public class FragmentController {
         }
 
         return Flux.fromIterable(fragmentList);
+    }
+
+    @PostMapping(value = "/buildLookup")
+    public void buildLookup() {
+        System.out.println(" -> delete lookup...");
+        this.fragmentLookupRepository.deleteAll();
+        System.out.println(" -> delete lookup done");
+        System.out.println(" -> build lookup...");
+        final Map<String, List<Long>> lookupMap = new HashMap<>();
+        this.fragmentRepository.findAllSetBits()
+                               .forEach(fragmentRecordLight -> {
+                                   final String setBitsString = Arrays.toString(fragmentRecordLight.getSetBits());
+                                   lookupMap.putIfAbsent(setBitsString, new ArrayList<>());
+                                   lookupMap.get(setBitsString)
+                                            .add(fragmentRecordLight.getId());
+                               });
+        System.out.println(" -> build lookup done");
+        System.out.println(" -> store lookup...");
+        FragmentLookupRecord fragmentLookupRecord;
+        String[] split;
+        int[] setBits;
+        for (final Map.Entry<String, List<Long>> entry : lookupMap.entrySet()) {
+            split = entry.getKey()
+                         .replaceAll("\\[|\\]|\\s", "")
+                         .split(",");
+            setBits = new int[split.length];
+            for (int i = 0; i
+                    < split.length; i++) {
+                setBits[i] = Integer.parseInt(split[i]);
+            }
+            fragmentLookupRecord = new FragmentLookupRecord();
+
+            fragmentLookupRecord.setSetBits(setBits);
+            final long[] ids = new long[entry.getValue()
+                                             .size()];
+            for (int i = 0; i
+                    < entry.getValue()
+                           .size(); i++) {
+                ids[i] = entry.getValue()
+                              .get(i);
+            }
+            fragmentLookupRecord.setIds(ids);
+            this.fragmentLookupRepository.save(fragmentLookupRecord);
+        }
+        System.out.println(" -> store lookup done");
+    }
+
+    @GetMapping(value = "/lookupCount")
+    public long getLookupCount() {
+        return this.fragmentLookupRepository.count();
+    }
+
+    @GetMapping(value = "/lookupBySetBits")
+    public List<FragmentRecord> lookupBySetBits(@RequestParam final int[] setBits) {
+        final String setBitsString = Arrays.toString(setBits)
+                                           .replaceAll("\\[", "{")
+                                           .replaceAll("\\]", "}");
+        final List<FragmentRecord> fragmentRecordList = new ArrayList<>();
+        final List<FragmentLookupRecord> fragmentLookupRecordList = this.fragmentLookupRepository.findByNucleusAndSetBits(
+                setBitsString);
+        fragmentLookupRecordList.forEach(fragmentLookupRecordLight -> {
+            for (final long id : fragmentLookupRecordLight.getIds()) {
+                final Optional<FragmentRecord> fragmentRecordOptional = this.fragmentRepository.findById(id);
+                fragmentRecordOptional.ifPresent(fragmentRecordList::add);
+            }
+        });
+
+        return fragmentRecordList;
     }
 }

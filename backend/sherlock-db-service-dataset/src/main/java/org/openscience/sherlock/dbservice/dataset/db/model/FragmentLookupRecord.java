@@ -1,6 +1,7 @@
 package org.openscience.sherlock.dbservice.dataset.db.model;
 
 import com.vladmihalcea.hibernate.type.array.IntArrayType;
+import com.vladmihalcea.hibernate.type.array.LongArrayType;
 import lombok.*;
 import org.hibernate.annotations.Type;
 import org.hibernate.annotations.TypeDef;
@@ -16,32 +17,21 @@ import javax.persistence.*;
 @Entity
 @Table
 @TypeDef(name = "int-array", typeClass = IntArrayType.class)
-public class FragmentRecord {
+@TypeDef(name = "long-array", typeClass = LongArrayType.class)
+public class FragmentLookupRecord {
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    @Column(name = "id")
     private long id;
 
-    @Column(name = "mf", nullable = false)
-    private String mf;
-
-    @Column(name = "smiles", nullable = false, columnDefinition = "TEXT")
-    private String smiles;
-
-    @Column(name = "nucleus", nullable = false)
+    @Column(name = "nucleus")
     private String nucleus;
-
-    @Column(name = "signal_count", nullable = false)
-    private int signalCount;
 
     @Type(type = "int-array")
     @Column(name = "set_bits", nullable = false, columnDefinition = "integer[]")
     private int[] setBits;
 
-    @Column(name = "fp_size", nullable = false)
-    private long fpSize;
-
-    @Column(name = "sub_data_set_string", nullable = false, columnDefinition = "TEXT")
-    private String subDataSetString;
+    @Type(type = "long-array")
+    @Column(name = "ids", nullable = false, columnDefinition = "bigint[]")
+    private long[] ids;
 }

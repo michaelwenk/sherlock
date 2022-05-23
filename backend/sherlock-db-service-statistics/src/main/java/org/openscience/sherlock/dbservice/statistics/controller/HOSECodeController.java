@@ -1,13 +1,10 @@
 package org.openscience.sherlock.dbservice.statistics.controller;
 
 import casekit.io.FileSystem;
-import casekit.nmr.analysis.HOSECodeShiftStatistics;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import org.openscience.sherlock.dbservice.statistics.model.HOSECode;
 import org.openscience.sherlock.dbservice.statistics.service.HOSECodeServiceImplementation;
-import org.openscience.sherlock.dbservice.statistics.service.model.HOSECode;
-import org.openscience.sherlock.dbservice.statistics.service.model.HOSECodeRecord;
-import org.openscience.sherlock.dbservice.statistics.utils.Utilities;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
@@ -18,9 +15,6 @@ import reactor.core.publisher.Mono;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 @RestController
 @RequestMapping(value = "/hosecode")
@@ -74,44 +68,43 @@ public class HOSECodeController {
         return this.hoseCodeServiceImplementation.deleteAll();
     }
 
-    @PostMapping(value = "/replaceAll")
-    public void replaceAll(@RequestParam final String[] nuclei, @RequestParam final int maxSphere,
-                           final String source) {
-        System.out.println(" --> delete all DB entries...");
-        this.deleteAll()
-            .block();
-        System.out.println(" --> deleted all DB entries!");
-
-        System.out.println(" --> fetching all datasets, build HOSE code statistics and store...");
-        final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts = new ConcurrentHashMap<>();
-        Utilities.getByDataSetSpectrumNucleiAndSource(this.webClientBuilder, this.exchangeStrategies, nuclei, source)
-                 .doOnNext(dataSetRecord -> HOSECodeShiftStatistics.insert(dataSetRecord.getDataSet(), maxSphere, true,
-                                                                           false, hoseCodeShifts))
-                 .doAfterTerminate(() -> {
-                     System.out.println(" -> hoseCodeShifts size: "
-                                                + hoseCodeShifts.size());
-                     final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(
-                             hoseCodeShifts);
-                     System.out.println(" -> hoseCodeShiftStatistics size: "
-                                                + hoseCodeShiftStatistics.size());
-
-                     final Flux<HOSECodeRecord> hoseCodeRecordFlux = Flux.fromStream(hoseCodeShiftStatistics.keySet()
-                                                                                                            .stream()
-                                                                                                            .map(hoseCode -> new HOSECodeRecord(
-                                                                                                                    hoseCode,
-                                                                                                                    new HOSECode(
-                                                                                                                            hoseCode,
-                                                                                                                            hoseCodeShiftStatistics.get(
-                                                                                                                                    hoseCode)))));
-
-                     this.hoseCodeServiceImplementation.insertMany(hoseCodeRecordFlux)
-                                                       .doOnError(Throwable::printStackTrace)
-                                                       .doAfterTerminate(this::saveAllAsMap)
-                                                       .subscribe();
-                 })
-                 .doOnError(Throwable::printStackTrace)
-                 .subscribe();
-    }
+    //    @PostMapping(value = "/replaceAll")
+    //    public void replaceAll(@RequestParam final String[] nuclei, @RequestParam final int maxSphere) {
+    //        System.out.println(" --> delete all DB entries...");
+    //        this.deleteAll()
+    //            .block();
+    //        System.out.println(" --> deleted all DB entries!");
+    //
+    //        System.out.println(" --> fetching all datasets, build HOSE code statistics and store...");
+    //        final Map<String, Map<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts = new ConcurrentHashMap<>();
+    //        Utilities.getByDataSetSpectrumNuclei(this.webClientBuilder, this.exchangeStrategies, nuclei)
+    //                 .doOnNext(dataSetRecord -> HOSECodeShiftStatistics.insert(dataSetRecord.getDataSet(), maxSphere, true,
+    //                                                                           false, hoseCodeShifts))
+    //                 .doAfterTerminate(() -> {
+    //                     System.out.println(" -> hoseCodeShifts size: "
+    //                                                + hoseCodeShifts.size());
+    //                     final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(
+    //                             hoseCodeShifts);
+    //                     System.out.println(" -> hoseCodeShiftStatistics size: "
+    //                                                + hoseCodeShiftStatistics.size());
+    //
+    //                     final Flux<HOSECodeRecord> hoseCodeRecordFlux = Flux.fromStream(hoseCodeShiftStatistics.keySet()
+    //                                                                                                            .stream()
+    //                                                                                                            .map(hoseCode -> new HOSECodeRecord(
+    //                                                                                                                    hoseCode,
+    //                                                                                                                    new HOSECode(
+    //                                                                                                                            hoseCode,
+    //                                                                                                                            hoseCodeShiftStatistics.get(
+    //                                                                                                                                    hoseCode)))));
+    //
+    //                     this.hoseCodeServiceImplementation.insertMany(hoseCodeRecordFlux)
+    //                                                       .doOnError(Throwable::printStackTrace)
+    //                                                       .doAfterTerminate(this::saveAllAsMap)
+    //                                                       .subscribe();
+    //                 })
+    //                 .doOnError(Throwable::printStackTrace)
+    //                 .subscribe();
+    //    }
 
     @GetMapping(value = "/saveAllAsMap")
     public void saveAllAsMap() {

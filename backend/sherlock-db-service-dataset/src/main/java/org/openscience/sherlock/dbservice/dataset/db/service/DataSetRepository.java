@@ -30,18 +30,11 @@ import org.springframework.data.mongodb.repository.Query;
 import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 
 @Repository
 public interface DataSetRepository
         extends ReactiveMongoRepository<DataSetRecord, String> {
-
-    @Override
-    Mono<DataSetRecord> findById(final String id);
-
-    @Override
-    Flux<DataSetRecord> findAllById(Iterable<String> iterable);
 
     @Query(value = "{\"dataSet.meta.mf\": \"?0\"}")
     Flux<DataSetRecord> findByMf(final String mf);

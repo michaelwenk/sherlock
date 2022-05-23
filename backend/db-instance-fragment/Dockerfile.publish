@@ -1,0 +1,5 @@
+FROM postgres:14
+
+COPY data/db/fragment /var/lib/postgresql/data
+
+EXPOSE 5432

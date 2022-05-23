@@ -1,6 +1,7 @@
 package org.openscience.sherlock.dbservice.dataset.db.service;
 
 import org.openscience.sherlock.dbservice.dataset.db.model.FragmentRecord;
+import org.openscience.sherlock.dbservice.dataset.db.model.FragmentRecordLight;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
@@ -15,4 +16,7 @@ public interface FragmentRepository
     @Query(value = "SELECT * FROM fragment_record WHERE nucleus = ?1 AND signal_count <= ?2 AND set_bits <@ CAST(?3 AS integer[])", nativeQuery = true)
     List<FragmentRecord> findByNucleusAndSignalCountAndSetBits(final String nucleus, final int signalCount,
                                                                final String setBitsString);
+
+    @Query(value = "SELECT new FragmentRecordLight(fragment_record.id, fragment_record.setBits) FROM FragmentRecord fragment_record")
+    List<FragmentRecordLight> findAllSetBits();
 }

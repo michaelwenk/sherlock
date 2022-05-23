@@ -81,14 +81,11 @@ services:
     container_name: sherlock-db-instance-dataset
     ports:
       - "27020:27017"
+    command:
+      --wiredTigerCacheSizeGB 2
 
   sherlock-db-instance-fragment:
-    image: postgres:14
     container_name: sherlock-db-instance-fragment
-    environment:
-        - POSTGRES_USER=admin
-        - POSTGRES_PASSWORD=password
-        - POSTGRES_DB=fragment
     ports:
       - "5432:5432"
 

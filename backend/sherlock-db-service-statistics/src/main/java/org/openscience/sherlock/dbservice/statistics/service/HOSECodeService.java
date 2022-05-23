@@ -24,7 +24,7 @@
 
 package org.openscience.sherlock.dbservice.statistics.service;
 
-import org.openscience.sherlock.dbservice.statistics.service.model.HOSECode;
+import org.openscience.sherlock.dbservice.statistics.model.HOSECode;
 import org.openscience.sherlock.dbservice.statistics.service.model.HOSECodeRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;

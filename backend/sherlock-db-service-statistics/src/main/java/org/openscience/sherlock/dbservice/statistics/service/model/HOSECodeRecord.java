@@ -27,6 +27,7 @@ package org.openscience.sherlock.dbservice.statistics.service.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import org.openscience.sherlock.dbservice.statistics.model.HOSECode;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 

@@ -40,10 +40,17 @@ public class Detection {
                            .setHybridization(new ArrayList<>(hybridizationSet));
         }
 
-        // FUNCTIONAL GROUPS
-        final List<DataSet> detectedFragments = FragmentsDetection.detect(webClientBuilder,
-                                                                          requestTransfer.getQuerySpectrum(),
-                                                                          correlationList, requestTransfer.getMf());
+        // FRAGMENTS
+        final List<DataSet> detectedFragments = requestTransfer.getDetectionOptions()
+                                                               .isDetectFragments()
+                                                ? FragmentsDetection.detect(webClientBuilder,
+                                                                            requestTransfer.getQuerySpectrum(),
+                                                                            correlationList, requestTransfer.getMf(),
+                                                                            requestTransfer.getDetectionOptions()
+                                                                                           .getShiftToleranceFragmentDetection(),
+                                                                            requestTransfer.getDetectionOptions()
+                                                                                           .getMaximumAverageDeviationFragmentDetection())
+                                                : new ArrayList<>();
 
         // HEAVY ATOM STATISTICS
         final Map<String, Integer> detectedHeavyAtomStatistics = HeavyAtomStatisticsDetection.detect(webClientBuilder,

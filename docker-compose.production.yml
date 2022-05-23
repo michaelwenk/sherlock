@@ -16,6 +16,17 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
 
+  sherlock-db-instance-fragment:
+    image: postgres:14
+    volumes:
+      - "./backend/db-instance-fragment/data/db/fragment:/var/lib/postgresql/data"
+    environment:
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=password
+      - POSTGRES_DB=fragment
+    ports:
+      - "5432:5432"
+
   sherlock-db-instance-statistics:
     image: mongo:4
     volumes:

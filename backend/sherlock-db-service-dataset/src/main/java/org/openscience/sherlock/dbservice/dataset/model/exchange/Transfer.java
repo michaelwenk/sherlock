@@ -15,5 +15,4 @@ public class Transfer {
     final List<List<Integer>> hybridizationList;
     final double shiftTol;
     final double maximumAverageDeviation;
-    final boolean checkMultiplicity;
 }

@@ -14,4 +14,7 @@ public class DetectionOptions {
     private float hybridizationDetectionThreshold;
     private float lowerElementCountThreshold;
     private float upperElementCountThreshold;
+    private boolean detectFragments;
+    private double shiftToleranceFragmentDetection;
+    private double maximumAverageDeviationFragmentDetection;
 }
