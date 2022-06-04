@@ -24,11 +24,11 @@
 
 package org.openscience.sherlock.dbservice.statistics.service;
 
-import org.openscience.sherlock.dbservice.statistics.model.HOSECode;
 import org.openscience.sherlock.dbservice.statistics.service.model.HOSECodeRecord;
 import org.springframework.stereotype.Service;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
+
+import java.util.List;
+import java.util.Optional;
 
 
 @Service
@@ -41,43 +41,88 @@ public class HOSECodeServiceImplementation
         this.HOSECodeRepository = HOSECodeRepository;
     }
 
+    //    @Override
+    //    public Mono<Long> count() {
+    //        return this.HOSECodeRepository.count();
+    //    }
+    //
+    //    @Override
+    //    public Flux<HOSECodeRecord> findAll() {
+    //        return this.HOSECodeRepository.findAll();
+    //    }
+    //
+    //    @Override
+    //    public Mono<HOSECodeRecord> findById(final String id) {
+    //        return this.HOSECodeRepository.findById(id);
+    //    }
+    //
+    //    @Override
+    //    public Mono<Boolean> existsById(final String id) {
+    //        return this.HOSECodeRepository.existsById(id);
+    //    }
+    //
+    //
+    //    // insertions/deletions
+    //
+    //    @Override
+    //    public Mono<HOSECodeRecord> insert(final HOSECodeRecord hoseCodeRecord) {
+    //        return this.HOSECodeRepository.insert(hoseCodeRecord);
+    //    }
+    //
+    //    @Override
+    //    public Flux<HOSECodeRecord> insertMany(final Flux<HOSECodeRecord> hoseCodeRecordFlux) {
+    //        return this.HOSECodeRepository.insert(hoseCodeRecordFlux);
+    //    }
+    //
+    //    @Override
+    //    public Mono<HOSECodeRecord> save(final HOSECodeRecord hoseCodeRecord) {
+    //        return this.HOSECodeRepository.save(hoseCodeRecord);
+    //    }
+    //
+    //    @Override
+    //    public Mono<Void> deleteAll() {
+    //        return this.HOSECodeRepository.deleteAll();
+    //    }
+
     @Override
-    public Mono<Long> count() {
+    public long count() {
         return this.HOSECodeRepository.count();
     }
 
     @Override
-    public Flux<HOSECode> findAll() {
-        return this.HOSECodeRepository.findAll()
-                                      .map(HOSECodeRecord::getHoseCodeObject);
+    public List<HOSECodeRecord> findAll() {
+        return this.HOSECodeRepository.findAll();
     }
 
     @Override
-    public Mono<HOSECode> findById(final String id) {
-        return this.HOSECodeRepository.findById(id)
-                                      .map(HOSECodeRecord::getHoseCodeObject);
+    public Optional<HOSECodeRecord> findById(final String id) {
+        return this.HOSECodeRepository.findById(id);
     }
 
     @Override
-    public Mono<HOSECode> findByHoseCodeObjectHOSECode(final String HOSECode) {
-        return this.HOSECodeRepository.findByHoseCodeObjectHOSECode(HOSECode)
-                                      .map(HOSECodeRecord::getHoseCodeObject);
+    public boolean existsById(final String id) {
+        return this.HOSECodeRepository.existsById(id);
     }
 
     // insertions/deletions
 
     @Override
-    public Mono<HOSECodeRecord> insert(final HOSECodeRecord hoseCodeRecord) {
+    public HOSECodeRecord insert(final HOSECodeRecord hoseCodeRecord) {
         return this.HOSECodeRepository.insert(hoseCodeRecord);
     }
 
     @Override
-    public Flux<HOSECodeRecord> insertMany(final Flux<HOSECodeRecord> hoseCodeRecordFlux) {
-        return this.HOSECodeRepository.insert(hoseCodeRecordFlux);
+    public List<HOSECodeRecord> insertMany(final List<HOSECodeRecord> hoseCodeRecordList) {
+        return this.HOSECodeRepository.insert(hoseCodeRecordList);
     }
 
     @Override
-    public Mono<Void> deleteAll() {
-        return this.HOSECodeRepository.deleteAll();
+    public HOSECodeRecord save(final HOSECodeRecord hoseCodeRecord) {
+        return this.HOSECodeRepository.save(hoseCodeRecord);
+    }
+
+    @Override
+    public void deleteAll() {
+        this.HOSECodeRepository.deleteAll();
     }
 }

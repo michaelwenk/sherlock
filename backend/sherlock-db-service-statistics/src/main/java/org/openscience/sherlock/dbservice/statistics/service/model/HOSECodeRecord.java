@@ -27,9 +27,10 @@ package org.openscience.sherlock.dbservice.statistics.service.model;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
-import org.openscience.sherlock.dbservice.statistics.model.HOSECode;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
+
+import java.util.Map;
 
 @AllArgsConstructor
 @Data
@@ -39,5 +40,6 @@ public class HOSECodeRecord {
 
     @Id
     private String id;
-    private HOSECode hoseCodeObject;
+    private Map<String, Map<String, Long>> values; // collected shift values
+    private Map<String, Double[]> statistics;
 }

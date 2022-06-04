@@ -26,17 +26,12 @@ package org.openscience.sherlock.dbservice.statistics.service;
 
 
 import org.openscience.sherlock.dbservice.statistics.service.model.HOSECodeRecord;
-import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
+import org.springframework.data.mongodb.repository.MongoRepository;
 import org.springframework.stereotype.Repository;
-import reactor.core.publisher.Mono;
 
 
 @Repository
 public interface HOSECodeRepository
-        extends ReactiveMongoRepository<HOSECodeRecord, String> {
+        extends MongoRepository<HOSECodeRecord, String> {
 
-    @Override
-    Mono<HOSECodeRecord> findById(final String id);
-
-    Mono<HOSECodeRecord> findByHoseCodeObjectHOSECode(final String HOSECode);
 }
