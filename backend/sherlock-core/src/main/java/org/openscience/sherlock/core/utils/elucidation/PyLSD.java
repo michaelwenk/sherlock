@@ -6,6 +6,11 @@ import casekit.nmr.elucidation.model.Detections;
 import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.nmrium.Correlation;
+import casekit.nmr.utils.Utils;
+import org.openscience.cdk.AtomContainer;
+import org.openscience.cdk.exception.CDKException;
+import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.cdk.io.MDLV3000Reader;
 import org.openscience.sherlock.core.model.exchange.Transfer;
 import org.openscience.sherlock.core.utils.detection.Detection;
 import org.springframework.http.HttpStatus;
@@ -15,6 +20,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.StringReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -268,6 +274,47 @@ public class PyLSD {
         requestTransfer.getElucidationOptions()
                        .setFilterPaths(filterList.toArray(String[]::new));
 
+        if (requestTransfer.getDetections()
+                != null
+                && requestTransfer.getDetections()
+                                  .getFragments()
+                != null) {
+            // check for manual added custom fragment and build atom container
+            DataSet fragmentDataSet, newFragmentDataSet;
+            MDLV3000Reader mdlv3000Reader;
+            IAtomContainer fragment;
+            for (int i = 0; i
+                    < requestTransfer.getDetections()
+                                     .getFragments()
+                                     .size(); i++) {
+                fragmentDataSet = requestTransfer.getDetections()
+                                                 .getFragments()
+                                                 .get(i);
+                if (fragmentDataSet.getAttachment()
+                                   .containsKey("custom")
+                        && (boolean) fragmentDataSet.getAttachment()
+                                                    .get("custom")
+                        && fragmentDataSet.getStructure()
+                        == null) {
+                    try {
+                        mdlv3000Reader = new MDLV3000Reader(new StringReader(fragmentDataSet.getMeta()
+                                                                                            .get("molfile")));
+                        fragment = mdlv3000Reader.read(new AtomContainer());
+                        newFragmentDataSet = Utils.atomContainerToDataSet(fragment, true);
+                        newFragmentDataSet.addAttachment("custom", true);
+                        newFragmentDataSet.addAttachment("include", fragmentDataSet.getAttachment()
+                                                                                   .get("include"));
+                        newFragmentDataSet.addMetaInfo("molfile", fragmentDataSet.getMeta()
+                                                                                 .get("molfile"));
+                        requestTransfer.getDetections()
+                                       .getFragments()
+                                       .set(i, newFragmentDataSet);
+                    } catch (final CDKException e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        }
 
         final Detections detectionsToUse = new Detections(new HashMap<>(), new HashMap<>(), new HashMap<>(),
                                                           new HashMap<>(), requestTransfer.getDetections()
@@ -286,6 +333,7 @@ public class PyLSD {
                                                           ? requestTransfer.getDetections()
                                                                            .getFragments()
                                                           : new ArrayList<>());
+        // check for allowed detection usage
         if (requestTransfer.getDetectionOptions()
                            .isUseHybridizationDetections()) {
             detectionsToUse.setDetectedHybridizations(requestTransfer.getDetections()
