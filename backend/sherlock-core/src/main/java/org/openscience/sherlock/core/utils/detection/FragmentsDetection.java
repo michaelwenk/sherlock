@@ -26,14 +26,14 @@ public class FragmentsDetection {
         final WebClient webClient = webClientBuilder.baseUrl(
                                                             "http://sherlock-gateway:8080/sherlock-db-service-dataset/fragment/getBySpectrumAndMfAndSetBits")
                                                     .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                   MediaType.APPLICATION_STREAM_JSON_VALUE)
+                                                                   MediaType.APPLICATION_JSON_VALUE)
                                                     .build();
 
         final Transfer queryTransfer = new Transfer();
         queryTransfer.setQuerySpectrum(querySpectrum);
         queryTransfer.setMf(mf);
         queryTransfer.setHybridizationList(hybridizationList);
-        queryTransfer.setShiftTol(shiftTol);
+        queryTransfer.setShiftTolerance(shiftTol);
         queryTransfer.setMaximumAverageDeviation(maximumAverageDeviation);
 
         final List<DataSet> fragmentList = webClient.post()
