@@ -196,7 +196,7 @@ public class FragmentController {
                     final Assignment spectralMatchAssignment = Similarity.matchSpectra(spectrum,
                                                                                        fragmentsDetectionTransfer.getQuerySpectrum(),
                                                                                        0, 0,
-                                                                                       fragmentsDetectionTransfer.getShiftTol(),
+                                                                                       fragmentsDetectionTransfer.getShiftTolerance(),
                                                                                        true, true, true);
 
                     final boolean isMatch = FragmentUtilities.isMatch(fragment,
