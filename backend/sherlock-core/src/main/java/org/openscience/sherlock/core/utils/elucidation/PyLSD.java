@@ -44,7 +44,6 @@ public class PyLSD {
 
 
     public static ResponseEntity<Transfer> runPyLSD(final Transfer requestTransfer,
-                                                    final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
                                                     final WebClient.Builder webClientBuilder,
                                                     final ExchangeStrategies exchangeStrategies) {
         // build PyLSD input file
@@ -122,8 +121,9 @@ public class PyLSD {
 
                         transferResponseEntity = Prediction.parseAndPredictFromSmilesFile(
                                 responseTransfer.getCorrelations(), responseTransfer.getElucidationOptions(),
-                                responseTransfer.getDetections(), hoseCodeDBEntriesMap, pathToSmilesFile,
-                                webClientBuilder, exchangeStrategies);
+                                responseTransfer.getDetections(),
+                                //                                hoseCodeDBEntriesMap,
+                                pathToSmilesFile, webClientBuilder, exchangeStrategies);
                         if (transferResponseEntity.getStatusCode()
                                                   .isError()) {
                             return transferResponseEntity;

@@ -24,6 +24,7 @@
 
 package org.openscience.sherlock.core.model.exchange;
 
+import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.elucidation.model.Detections;
 import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.model.DataSet;
@@ -46,12 +47,12 @@ import java.util.List;
 @ToString
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Transfer {
-
+    // basic
     private String queryType;
     private Spectrum querySpectrum;
     private String requestID;
     private List<DataSet> dataSetList;
-
+    // for dereplication
     private DereplicationOptions dereplicationOptions;
 
     private Correlations correlations;
@@ -62,14 +63,19 @@ public class Transfer {
     private DetectionOptions detectionOptions;
     private Detections detections;
     private Grouping grouping;
-
     // error message
     private String errorMessage;
-
+    // results
     private ResultRecord resultRecord;
-
     // for fragment detection
     private List<List<Integer>> hybridizationList;
-    private Double shiftTol;
+    private double shiftTolerance;
     private Double maximumAverageDeviation;
+    // for prediction
+    private List<String> smilesList;
+    private int maxSphere;
+    private boolean checkMultiplicity;
+    private boolean checkEquivalencesCount;
+    private boolean allowLowerEquivalencesCount;
+    private MultiplicitySectionsBuilder multiplicitySectionsBuilder;
 }

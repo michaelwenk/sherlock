@@ -13,6 +13,6 @@ public class Transfer {
     final Spectrum querySpectrum;
     final String mf;
     final List<List<Integer>> hybridizationList;
-    final double shiftTol;
+    final double shiftTolerance;
     final double maximumAverageDeviation;
 }

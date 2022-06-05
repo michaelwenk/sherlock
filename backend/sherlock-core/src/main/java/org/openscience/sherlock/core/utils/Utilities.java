@@ -6,6 +6,7 @@ import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.io.MDLV3000Writer;
 import org.openscience.sherlock.core.model.db.DataSetRecord;
+import org.openscience.sherlock.core.model.exchange.Transfer;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -21,6 +22,22 @@ import java.util.List;
 import java.util.Map;
 
 public class Utilities {
+
+    public static Flux<DataSet> getPredictedDataSetFlux(final Transfer transfer,
+                                                        final WebClient.Builder webClientBuilder,
+                                                        final ExchangeStrategies exchangeStrategies) {
+        final WebClient webClient = webClientBuilder.baseUrl(
+                                                            "http://sherlock-gateway:8080/sherlock-db-service-statistics/hosecode/predictAndFilter")
+                                                    .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                   MediaType.APPLICATION_JSON_VALUE)
+                                                    .exchangeStrategies(exchangeStrategies)
+                                                    .build();
+
+        return webClient.post()
+                        .bodyValue(transfer)
+                        .retrieve()
+                        .bodyToFlux(DataSet.class);
+    }
 
     public static Mono<Map<String, int[]>> getMultiplicitySectionsSettings(final WebClient.Builder webClientBuilder,
                                                                            final ExchangeStrategies exchangeStrategies) {
