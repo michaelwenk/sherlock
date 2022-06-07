@@ -222,6 +222,8 @@ public class CoreController {
                                                                        .getErrorMessage());
                     responseTransfer.setErrorMessage("ELUCIDATION -> configuration and storage of result failed: "
                                                              + transferResponseEntity.getStatusCode());
+                    responseTransfer.getResultRecord()
+                                    .setQuerySpectrum(new SpectrumCompact(querySpectrum));
 
                     return new ResponseEntity<>(responseTransfer, transferResponseEntity.getStatusCode());
                 }
@@ -265,6 +267,8 @@ public class CoreController {
             e.printStackTrace();
 
             responseTransfer.setErrorMessage(e.getMessage());
+            responseTransfer.getResultRecord()
+                            .setQuerySpectrum(new SpectrumCompact(querySpectrum));
             return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
@@ -294,6 +298,8 @@ public class CoreController {
                                                                  .getDetectionOptions());
             queryResultRecord.setElucidationOptions(requestTransfer.getResultRecord()
                                                                    .getElucidationOptions());
+            queryResultRecord.setQuerySpectrum(
+                    new SpectrumCompact(Utils.correlationListToSpectrum1D(correlations.getValues(), "13C")));
             // store results in DB if not empty and replace resultRecord in responseTransfer
             if (!dataSetList.isEmpty()) {
                 FilterAndRank.rank(dataSetList);
@@ -312,8 +318,6 @@ public class CoreController {
                 queryResultRecord.setDataSetList(cutDataSetList);
                 queryResultRecord.setDataSetListSize(cutDataSetList.size());
                 queryResultRecord.setPreviewDataSet(cutDataSetList.get(0));
-                queryResultRecord.setQuerySpectrum(
-                        new SpectrumCompact(Utils.correlationListToSpectrum1D(correlations.getValues(), "13C")));
 
                 final WebClient webClient = this.webClientBuilder.baseUrl(
                                                         "http://sherlock-gateway:8080/sherlock-db-service-result/insert")
@@ -322,7 +326,6 @@ public class CoreController {
                                                                  .exchangeStrategies(this.exchangeStrategies)
                                                                  .build();
                 try {
-
                     final ResponseEntity<ObjectId> resultStorageResponseEntity = webClient.post()
                                                                                           .bodyValue(queryResultRecord)
                                                                                           .retrieve()
@@ -332,6 +335,7 @@ public class CoreController {
                                                    .isError()
                             || resultStorageResponseEntity.getBody()
                             == null) {
+                        responseTransfer.setResultRecord(queryResultRecord);
                         responseTransfer.setErrorMessage("Result storage request failed: "
                                                                  + resultStorageResponseEntity.getStatusCode());
                         return new ResponseEntity<>(responseTransfer, resultStorageResponseEntity.getStatusCode());
@@ -341,6 +345,7 @@ public class CoreController {
                                     .setId(resultStorageResponseEntity.getBody()
                                                                       .toString());
                 } catch (final Exception e) {
+                    responseTransfer.setResultRecord(queryResultRecord);
                     responseTransfer.setErrorMessage(e.getMessage());
                     return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
                 }
