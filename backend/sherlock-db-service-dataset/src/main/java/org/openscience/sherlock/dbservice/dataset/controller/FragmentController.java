@@ -22,7 +22,11 @@ import org.openscience.sherlock.dbservice.dataset.model.exchange.Transfer;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 
-import java.util.*;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -55,11 +59,13 @@ public class FragmentController {
     @GetMapping(value = "/getByNucleusAndSignalCountAndSetBits")
     public List<DataSet> getByNucleusAndSignalCountAndSetBits(@RequestParam final String nucleus,
                                                               @RequestParam final int signalCount,
-                                                              @RequestParam final int[] setBits) {
-        final String setBitsString = Arrays.toString(setBits)
-                                           .replaceAll("\\[", "{")
-                                           .replaceAll("\\]", "}");
-        return this.fragmentRepository.findByNucleusAndSignalCountAndSetBits(nucleus, signalCount, setBitsString)
+                                                              @RequestParam final String bitsString) {
+        //        final String bitsStringWithQuotes = "''"
+        //                + bitsString
+        //                + "''";
+        //        System.out.println(" -> "
+        //                                   + bitsStringWithQuotes);
+        return this.fragmentRepository.findBySetBits(bitsString)
                                       .stream()
                                       .map(fragment -> this.gson.fromJson(fragment.getSubDataSetString(),
                                                                           DataSet.class))
@@ -85,6 +91,13 @@ public class FragmentController {
                 multiplicitySectionsBuilder.setMinLimit(multiplicitySectionSettings.get(nucleus)[0]);
                 multiplicitySectionsBuilder.setMaxLimit(multiplicitySectionSettings.get(nucleus)[1]);
                 multiplicitySectionsBuilder.setStepSize(multiplicitySectionSettings.get(nucleus)[2]);
+                System.out.println(" -> "
+                                           + nucleus
+                                           + " -> steps: "
+                                           + multiplicitySectionsBuilder.getSteps()
+                                           + "\n");
+
+
                 final String[] nucleiTemp = new String[]{nucleus};
                 this.dataSetServiceImplementation.findByDataSetSpectrumNuclei(nucleiTemp)
                                                  .doOnNext(dataSetRecord -> {
@@ -92,46 +105,27 @@ public class FragmentController {
                                                              dataSetRecord.getDataSet(), 3, 1, 6, true);
                                                      if (fragments
                                                              != null) {
-                                                         final List<FragmentRecord> fragmentList = fragments.stream()
-                                                                                                            .filter(fragmentDataSet -> !Utils.isSaturated(
-                                                                                                                    fragmentDataSet.getStructure()
-                                                                                                                                   .toAtomContainer()))
-                                                                                                            .map(fragmentDataSet -> {
-                                                                                                                final FragmentRecord fragmentRecord = new FragmentRecord();
-                                                                                                                fragmentRecord.setMf(
-                                                                                                                        fragmentDataSet.getMeta()
-                                                                                                                                       .get("mf"));
-                                                                                                                fragmentRecord.setSmiles(
-                                                                                                                        fragmentDataSet.getMeta()
-                                                                                                                                       .get("smiles"));
-                                                                                                                fragmentRecord.setNucleus(
-                                                                                                                        nucleus);
-                                                                                                                fragmentRecord.setSignalCount(
-                                                                                                                        fragmentDataSet.getSpectrum()
-                                                                                                                                       .getSignals().length);
+                                                         fragments.stream()
+                                                                  .filter(fragmentDataSet -> !Utils.isSaturated(
+                                                                          fragmentDataSet.getStructure()
+                                                                                         .toAtomContainer()))
+                                                                  .forEach(fragmentDataSet -> {
+                                                                      final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(
+                                                                              fragmentDataSet.getSpectrum()
+                                                                                             .toSpectrum(), 0,
+                                                                              multiplicitySectionsBuilder);
 
-                                                                                                                final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(
-                                                                                                                        fragmentDataSet.getSpectrum()
-                                                                                                                                       .toSpectrum(),
-                                                                                                                        0,
-                                                                                                                        multiplicitySectionsBuilder);
-                                                                                                                fragmentRecord.setSetBits(
-                                                                                                                        bitSetFingerprint.getSetbits());
-                                                                                                                fragmentRecord.setFpSize(
-                                                                                                                        bitSetFingerprint.size());
-
-
-                                                                                                                fragmentRecord.setSubDataSetString(
-                                                                                                                        this.gson.toJson(
-                                                                                                                                fragmentDataSet,
-                                                                                                                                DataSet.class));
-
-                                                                                                                return fragmentRecord;
-                                                                                                            })
-                                                                                                            .collect(
-                                                                                                                    Collectors.toList());
-
-                                                         this.fragmentRepository.saveAll(fragmentList);
+                                                                      this.fragmentRepository.insertFragmentRecord(
+                                                                              nucleus, fragmentDataSet.getSpectrum()
+                                                                                                      .getSignals().length,
+                                                                              this.buildBitsString(
+                                                                                      this.buildBits(bitSetFingerprint,
+                                                                                                     multiplicitySectionsBuilder.getSteps()),
+                                                                                      multiplicitySectionsBuilder.getSteps()),
+                                                                              multiplicitySectionsBuilder.getSteps(),
+                                                                              this.gson.toJson(fragmentDataSet,
+                                                                                               DataSet.class));
+                                                                  });
                                                      }
                                                  })
                                                  .doAfterTerminate(() -> System.out.println(
@@ -175,12 +169,15 @@ public class FragmentController {
                 }
             }
 
+            final String bitsString = this.buildBitsString(
+                    this.buildBits(bitSetFingerprint, multiplicitySectionsBuilder.getSteps()),
+                    multiplicitySectionsBuilder.getSteps());
+
             final Map<String, DataSet> fragmentsMap = new HashMap<>();
             this.getByNucleusAndSignalCountAndSetBits(fragmentsDetectionTransfer.getQuerySpectrum()
                                                                                 .getNuclei()[0],
                                                       fragmentsDetectionTransfer.getQuerySpectrum()
-                                                                                .getSignalCount(),
-                                                      bitSetFingerprint.getSetbits())
+                                                                                .getSignalCount(), bitsString)
                 .forEach(fragment -> {
                     // fine search
                     final Spectrum spectrum = fragment.getSpectrum()
@@ -242,5 +239,31 @@ public class FragmentController {
         }
 
         return Flux.fromIterable(fragmentList);
+    }
+
+    private BigInteger buildBits(final BitSetFingerprint bitSetFingerprint, final int bitLength) {
+        BigInteger bigInteger = new BigInteger("2");
+        bigInteger = bigInteger.pow(bitLength);
+        bigInteger = bigInteger.subtract(new BigInteger("1"));
+        for (int i = 0; i
+                < bigInteger.bitLength(); i++) {
+            if (!bitSetFingerprint.get(i)) {
+                bigInteger = bigInteger.clearBit(i);
+            }
+        }
+
+        return bigInteger;
+    }
+
+    private String buildBitsString(final BigInteger bigInteger, final int bitLength) {
+        final String output = bigInteger.toString(2);
+        final StringBuilder stringBuilder = new StringBuilder(output);
+        while (stringBuilder.toString()
+                            .length()
+                < bitLength) {
+            stringBuilder.insert(0, "0");
+        }
+
+        return stringBuilder.toString();
     }
 }
