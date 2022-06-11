@@ -16,10 +16,20 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
 
+  # in case of: "WARNING: could not open statistics file "pg_stat_tmp/global.stat": Operation not permitted"
+  # first time
+  # 1) start without this tmpfs section
+  # 2) after postgres finished initialising bring the service down
+  # 3) enable the tmpfs and restart
   sherlock-db-instance-fragment:
     image: postgres:14
     volumes:
       - "./backend/db-instance-fragment/data/db/fragment:/var/lib/postgresql/data"
+      - type: tmpfs
+        target: /var/lib/postgresql/data/pg_stat_tmp
+        tmpfs:
+          # 256 Mb - beware the default, it's infinity(!)
+          size: 268435456
     environment:
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=password

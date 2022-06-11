@@ -19,7 +19,7 @@ public class FragmentRecord {
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE)
     @Column(name = "id")
-    private long id;
+    private int id;
 
     @Column(name = "nucleus", nullable = false)
     private String nucleus;
