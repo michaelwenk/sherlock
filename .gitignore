@@ -42,4 +42,6 @@ backend/sherlock-db-service-dataset/data
 backend/sherlock-core/data/lsd
 # sherlock-pylsd: HOSE code map for spectra prediction
 backend/sherlock-core/data/hosecode
+# sherlock-db-instance-fragment: zipped fragments library
+backend/db-instance-fragment/data/db/fragment.tar.gz
 

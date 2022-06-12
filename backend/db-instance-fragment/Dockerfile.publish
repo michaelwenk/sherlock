@@ -1,5 +1,12 @@
-FROM postgres:14
+FROM alpine:3
 
-COPY data/db/fragment /var/lib/postgresql/data
+RUN apk add postgresql14 --no-cache
+RUN (addgroup -S postgres && adduser -S postgres -G postgres || true)
+RUN mkdir data && mkdir /run/postgresql && chown -R postgres:postgres /run/postgresql && mkdir /var/lib/postgresql/data && chown -R postgres:postgres /var/lib/postgresql/data && su - postgres -c "initdb /var/lib/postgresql/data"
+
+COPY data/db/fragment.tar.gz /data
+COPY data/db/extract.sh /data
+
+CMD cd /data && sh extract.sh && chown -R postgres:postgres /var/lib/postgresql/data && su postgres -c 'postgres -D /var/lib/postgresql/data -c config_file=/var/lib/postgresql/data/postgresql.conf'
 
 EXPOSE 5432
