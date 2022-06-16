@@ -35,7 +35,7 @@ import java.util.stream.Collectors;
 @RequestMapping(value = "/fragment")
 public class FragmentController {
 
-    public final static String[] SINGLE_BIT_STRINGS = BitUtilities.buildSingleBitBigIntegerStrings(209);
+    //    public final static String[] SINGLE_BIT_STRINGS = BitUtilities.buildSingleBitBigIntegerStrings(209);
 
     private final Gson gson = new GsonBuilder().create();
     private final FragmentRepository fragmentRepository;

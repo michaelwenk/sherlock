@@ -228,7 +228,7 @@ public class PyLSD {
         System.out.println("-> detected data was already given?: "
                                    + (requestTransfer.getDetections()
                 != null));
-        System.out.println(requestTransfer.getDetections());
+        //        System.out.println(requestTransfer.getDetections());
 
         if (requestTransfer.getDetections()
                 == null) {

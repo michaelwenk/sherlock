@@ -194,7 +194,7 @@ public class HOSECodeController {
     }
 
     @PostMapping(value = "/predictAndFilter")
-    public Flux<DataSet> predict(@RequestBody final Transfer transfer) {
+    public Flux<DataSet> predictAndFilter(@RequestBody final Transfer transfer) {
         final String nucleus = transfer.getQuerySpectrum()
                                        .getNuclei()[0];
         final List<DataSet> dataSetList = new ArrayList<>();
@@ -217,7 +217,6 @@ public class HOSECodeController {
                 }
             }
         }
-
 
         return Flux.fromIterable(dataSetList);
     }
