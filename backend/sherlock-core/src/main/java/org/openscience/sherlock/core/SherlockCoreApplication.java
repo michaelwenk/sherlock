@@ -7,8 +7,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
-import java.util.Arrays;
-
 @SpringBootApplication
 @EnableEurekaClient
 public class SherlockCoreApplication {
@@ -17,7 +15,6 @@ public class SherlockCoreApplication {
     //                                       .create();
 
     public static void main(final String[] args) {
-        System.out.println(Arrays.toString(args));
         SpringApplication.run(SherlockCoreApplication.class, args);
     }
 
