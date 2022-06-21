@@ -13,8 +13,11 @@ The graphical user interface is available under https://github.com/michaelwenk/s
 The dereplication is done by searching for hits in NMRShiftDB. 
 PyLSD is used for structure generation. See [Dependencies](#dependencies) section.
 
-## Download and Execution of pre-built Containers
+## Docker and Execution of pre-built Containers
 This project uses Docker containers (https://www.docker.com) and starts them via docker-compose. Make sure that docker-compose is installed.
+
+It is recommended to set the accessible RAM to 6 GB or higher and the number of available CPU cores to two. This can be done easily in the Docker Desktop application, see [here](/public/Docker_settings.png).
+
 
 ### Download
 Clone this repository and change the directory:
