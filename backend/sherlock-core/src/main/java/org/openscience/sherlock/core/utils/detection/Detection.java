@@ -103,6 +103,7 @@ public class Detection {
                 new Detections(detectedHybridizations, new HashMap<>(), detectedOccurrenceForbidden,
                                detectedOccurrenceAllowed, fixedNeighbors, detectedFragments));
         responseTransfer.setDetectionOptions(requestTransfer.getDetectionOptions());
+        responseTransfer.setDetected(true);
 
         //        // in case of no hetero-hetero bonds are allowed then reduce the hybridization states and proton counts by carbon neighborhood statistics
         //        if (responseTransfer.getDetectionOptions()

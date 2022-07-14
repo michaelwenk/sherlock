@@ -60,8 +60,9 @@ public class Transfer {
     private List<String> pyLSDInputFileContentList;
     private Boolean pyLSDRunWasSuccessful;
     private ElucidationOptions elucidationOptions;
-    private DetectionOptions detectionOptions;
+    private Boolean detected;
     private Detections detections;
+    private DetectionOptions detectionOptions;
     private Grouping grouping;
     // error message
     private String errorMessage;

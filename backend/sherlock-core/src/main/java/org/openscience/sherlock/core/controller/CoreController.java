@@ -24,8 +24,6 @@
 
 package org.openscience.sherlock.core.controller;
 
-import casekit.nmr.elucidation.model.Detections;
-import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.filterandrank.FilterAndRank;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
@@ -193,6 +191,8 @@ public class CoreController {
                                                                    .getElucidationOptions());
                 queryTransfer.setDetections(requestTransfer.getResultRecord()
                                                            .getDetections());
+                queryTransfer.setDetected(requestTransfer.getResultRecord()
+                                                         .getDetected());
                 queryTransfer.setGrouping(requestTransfer.getResultRecord()
                                                          .getGrouping());
                 queryTransfer.setRequestID(requestID);
@@ -207,14 +207,27 @@ public class CoreController {
 
                     return transferResponseEntity;
                 }
-                final Transfer queryResultTransfer = transferResponseEntity.getBody();
-                final List<DataSet> dataSetList = queryResultTransfer.getDataSetList()
+                final Transfer elucidationResultTransfer = transferResponseEntity.getBody();
+                final List<DataSet> dataSetList = elucidationResultTransfer.getDataSetList()
                                                           != null
-                                                  ? queryResultTransfer.getDataSetList()
+                                                  ? elucidationResultTransfer.getDataSetList()
                                                   : new ArrayList<>();
-                transferResponseEntity = this.rankAndStore(requestTransfer, correlations,
-                                                           queryResultTransfer.getDetections(),
-                                                           queryResultTransfer.getGrouping(), dataSetList);
+                requestTransfer.getResultRecord()
+                               .setDataSetList(elucidationResultTransfer.getDataSetList());
+                requestTransfer.getResultRecord()
+                               .setQuerySpectrum(new SpectrumCompact(querySpectrum));
+                requestTransfer.getResultRecord()
+                               .setCorrelations(correlations);
+                requestTransfer.getResultRecord()
+                               .setDetected(elucidationResultTransfer.getDetected());
+                requestTransfer.getResultRecord()
+                               .setDetections(elucidationResultTransfer.getDetections());
+                requestTransfer.getResultRecord()
+                               .setDetectionOptions(elucidationResultTransfer.getDetectionOptions());
+                requestTransfer.getResultRecord()
+                               .setGrouping(elucidationResultTransfer.getGrouping());
+
+                transferResponseEntity = this.rankAndStore(requestTransfer.getResultRecord());
                 if (transferResponseEntity.getStatusCode()
                                           .isError()) {
                     System.out.println("ELUCIDATION -> configuration and storage request failed: "
@@ -253,6 +266,8 @@ public class CoreController {
                 responseTransfer.getResultRecord()
                                 .setCorrelations(queryResultTransfer.getCorrelations());
                 responseTransfer.getResultRecord()
+                                .setDetected(queryResultTransfer.getDetected());
+                responseTransfer.getResultRecord()
                                 .setDetections(queryResultTransfer.getDetections());
                 responseTransfer.getResultRecord()
                                 .setGrouping(queryResultTransfer.getGrouping());
@@ -281,43 +296,31 @@ public class CoreController {
         return PyLSD.cancel();
     }
 
-    private ResponseEntity<Transfer> rankAndStore(final Transfer requestTransfer, final Correlations correlations,
-                                                  final Detections detections, final Grouping grouping,
-                                                  final List<DataSet> dataSetList) {
+    private ResponseEntity<Transfer> rankAndStore(final ResultRecord resultRecord) {
         final Transfer responseTransfer = new Transfer();
         try {
-            Utilities.addMolFileToDataSets(dataSetList);
-
-            final ResultRecord queryResultRecord = new ResultRecord();
-            queryResultRecord.setName(requestTransfer.getResultRecord()
-                                                     .getName());
-            queryResultRecord.setCorrelations(correlations);
-            queryResultRecord.setDetections(detections);
-            queryResultRecord.setGrouping(grouping);
-            queryResultRecord.setDetectionOptions(requestTransfer.getResultRecord()
-                                                                 .getDetectionOptions());
-            queryResultRecord.setElucidationOptions(requestTransfer.getResultRecord()
-                                                                   .getElucidationOptions());
-            queryResultRecord.setQuerySpectrum(
-                    new SpectrumCompact(Utils.correlationListToSpectrum1D(correlations.getValues(), "13C")));
+            Utilities.addMolFileToDataSets(resultRecord.getDataSetList());
             // store results in DB if not empty and replace resultRecord in responseTransfer
-            if (!dataSetList.isEmpty()) {
-                FilterAndRank.rank(dataSetList);
+            if (!resultRecord.getDataSetList()
+                             .isEmpty()) {
+                FilterAndRank.rank(resultRecord.getDataSetList());
 
-                queryResultRecord.setDate(LocalDateTime.now(ZoneId.of("UTC"))
-                                                       .toString());
+                resultRecord.setDate(LocalDateTime.now(ZoneId.of("UTC"))
+                                                  .toString());
                 final List<DataSet> cutDataSetList = new ArrayList<>();
                 for (int i = 0; i
                         < 500; i++) {
                     if (i
-                            >= dataSetList.size()) {
+                            >= resultRecord.getDataSetList()
+                                           .size()) {
                         break;
                     }
-                    cutDataSetList.add(dataSetList.get(i));
+                    cutDataSetList.add(resultRecord.getDataSetList()
+                                                   .get(i));
                 }
-                queryResultRecord.setDataSetList(cutDataSetList);
-                queryResultRecord.setDataSetListSize(cutDataSetList.size());
-                queryResultRecord.setPreviewDataSet(cutDataSetList.get(0));
+                resultRecord.setDataSetList(cutDataSetList);
+                resultRecord.setDataSetListSize(cutDataSetList.size());
+                resultRecord.setPreviewDataSet(cutDataSetList.get(0));
 
                 final WebClient webClient = this.webClientBuilder.baseUrl(
                                                         "http://sherlock-gateway:8080/sherlock-db-service-result/insert")
@@ -327,7 +330,7 @@ public class CoreController {
                                                                  .build();
                 try {
                     final ResponseEntity<ObjectId> resultStorageResponseEntity = webClient.post()
-                                                                                          .bodyValue(queryResultRecord)
+                                                                                          .bodyValue(resultRecord)
                                                                                           .retrieve()
                                                                                           .toEntity(ObjectId.class)
                                                                                           .block();
@@ -335,22 +338,22 @@ public class CoreController {
                                                    .isError()
                             || resultStorageResponseEntity.getBody()
                             == null) {
-                        responseTransfer.setResultRecord(queryResultRecord);
+                        responseTransfer.setResultRecord(resultRecord);
                         responseTransfer.setErrorMessage("Result storage request failed: "
                                                                  + resultStorageResponseEntity.getStatusCode());
                         return new ResponseEntity<>(responseTransfer, resultStorageResponseEntity.getStatusCode());
                     }
-                    responseTransfer.setResultRecord(queryResultRecord);
+                    responseTransfer.setResultRecord(resultRecord);
                     responseTransfer.getResultRecord()
                                     .setId(resultStorageResponseEntity.getBody()
                                                                       .toString());
                 } catch (final Exception e) {
-                    responseTransfer.setResultRecord(queryResultRecord);
+                    responseTransfer.setResultRecord(resultRecord);
                     responseTransfer.setErrorMessage(e.getMessage());
                     return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
                 }
             } else {
-                responseTransfer.setResultRecord(queryResultRecord);
+                responseTransfer.setResultRecord(resultRecord);
 
                 responseTransfer.getResultRecord()
                                 .setDataSetList(new ArrayList<>());

@@ -45,6 +45,7 @@ public class ResultRecord {
     private DataSet previewDataSet;
     private int dataSetListSize;
     private Correlations correlations;
+    private Boolean detected;
     private Detections detections;
     private DetectionOptions detectionOptions;
     private ElucidationOptions elucidationOptions;

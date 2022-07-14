@@ -52,9 +52,10 @@ public class ElucidationController {
             final Transfer queryResultTransfer = responseEntity.getBody();
             responseTransfer.setPyLSDRunWasSuccessful(queryResultTransfer.getPyLSDRunWasSuccessful());
             responseTransfer.setDataSetList(queryResultTransfer.getDataSetList());
+            responseTransfer.setDetected(queryResultTransfer.getDetected());
             responseTransfer.setDetections(queryResultTransfer.getDetections());
-            responseTransfer.setGrouping(queryResultTransfer.getGrouping());
             responseTransfer.setDetectionOptions(queryResultTransfer.getDetectionOptions());
+            responseTransfer.setGrouping(queryResultTransfer.getGrouping());
         } catch (final Exception e) {
             responseTransfer.setErrorMessage(e.getMessage());
             return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);

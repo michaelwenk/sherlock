@@ -61,6 +61,7 @@ public class PyLSD {
         responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
         responseTransfer.setCorrelations(queryResultTransfer.getCorrelations());
         responseTransfer.setDetections(queryResultTransfer.getDetections());
+        responseTransfer.setDetected(queryResultTransfer.getDetected());
         responseTransfer.setGrouping(queryResultTransfer.getGrouping());
         responseTransfer.setDetectionOptions(queryResultTransfer.getDetectionOptions());
 
@@ -169,70 +170,21 @@ public class PyLSD {
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
-    private static boolean isStillRunning(final ProcessHandle processHandle) {
-        return processHandle.isAlive()
-                && (processHandle.info()
-                                 .command()
-                                 .orElse("unknown")
-                                 .contains("python2.7")
-                || processHandle.info()
-                                .command()
-                                .orElse("unknown")
-                                .contains("LSD/lsd"));
-    }
-
-    public static ResponseEntity<Transfer> cancel() {
-        final Transfer responseTransfer = new Transfer();
-
-        FileSystem.cleanup(directoriesToCheck, ".lsd");
-
-        while (ProcessHandle.allProcesses()
-                            .anyMatch(PyLSD::isStillRunning)) {
-            ProcessHandle.allProcesses()
-                         .filter(PyLSD::isStillRunning)
-                         .findFirst()
-                         .ifPresent(processHandleLSD -> {
-                             System.out.println("-> killing PID "
-                                                        + processHandleLSD.pid()
-                                                        + ": "
-                                                        + processHandleLSD.info()
-                                                                          .command()
-                                                                          .orElse("unknown"));
-                             processHandleLSD.destroy();
-
-                             while (processHandleLSD.isAlive()) {
-                                 try {
-                                     TimeUnit.SECONDS.sleep(1);
-                                 } catch (final InterruptedException e) {
-                                     e.printStackTrace();
-                                     responseTransfer.setErrorMessage(e.getMessage());
-                                 }
-                             }
-                         });
-            if (responseTransfer.getErrorMessage()
-                    != null) {
-                return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
-            }
-        }
-
-        return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
-    }
-
-    public static ResponseEntity<Transfer> detection(final Transfer requestTransfer,
-                                                     final WebClient.Builder webClientBuilder) {
-        return new ResponseEntity<>(Detection.detect(webClientBuilder, requestTransfer), HttpStatus.OK);
-    }
-
     public static Transfer createPyLSDInputFiles(final WebClient.Builder webClientBuilder,
                                                  final Transfer requestTransfer) {
-        System.out.println("-> detected data was already given?: "
-                                   + (requestTransfer.getDetections()
-                != null));
+        System.out.println("-> detection was already done?: "
+                                   + (requestTransfer.getDetected()
+                != null
+                && requestTransfer.getDetected()));
         //        System.out.println(requestTransfer.getDetections());
 
-        if (requestTransfer.getDetections()
+        if (requestTransfer.getDetected()
+                == null
+                || !requestTransfer.getDetected()
+                || requestTransfer.getDetections()
                 == null) {
             final Transfer detectionTransfer = Detection.detect(webClientBuilder, requestTransfer);
+            requestTransfer.setDetected(detectionTransfer.getDetected());
             requestTransfer.setDetections(detectionTransfer.getDetections());
             requestTransfer.setElucidationOptions(detectionTransfer.getElucidationOptions());
             System.out.println(" -> new detections: "
@@ -370,5 +322,59 @@ public class PyLSD {
                                                                      requestTransfer.getElucidationOptions(),
                                                                      defaultBondDistances));
         return requestTransfer;
+    }
+
+    private static boolean isStillRunning(final ProcessHandle processHandle) {
+        return processHandle.isAlive()
+                && (processHandle.info()
+                                 .command()
+                                 .orElse("unknown")
+                                 .contains("python2.7")
+                || processHandle.info()
+                                .command()
+                                .orElse("unknown")
+                                .contains("LSD/lsd"));
+    }
+
+    public static ResponseEntity<Transfer> cancel() {
+        final Transfer responseTransfer = new Transfer();
+
+        FileSystem.cleanup(directoriesToCheck, ".lsd");
+
+        while (ProcessHandle.allProcesses()
+                            .anyMatch(PyLSD::isStillRunning)) {
+            ProcessHandle.allProcesses()
+                         .filter(PyLSD::isStillRunning)
+                         .findFirst()
+                         .ifPresent(processHandleLSD -> {
+                             System.out.println("-> killing PID "
+                                                        + processHandleLSD.pid()
+                                                        + ": "
+                                                        + processHandleLSD.info()
+                                                                          .command()
+                                                                          .orElse("unknown"));
+                             processHandleLSD.destroy();
+
+                             while (processHandleLSD.isAlive()) {
+                                 try {
+                                     TimeUnit.SECONDS.sleep(1);
+                                 } catch (final InterruptedException e) {
+                                     e.printStackTrace();
+                                     responseTransfer.setErrorMessage(e.getMessage());
+                                 }
+                             }
+                         });
+            if (responseTransfer.getErrorMessage()
+                    != null) {
+                return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+        }
+
+        return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
+    }
+
+    public static ResponseEntity<Transfer> detection(final Transfer requestTransfer,
+                                                     final WebClient.Builder webClientBuilder) {
+        return new ResponseEntity<>(Detection.detect(webClientBuilder, requestTransfer), HttpStatus.OK);
     }
 }
