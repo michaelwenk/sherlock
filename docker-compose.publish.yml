@@ -6,6 +6,7 @@ services:
       context: ./backend/sherlock-db-service-dataset
       dockerfile: Dockerfile.publish
     image: michaelwenk/sherlock-db-service-dataset
+    restart: on-failure
 
   sherlock-db-instance-dataset:
     image: michaelwenk/sherlock-db-instance-dataset
