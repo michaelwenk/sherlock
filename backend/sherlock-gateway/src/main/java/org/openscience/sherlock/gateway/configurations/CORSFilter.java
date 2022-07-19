@@ -21,7 +21,8 @@ public class CORSFilter
         corsConfiguration.addAllowedMethod("GET");
         corsConfiguration.addAllowedMethod("POST");
         corsConfiguration.addAllowedMethod("DELETE");
-        corsConfiguration.addAllowedOrigin("http://localhost:3001");
+//        corsConfiguration.addAllowedOrigin("http://localhost:3001");
+        corsConfiguration.addAllowedOrigin("*");
         final UrlBasedCorsConfigurationSource corsConfigurationSource = new UrlBasedCorsConfigurationSource();
         corsConfigurationSource.registerCorsConfiguration("/**", corsConfiguration);
 
