@@ -208,10 +208,6 @@ public class CoreController {
                     return transferResponseEntity;
                 }
                 final Transfer elucidationResultTransfer = transferResponseEntity.getBody();
-                final List<DataSet> dataSetList = elucidationResultTransfer.getDataSetList()
-                                                          != null
-                                                  ? elucidationResultTransfer.getDataSetList()
-                                                  : new ArrayList<>();
                 requestTransfer.getResultRecord()
                                .setDataSetList(elucidationResultTransfer.getDataSetList());
                 requestTransfer.getResultRecord()
