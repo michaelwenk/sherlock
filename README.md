@@ -29,18 +29,28 @@ Now pull all the containers needed for execution from Docker Hub:
 
      docker-compose -f docker-compose.yml -f docker-compose.publish.yml pull
 
-### Start
-To start them (in detached mode) use:
+### Create and Start
+To create the network and start the services for the first time (in detached mode) use:
 
     docker-compose -f docker-compose.yml -f docker-compose.publish.yml up -d
 
-Note: It can take a few minutes until all services are available and registered.
+Note: It will take several minutes until all services are available and registered, i.e. due to the extraction of the compressed fragment data.
 
-### Stop
+If the container network was already created beforehand and stopped via "stop" command, then the "start" command can be used. 
+This will avoid extracting the fragments again and the services should be ready within a few seconds.
+
+    docker-compose -f docker-compose.yml -f docker-compose.publish.yml start
+
+### Stop and Removal
 To stop the application use:
+
+    docker-compose -f docker-compose.yml -f docker-compose.publish.yml stop
+
+If the removal of the network created by docker-compose is desired, then use the down command:
 
     docker-compose -f docker-compose.yml -f docker-compose.publish.yml down
 
+<!---
 ## Self Compilation and Dependencies
 
 ### Compilation
@@ -155,4 +165,6 @@ For spectra prediction a map of HOSE code and assigned statistics is needed.
 Due to this one now needs to execute following command to store such map in a shared volume:
 
     curl -X GET -i 'http://localhost:8081/sherlock-db-service-hosecode/saveAllAsMap'
+
+-->
 
