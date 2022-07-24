@@ -118,7 +118,7 @@ public class FragmentController {
                 continue;
             }
             spectralMatchAssignment = Similarity.matchSpectra(spectrum, querySpectrum, 0, 0, shiftTolerance, true, true,
-                                                              true);
+                                                              false);
             isMatch = FragmentUtilities.isMatch(fragment, querySpectrum, mf, spectralMatchAssignment,
                                                 maximumAverageDeviation, hybridizationList);
             if (isMatch) {
