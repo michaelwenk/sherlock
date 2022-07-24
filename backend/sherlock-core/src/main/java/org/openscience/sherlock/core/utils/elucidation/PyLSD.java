@@ -141,8 +141,10 @@ public class PyLSD {
                             }
                         }
                     } else {
-                        //                        System.out.println("--> run was NOT successful -> killing PyLSD run if it still exist");
-                        cancel();
+                        System.out.println(
+                                "--> reached time limit -> run was NOT successful -> killing PyLSD run if it is still running");
+                        responseTransfer.setErrorMessage(cancel(true).getBody()
+                                                                     .getErrorMessage());
                         stop = true;
                     }
                 } catch (final Exception e) {
@@ -167,7 +169,9 @@ public class PyLSD {
                                    + dataSetList.size());
         responseTransfer.setDataSetList(dataSetList);
 
-        return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
+        return new ResponseEntity<>(responseTransfer, stop
+                                                      ? HttpStatus.INTERNAL_SERVER_ERROR
+                                                      : HttpStatus.OK);
     }
 
     public static Transfer createPyLSDInputFiles(final WebClient.Builder webClientBuilder,
@@ -336,10 +340,15 @@ public class PyLSD {
                                 .contains("LSD/lsd"));
     }
 
-    public static ResponseEntity<Transfer> cancel() {
+    public static ResponseEntity<Transfer> cancel(final boolean reachedTimeLimit) {
         final Transfer responseTransfer = new Transfer();
 
         FileSystem.cleanup(directoriesToCheck, ".lsd");
+
+        final List<String> errorMessageList = new ArrayList<>();
+        if (reachedTimeLimit) {
+            errorMessageList.add("Time limit reached -> elucidation request was canceled!!!");
+        }
 
         while (ProcessHandle.allProcesses()
                             .anyMatch(PyLSD::isStillRunning)) {
@@ -353,21 +362,19 @@ public class PyLSD {
                                                         + processHandleLSD.info()
                                                                           .command()
                                                                           .orElse("unknown"));
-                             processHandleLSD.destroy();
-
-                             while (processHandleLSD.isAlive()) {
+                             while (!processHandleLSD.destroyForcibly()) {
                                  try {
                                      TimeUnit.SECONDS.sleep(1);
                                  } catch (final InterruptedException e) {
                                      e.printStackTrace();
-                                     responseTransfer.setErrorMessage(e.getMessage());
+                                     errorMessageList.add(e.getMessage());
                                  }
                              }
                          });
-            if (responseTransfer.getErrorMessage()
-                    != null) {
-                return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
-            }
+        }
+
+        if (!errorMessageList.isEmpty()) {
+            responseTransfer.setErrorMessage(String.join("\n&\n", errorMessageList));
         }
 
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);

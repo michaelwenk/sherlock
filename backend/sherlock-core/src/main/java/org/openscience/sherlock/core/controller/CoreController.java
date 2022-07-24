@@ -289,7 +289,7 @@ public class CoreController {
 
     @GetMapping(value = "/cancel")
     public ResponseEntity<Transfer> cancel() {
-        return PyLSD.cancel();
+        return PyLSD.cancel(false);
     }
 
     private ResponseEntity<Transfer> rankAndStore(final ResultRecord resultRecord) {
