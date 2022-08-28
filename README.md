@@ -1,9 +1,12 @@
+[![DOI](https://zenodo.org/badge/315139777.svg)](https://zenodo.org/badge/latestdoi/315139777) [![License](https://img.shields.io/badge/License-MIT%202.0-blue.svg)](https://opensource.org/licenses/MIt)
+[![GitHub contributors](https://img.shields.io/github/contributors/michaelwenk/sherlock.svg)](https://github.com/michaelwenk/sherlock/graphs/contributors/) [![GitHub issues](https://img.shields.io/github/issues/michaelwenk/sherlock.svg)](https://github.com/michaelwenk/sherlock/issues/) [![GitHub release](https://img.shields.io/github/release/michaelwenk/sherlock.svg)](https://github.com/michaelwenk/sherlock/releases/)
+
 <img width="150" alt="sherlock-logo" src="public/Sherlock.png" align="right">
 
 # Sherlock
 Web services for Computer-Assisted Structure Elucidation (CASE).
 
-The graphical user interface is available under https://github.com/michaelwenk/sherlock-frontend.
+The [graphical user interface](https://github.com/michaelwenk/sherlock-frontend) is available as well.
 
 ## Core  Features
 - Dereplication
@@ -11,7 +14,10 @@ The graphical user interface is available under https://github.com/michaelwenk/s
 - Retrieval of previously generated results 
 
 The dereplication is done by searching for hits in NMRShiftDB. 
-PyLSD is used for structure generation. See [Dependencies](#dependencies) section.
+PyLSD is used for structure generation. 
+<!---
+See [Dependencies](#dependencies) section.
+-->
 
 ## Docker and Execution of pre-built Containers
 This project uses Docker containers (https://www.docker.com) and starts them via docker-compose. Make sure that docker-compose is installed.
