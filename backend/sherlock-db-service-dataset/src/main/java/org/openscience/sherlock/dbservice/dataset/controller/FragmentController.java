@@ -8,6 +8,7 @@ import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.similarity.Similarity;
 import casekit.nmr.utils.Utils;
+import casekit.threading.MultiThreading;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.openscience.cdk.exception.CDKException;
@@ -29,6 +30,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 @RestController
@@ -66,7 +70,7 @@ public class FragmentController {
     public List<DataSet> getFragments(final Spectrum querySpectrum, final BitSetFingerprint bitSetFingerprint,
                                       final int bitLength, final double shiftTolerance,
                                       final double maximumAverageDeviation, final String mf,
-                                      final List<List<Integer>> hybridizationList) {
+                                      final List<List<Integer>> hybridizationList, final int nThreads) {
         final BigInteger bigInteger = BitUtilities.buildBits(bitSetFingerprint, bitLength);
         //        final BigInteger flippedBigInteger = BitUtilities.flipBits(bigInteger, bitLength);
         //        final List<String> singleBitStringList = new ArrayList<>();
@@ -78,7 +82,9 @@ public class FragmentController {
         //        }
 
         System.out.println(" -> query bits: "
-                                   + BitUtilities.buildBitsString(bigInteger, bitLength));
+                                   + BitUtilities.buildBitsString(bigInteger, bitLength)
+                                   + "\nwith nThreads: "
+                                   + nThreads);
         //        System.out.println(" -> query flip: "
         //                                   + BitUtilities.buildBitsString(flippedBigInteger, bitLength));
 
@@ -93,17 +99,71 @@ public class FragmentController {
         //        final List<String> subDataSetStringList = this.customFragmentRepositoryImplementation.customFindAllSubDataSetStringsById(
         //                resultIDs);
 
-        final List<String> subDataSetStringList = this.customFragmentRepositoryImplementation.findBySetBits("B'"
-                                                                                                                    + BitUtilities.buildBitsString(
-                bigInteger, bitLength)
-                                                                                                                    + "'");
+        final Map<String, DataSet> fragmentsMap = new ConcurrentHashMap<>();
+        try {
+            final List<Callable<Map<String, DataSet>>> callables = new ArrayList<>();
+            final List<Integer> indices = new ArrayList<>();
+            for (int i = 1; i
+                    <= 50; i++) {
+                indices.add(i);
+            }
+            for (final int i : indices) {
+                callables.add(() -> {
+                    final List<String> subDataSetStringList = this.customFragmentRepositoryImplementation.findBySetBits(
+                            "B'"
+                                    + BitUtilities.buildBitsString(bigInteger, bitLength)
+                                    + "'", "fragment_record_"
+                                    + i);
+
+                    System.out.println("-> for "
+                                               + i
+                                               + " -> subDataSetStringList size: "
+                                               + subDataSetStringList.size());
+
+                    this.fineSearch(fragmentsMap, subDataSetStringList, querySpectrum, shiftTolerance,
+                                    maximumAverageDeviation, hybridizationList, mf);
+
+                    System.out.println(" ---> fine search size: "
+                                               + fragmentsMap.size());
+
+                    return fragmentsMap;
+                });
+            }
+            final Consumer<Map<String, DataSet>> consumer = (fragmentsMapTemp) -> {
+            };
+            MultiThreading.processTasks(callables, consumer, nThreads, 5);
+        } catch (final Exception e) {
+            e.printStackTrace();
+        }
+
+        System.out.println("\n\n --> fragmentsMap: "
+                                   + fragmentsMap.size());
         // ###########################################################
 
+        return fragmentsMap.values()
+                           .stream()
+                           .sorted((dataSet1, dataSet2) -> {
+                               final int atomCountComparison = -1
+                                       * Integer.compare(dataSet1.getStructure()
+                                                                 .atomCount(), dataSet2.getStructure()
+                                                                                       .atomCount());
+                               if (atomCountComparison
+                                       != 0) {
+                                   return atomCountComparison;
+                               }
 
-        System.out.println(" -> subDataSetStringList size: "
-                                   + subDataSetStringList.size());
+                               return Double.compare((Double) dataSet1.getAttachment()
+                                                                      .get("averageDeviation"),
+                                                     (Double) dataSet2.getAttachment()
+                                                                      .get("averageDeviation"));
+                           })
+                           .collect(Collectors.toList());
+    }
 
-        final Map<String, DataSet> fragmentsMap = new HashMap<>();
+    private void fineSearch(final Map<String, DataSet> fragmentsMap, final List<String> subDataSetStringList,
+                            final Spectrum querySpectrum, final double shiftTolerance,
+                            final double maximumAverageDeviation, final List<List<Integer>> hybridizationList,
+                            final String mf) {
         DataSet fragment, fragmentTemp;
         Spectrum spectrum;
         Assignment spectralMatchAssignment;
@@ -144,26 +204,6 @@ public class FragmentController {
                 }
             }
         }
-        System.out.println(" -> fine search size: "
-                                   + fragmentsMap.size());
-        return fragmentsMap.values()
-                           .stream()
-                           .sorted((dataSet1, dataSet2) -> {
-                               final int atomCountComparison = -1
-                                       * Integer.compare(dataSet1.getStructure()
-                                                                 .atomCount(), dataSet2.getStructure()
-                                                                                       .atomCount());
-                               if (atomCountComparison
-                                       != 0) {
-                                   return atomCountComparison;
-                               }
-
-                               return Double.compare((Double) dataSet1.getAttachment()
-                                                                      .get("averageDeviation"),
-                                                     (Double) dataSet2.getAttachment()
-                                                                      .get("averageDeviation"));
-                           })
-                           .collect(Collectors.toList());
     }
 
     @PostMapping(value = "/getBySpectrumAndMfAndSetBits", produces = "application/stream+json")
@@ -202,7 +242,8 @@ public class FragmentController {
                                                        fragmentsDetectionTransfer.getShiftTolerance(),
                                                        fragmentsDetectionTransfer.getMaximumAverageDeviation(),
                                                        fragmentsDetectionTransfer.getMf(),
-                                                       fragmentsDetectionTransfer.getHybridizationList()));
+                                                       fragmentsDetectionTransfer.getHybridizationList(),
+                                                       fragmentsDetectionTransfer.getNThreads()));
         }
 
         return Flux.fromIterable(new ArrayList<>());

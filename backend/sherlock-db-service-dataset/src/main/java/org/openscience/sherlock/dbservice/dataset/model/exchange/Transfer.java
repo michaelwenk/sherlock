@@ -10,9 +10,10 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Transfer {
 
-    final Spectrum querySpectrum;
-    final String mf;
-    final List<List<Integer>> hybridizationList;
-    final double shiftTolerance;
-    final double maximumAverageDeviation;
+    private Spectrum querySpectrum;
+    private String mf;
+    private List<List<Integer>> hybridizationList;
+    private double shiftTolerance;
+    private double maximumAverageDeviation;
+    private int nThreads;
 }

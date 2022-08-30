@@ -72,6 +72,7 @@ public class Transfer {
     private List<List<Integer>> hybridizationList;
     private double shiftTolerance;
     private Double maximumAverageDeviation;
+    private int nThreads;
     // for prediction
     private List<String> smilesList;
     private int maxSphere;

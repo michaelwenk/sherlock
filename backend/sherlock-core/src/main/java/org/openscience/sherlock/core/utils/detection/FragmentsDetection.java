@@ -18,7 +18,7 @@ public class FragmentsDetection {
 
     public static List<DataSet> detect(final WebClient.Builder webClientBuilder, final Spectrum querySpectrum,
                                        final List<Correlation> correlationsList, final String mf, final double shiftTol,
-                                       final double maximumAverageDeviation) {
+                                       final double maximumAverageDeviation, final int nThreads) {
         final List<List<Integer>> hybridizationList = new ArrayList<>();
         for (final Correlation correlation : correlationsList) {
             hybridizationList.add(correlation.getHybridization());
@@ -35,6 +35,7 @@ public class FragmentsDetection {
         queryTransfer.setHybridizationList(hybridizationList);
         queryTransfer.setShiftTolerance(shiftTol);
         queryTransfer.setMaximumAverageDeviation(maximumAverageDeviation);
+        queryTransfer.setNThreads(nThreads);
 
         final List<DataSet> fragmentList = webClient.post()
                                                     .bodyValue(queryTransfer)

@@ -17,6 +17,7 @@ public class Detection {
         final Transfer responseTransfer = new Transfer();
         final int shiftTolHybridization = 2;
         final int shiftTolDetection = 2;
+        final int nThreads = 2;
         final List<Correlation> correlationList = requestTransfer.getCorrelations()
                                                                  .getValues();
         // HYBRIDIZATION
@@ -49,7 +50,8 @@ public class Detection {
                                                                             requestTransfer.getDetectionOptions()
                                                                                            .getShiftToleranceFragmentDetection(),
                                                                             requestTransfer.getDetectionOptions()
-                                                                                           .getMaximumAverageDeviationFragmentDetection())
+                                                                                           .getMaximumAverageDeviationFragmentDetection(),
+                                                                            nThreads)
                                                 : new ArrayList<>();
 
         // HEAVY ATOM STATISTICS

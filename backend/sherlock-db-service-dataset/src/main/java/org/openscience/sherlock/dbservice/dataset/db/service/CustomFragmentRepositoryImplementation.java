@@ -36,4 +36,10 @@ public class CustomFragmentRepositoryImplementation
         return this.entityManager.createNativeQuery(QueryUtilities.buildFindBySingleBitsQuery(setBitsString))
                                  .getResultList();
     }
+
+    @Override
+    public List<String> findBySetBits(final String setBitsString, final String tableName) {
+        return this.entityManager.createNativeQuery(QueryUtilities.buildFindBySingleBitsQuery(setBitsString, tableName))
+                                 .getResultList();
+    }
 }

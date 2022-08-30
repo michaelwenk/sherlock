@@ -86,5 +86,11 @@ public class QueryUtilities {
                 + " = set_bits;";
     }
 
-
+    public static String buildFindBySingleBitsQuery(final String setBitsString, final String tableName) {
+        return "SELECT sub_data_set_string FROM "
+                + tableName
+                + " WHERE set_bits & "
+                + setBitsString
+                + " = set_bits;";
+    }
 }

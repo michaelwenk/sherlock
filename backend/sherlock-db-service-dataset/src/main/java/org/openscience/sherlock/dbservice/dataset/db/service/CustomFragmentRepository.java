@@ -10,4 +10,6 @@ public interface CustomFragmentRepository {
     List<String> findAllSubDataSetStringsById(final Collection<Integer> ids);
 
     List<String> findBySetBits(final String setBitsString);
+
+    List<String> findBySetBits(final String setBitsString, final String tableName);
 }
