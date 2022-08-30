@@ -83,7 +83,7 @@ public class FragmentController {
 
         System.out.println(" -> query bits: "
                                    + BitUtilities.buildBitsString(bigInteger, bitLength)
-                                   + "\nwith nThreads: "
+                                   + " -> with nThreads: "
                                    + nThreads);
         //        System.out.println(" -> query flip: "
         //                                   + BitUtilities.buildBitsString(flippedBigInteger, bitLength));
@@ -107,24 +107,16 @@ public class FragmentController {
                     <= 50; i++) {
                 indices.add(i);
             }
+            final String setBitsString = "B'"
+                    + BitUtilities.buildBitsString(bigInteger, bitLength)
+                    + "'";
             for (final int i : indices) {
                 callables.add(() -> {
                     final List<String> subDataSetStringList = this.customFragmentRepositoryImplementation.findBySetBits(
-                            "B'"
-                                    + BitUtilities.buildBitsString(bigInteger, bitLength)
-                                    + "'", "fragment_record_"
+                            setBitsString, "fragment_record_"
                                     + i);
-
-                    System.out.println("-> for "
-                                               + i
-                                               + " -> subDataSetStringList size: "
-                                               + subDataSetStringList.size());
-
                     this.fineSearch(fragmentsMap, subDataSetStringList, querySpectrum, shiftTolerance,
                                     maximumAverageDeviation, hybridizationList, mf);
-
-                    System.out.println(" ---> fine search size: "
-                                               + fragmentsMap.size());
 
                     return fragmentsMap;
                 });
@@ -136,7 +128,7 @@ public class FragmentController {
             e.printStackTrace();
         }
 
-        System.out.println("\n\n --> fragmentsMap: "
+        System.out.println(" --> fragments: "
                                    + fragmentsMap.size());
         // ###########################################################
 
