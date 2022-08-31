@@ -22,7 +22,7 @@ See [Dependencies](#dependencies) section.
 ## Docker and Execution of pre-built Containers
 This project uses Docker containers (https://www.docker.com) and starts them via docker-compose. Make sure that docker-compose is installed.
 
-NOTE: It is recommended to set the accessible RAM to 10 GB or higher and the number of available CPU cores to two. This can be done easily in the Docker Desktop application, see [here](/public/Docker_settings.png).
+NOTE: It is recommended to set the accessible RAM to 6 GB or higher and the number of available CPU cores to two. This can be done easily in the Docker Desktop application, see [here](/public/Docker_settings.png).
 
 
 ### Download
