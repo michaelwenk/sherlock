@@ -69,6 +69,28 @@ public class CoreController {
         this.elucidationController = elucidationController;
     }
 
+    @GetMapping(value = "/", produces = "application/json")
+    public String root() {
+
+        return "Welcome to the Sherlock backend services!"
+                + "\n\n"
+                + "status: "
+                + "OK"
+                + "\n"
+                + "version: "
+                + "1.1.2"
+                + "\n"
+                + "API documentation: "
+                + "postman_link"
+                + "\n"
+                + "documentation: "
+                + "https://docs.nmrxiv.org/sherlock"
+                + "\n"
+                + "github: "
+                + "https://github.com/michaelwenk/sherlock"
+                + "\n";
+    }
+
     @PostMapping(value = "/core", consumes = "application/json", produces = "application/json")
     public ResponseEntity<Transfer> core(@RequestBody final Transfer requestTransfer) {
         final Transfer responseTransfer = new Transfer();
