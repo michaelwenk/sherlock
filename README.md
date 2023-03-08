@@ -6,15 +6,20 @@
 # Sherlock
 Web services for Computer-Assisted Structure Elucidation (CASE).
 
-The [graphical user interface](https://github.com/michaelwenk/sherlock-frontend) is available as well.
+A [graphical user interface](https://github.com/michaelwenk/sherlock-frontend) and [publication](https://doi.org/10.3390/molecules28031448) are available.
+
+
 
 ## Core  Features
 - Dereplication
 - Elucidation
 - Retrieval of previously generated results 
 
-The dereplication is done by searching for hits in NMRShiftDB. 
-PyLSD is used for structure generation. 
+The dereplication, chemical shift prediction and statistical detection of structural constraints are enabled by using entries from NMRShiftDB and COCONUT containing structural and spectral properties. Spectra in use are both experimental and predicted.  
+
+[casekit](https://github.com/michaelwenk/casekit) serves as computational library within Sherlock.
+
+[PyLSD](https://github.com/nuzillard/PyLSD) is used for structure generation. 
 <!---
 See [Dependencies](#dependencies) section.
 -->
