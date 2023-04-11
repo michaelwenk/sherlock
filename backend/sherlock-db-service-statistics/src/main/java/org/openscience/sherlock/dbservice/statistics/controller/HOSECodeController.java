@@ -7,6 +7,7 @@ import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.InvalidSmilesException;
 import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.layout.StructureDiagramGenerator;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.smiles.SmilesGenerator;
@@ -38,6 +39,8 @@ public class HOSECodeController {
     private final ExchangeStrategies exchangeStrategies;
     private final HOSECodeServiceImplementation hoseCodeServiceImplementation;
     private final HOSECodeRepositoryReactive hoseCodeRepositoryReactive;
+    private final StructureDiagramGenerator structureDiagramGenerator = new StructureDiagramGenerator();
+    private final ExtendedHOSECodeGenerator extendedHOSECodeGenerator = new ExtendedHOSECodeGenerator();
 
     @Autowired
     public HOSECodeController(final WebClient.Builder webClientBuilder, final ExchangeStrategies exchangeStrategies,
@@ -233,8 +236,6 @@ public class HOSECodeController {
             return null;
         }
         final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
-        final StructureDiagramGenerator structureDiagramGenerator = new StructureDiagramGenerator();
-        final ExtendedHOSECodeGenerator extendedHOSECodeGenerator = new ExtendedHOSECodeGenerator();
 
         final Assignment assignment;
         Signal signal;
@@ -248,17 +249,36 @@ public class HOSECodeController {
         List<Double> medians;
 
         try {
+            // store stereo bond information
+            final int[] ordinals = new int[structure.getBondCount()];
+            int k = 0;
+            for (final IBond bond : structure.bonds()) {
+                ordinals[k] = bond.getStereo()
+                                  .ordinal();
+                k++;
+            }
             // set 2D coordinates
-            structureDiagramGenerator.setMolecule(structure);
-            structureDiagramGenerator.generateCoordinates(structure);
+            this.structureDiagramGenerator.setMolecule(structure);
+            this.structureDiagramGenerator.generateCoordinates(structure);
             /* !!! No explicit H in mol !!! */
             Utils.convertExplicitToImplicitHydrogens(structure);
             /* add explicit H atoms */
             AtomUtils.addAndPlaceHydrogens(structure);
             /* detect aromaticity */
             Utils.setAromaticityAndKekulize(structure);
+            // restore stereo bond information
+            k = 0;
+            for (final IBond bond : structure.bonds()) {
+                bond.setStereo(IBond.Stereo.values()[ordinals[k]]);
 
-            final DataSet dataSet = Utils.atomContainerToDataSet(structure, false);
+                k++;
+                if (k
+                        >= ordinals.length) {
+                    break;
+                }
+            }
+
+            final DataSet dataSet = Utils.atomContainerToDataSet(structure);
 
             final Spectrum predictedSpectrum = new Spectrum();
             predictedSpectrum.setNuclei(new String[]{nucleus});
@@ -278,7 +298,7 @@ public class HOSECodeController {
                 sphere = maxSphere;
                 while (sphere
                         >= 1) {
-                    hoseCode = extendedHOSECodeGenerator.getHOSECode(structure, structure.getAtom(i), sphere);
+                    hoseCode = this.extendedHOSECodeGenerator.getHOSECode(structure, structure.getAtom(i), sphere);
                     collection.putIfAbsent(sphere, new HashMap<>());
                     collection.get(sphere)
                               .putIfAbsent(hoseCode, new ArrayList<>());
