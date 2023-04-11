@@ -266,6 +266,8 @@ public class HOSECodeController {
 
             final Map<Integer, List<Integer>> assignmentMap = new HashMap<>();
             final Map<Integer, Double[]> predictionMeta = new HashMap<>();
+            final Map<Integer, Map<String, List<Integer>>> collection = new HashMap<>();
+
             for (int i = 0; i
                     < structure.getAtomCount(); i++) {
                 if (!structure.getAtom(i)
@@ -273,59 +275,86 @@ public class HOSECodeController {
                               .equals(atomType)) {
                     continue;
                 }
-                medians = new ArrayList<>();
                 sphere = maxSphere;
-                count = 0;
-                min = null;
-                max = null;
                 while (sphere
                         >= 1) {
-                    try {
-                        hoseCode = extendedHOSECodeGenerator.getHOSECode(structure, structure.getAtom(i), sphere);
-                        hoseCodeRecordOptional = this.hoseCodeServiceImplementation.findById(hoseCode);
-                        if (hoseCodeRecordOptional.isPresent()) {
-                            hoseCodeRecord = hoseCodeRecordOptional.get();
-                            for (final Map.Entry<String, Double[]> solventEntry : hoseCodeRecord.getStatistics()
-                                                                                                .entrySet()) {
-                                statistics = hoseCodeRecord.getStatistics()
-                                                           .get(solventEntry.getKey());
-                                medians.add(statistics[3]);
-                                count += statistics[0].intValue();
-                                min = min
-                                              == null
-                                      ? statistics[1]
-                                      : Double.min(min, statistics[1]);
-                                max = max
-                                              == null
-                                      ? statistics[4]
-                                      : Double.max(max, statistics[4]);
-                            }
-                            break;
-                        }
-                    } catch (final Exception ignored) {
-                    }
+                    hoseCode = extendedHOSECodeGenerator.getHOSECode(structure, structure.getAtom(i), sphere);
+                    collection.putIfAbsent(sphere, new HashMap<>());
+                    collection.get(sphere)
+                              .putIfAbsent(hoseCode, new ArrayList<>());
+                    collection.get(sphere)
+                              .get(hoseCode)
+                              .add(i);
+
                     sphere--;
                 }
-                if (medians.isEmpty()) {
-                    continue;
+            }
+            final List<Integer> predictedAtomIndices = new ArrayList<>();
+
+            sphere = maxSphere;
+            while (sphere
+                    >= 1
+                    && predictedAtomIndices.size()
+                    < structure.getAtomCount()) {
+                for (final Map.Entry<String, List<Integer>> entryPerHOSECode : collection.get(sphere)
+                                                                                         .entrySet()) {
+                    if (predictedAtomIndices.containsAll(entryPerHOSECode.getValue())) {
+                        continue;
+                    }
+                    medians = new ArrayList<>();
+                    count = 0;
+                    min = null;
+                    max = null;
+                    hoseCode = entryPerHOSECode.getKey();
+                    hoseCodeRecordOptional = this.hoseCodeServiceImplementation.findById(hoseCode);
+                    if (hoseCodeRecordOptional.isPresent()) {
+                        hoseCodeRecord = hoseCodeRecordOptional.get();
+                        for (final Map.Entry<String, Double[]> solventEntry : hoseCodeRecord.getStatistics()
+                                                                                            .entrySet()) {
+                            statistics = hoseCodeRecord.getStatistics()
+                                                       .get(solventEntry.getKey());
+                            medians.add(statistics[3]);
+                            count += statistics[0].intValue();
+                            min = min
+                                          == null
+                                  ? statistics[1]
+                                  : Double.min(min, statistics[1]);
+                            max = max
+                                          == null
+                                  ? statistics[4]
+                                  : Double.max(max, statistics[4]);
+                        }
+                    }
+                    if (medians.isEmpty()) {
+                        continue;
+                    }
+                    predictedShift = Statistics.getMean(medians);
+
+                    // insert signals
+                    for (final int atomIndex : entryPerHOSECode.getValue()) {
+                        if (predictedAtomIndices.contains(atomIndex)) {
+                            continue;
+                        }
+                        signal = new Signal();
+                        signal.setNuclei(new String[]{nucleus});
+                        signal.setShifts(new Double[]{predictedShift});
+                        signal.setMultiplicity(Utils.getMultiplicityFromProtonsCount(
+                                AtomUtils.getHcount(structure, structure.getAtom(atomIndex)))); // counts explicit H
+                        signal.setEquivalencesCount(1);
+
+                        signalIndex = predictedSpectrum.addSignal(signal);
+
+                        assignmentMap.putIfAbsent(signalIndex, new ArrayList<>());
+                        assignmentMap.get(signalIndex)
+                                     .add(atomIndex);
+
+                        if (!predictionMeta.containsKey(signalIndex)) {
+                            predictionMeta.put(signalIndex, new Double[]{(double) sphere, (double) count, min, max});
+                        }
+                        predictedAtomIndices.add(atomIndex);
+                    }
                 }
-                predictedShift = Statistics.getMean(medians);
-                signal = new Signal();
-                signal.setNuclei(new String[]{nucleus});
-                signal.setShifts(new Double[]{predictedShift});
-                signal.setMultiplicity(Utils.getMultiplicityFromProtonsCount(
-                        AtomUtils.getHcount(structure, structure.getAtom(i)))); // counts explicit H
-                signal.setEquivalencesCount(1);
-
-                signalIndex = predictedSpectrum.addSignal(signal);
-
-                assignmentMap.putIfAbsent(signalIndex, new ArrayList<>());
-                assignmentMap.get(signalIndex)
-                             .add(i);
-
-                if (!predictionMeta.containsKey(signalIndex)) {
-                    predictionMeta.put(signalIndex, new Double[]{(double) sphere, (double) count, min, max});
-                }
+                sphere--;
             }
 
             Utils.convertExplicitToImplicitHydrogens(structure);
