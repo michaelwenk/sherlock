@@ -7,7 +7,6 @@ import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
 import org.openscience.cdk.exception.InvalidSmilesException;
 import org.openscience.cdk.interfaces.IAtomContainer;
-import org.openscience.cdk.interfaces.IBond;
 import org.openscience.cdk.layout.StructureDiagramGenerator;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
 import org.openscience.cdk.smiles.SmilesGenerator;
@@ -249,34 +248,8 @@ public class HOSECodeController {
         List<Double> medians;
 
         try {
-            // store stereo bond information
-            final int[] ordinals = new int[structure.getBondCount()];
-            int k = 0;
-            for (final IBond bond : structure.bonds()) {
-                ordinals[k] = bond.getStereo()
-                                  .ordinal();
-                k++;
-            }
-            // set 2D coordinates
-            this.structureDiagramGenerator.setMolecule(structure);
-            this.structureDiagramGenerator.generateCoordinates(structure);
-            /* !!! No explicit H in mol !!! */
-            Utils.convertExplicitToImplicitHydrogens(structure);
-            /* add explicit H atoms */
-            AtomUtils.addAndPlaceHydrogens(structure);
-            /* detect aromaticity */
+            Utils.placeExplicitHydrogens(structure);
             Utils.setAromaticityAndKekulize(structure);
-            // restore stereo bond information
-            k = 0;
-            for (final IBond bond : structure.bonds()) {
-                bond.setStereo(IBond.Stereo.values()[ordinals[k]]);
-
-                k++;
-                if (k
-                        >= ordinals.length) {
-                    break;
-                }
-            }
 
             final DataSet dataSet = Utils.atomContainerToDataSet(structure);
 
