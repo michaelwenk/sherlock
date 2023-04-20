@@ -279,23 +279,24 @@ public class HOSECodeController {
                                            .getSmilesList()) {
             dataSetListTemp = new ArrayList<>();
             dataSetListTemp.add(this.predict(this.decode(smiles), nucleus, transfer.getPredictionOptions()
-                                                                                   .getMaxSphere()));
+                                                                                   .getMaxSphere(), false));
             final List<DataSet> resultDataSetList = this.filter(transfer, dataSetListTemp);
-            if (!resultDataSetList.isEmpty()) {
-                if (transfer.getPredictionOptions()
-                            .isPredictWithStereo()) {
-                    final List<DataSet> dataSetListToIterate = new ArrayList<>(resultDataSetList);
-                    for (final DataSet dataSet : dataSetListToIterate) {
-                        dataSetListTemp = this.predictWithStereo(dataSet.getMeta()
-                                                                        .get("smiles"), nucleus,
-                                                                 transfer.getPredictionOptions()
-                                                                         .getMaxSphere());
-                        dataSetList.addAll(this.filter(transfer, dataSetListTemp));
-                    }
-                } else {
-                    dataSetList.addAll(resultDataSetList);
-                }
-            }
+            //            if (!resultDataSetList.isEmpty()) {
+            //                if (transfer.getPredictionOptions()
+            //                            .isPredictWithStereo()) {
+            //                    final List<DataSet> dataSetListToIterate = new ArrayList<>(resultDataSetList);
+            //                    for (final DataSet dataSet : dataSetListToIterate) {
+            //                        dataSetListTemp = this.predictWithStereo(dataSet.getMeta()
+            //                                                                        .get("smiles"), nucleus,
+            //                                                                 transfer.getPredictionOptions()
+            //                                                                         .getMaxSphere());
+            //                        dataSetList.addAll(this.filter(transfer, dataSetListTemp));
+            //                    }
+            //                } else {
+            //                    dataSetList.addAll(resultDataSetList);
+            //                }
+            //            }
+            dataSetList.addAll(resultDataSetList);
         }
 
         return Flux.fromIterable(dataSetList);
@@ -329,7 +330,19 @@ public class HOSECodeController {
         return dataSetListFiltered;
     }
 
-    @GetMapping(value = "/predict")
+
+    @PostMapping(value = "/predictAndFilterWithStereo")
+    public Flux<DataSet> predictAndFilterWithStereo(@RequestBody final Transfer transfer) {
+        final String nucleus = transfer.getQuerySpectrum()
+                                       .getNuclei()[0];
+        final List<DataSet> dataSetListTemp = this.predictWithStereo(transfer.getSmiles(), nucleus,
+                                                                     transfer.getPredictionOptions()
+                                                                             .getMaxSphere());
+
+        return Flux.fromIterable(this.filter(transfer, dataSetListTemp));
+    }
+
+    @GetMapping(value = "/predictWithStereo")
     public List<DataSet> predictWithStereo(@RequestParam final String smiles, @RequestParam final String nucleus,
                                            @RequestParam final int maxSphere) {
 
@@ -345,7 +358,7 @@ public class HOSECodeController {
             final String line = "python3 /scripts/createStereoisomers.py \""
                     + requestID
                     + "\" \""
-                    + smiles
+                    + this.decode(smiles)
                     + "\" \""
                     + tempFileName
                     + "\"";
@@ -372,7 +385,7 @@ public class HOSECodeController {
         final List<DataSet> dataSetList = new ArrayList<>();
         DataSet dataSet;
         for (final IAtomContainer structure : structureList) {
-            dataSet = this.predict(structure, nucleus, maxSphere);
+            dataSet = this.predict(structure, nucleus, maxSphere, true);
             if (dataSet
                     != null) {
                 dataSetList.add(dataSet);
@@ -382,13 +395,16 @@ public class HOSECodeController {
         return dataSetList;
     }
 
-    private DataSet predict(final String smiles, final String nucleus, final int maxSphere) {
+    @GetMapping(value = "/predict")
+    private DataSet predict(@RequestParam final String smiles, @RequestParam final String nucleus,
+                            @RequestParam final int maxSphere, @RequestParam final boolean withStereo) {
+        final String decodedSmiles = this.decode(smiles);
         try {
             final IAtomContainer structure = new SmilesParser(SilentChemObjectBuilder.getInstance()).parseSmiles(
-                    smiles);
-            structure.setProperty("smiles", smiles);
+                    decodedSmiles);
+            structure.setProperty("smiles", decodedSmiles);
 
-            return this.predict(structure, nucleus, maxSphere);
+            return this.predict(structure, nucleus, maxSphere, withStereo);
         } catch (final InvalidSmilesException e) {
             e.printStackTrace();
         }
@@ -396,7 +412,8 @@ public class HOSECodeController {
         return null;
     }
 
-    private DataSet predict(final IAtomContainer structure, final String nucleus, final int maxSphere) {
+    private DataSet predict(final IAtomContainer structure, final String nucleus, final int maxSphere,
+                            final boolean withStereo) {
         final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
         final Assignment assignment;
         String hoseCode;
@@ -447,7 +464,7 @@ public class HOSECodeController {
             }
             final List<Integer> predictedAtomIndices = new ArrayList<>();
             this.assignToAtoms(predictedSpectrum, assignmentMap, predictionMeta, collection, predictedAtomIndices,
-                               structure, nucleus, maxSphere);
+                               structure, nucleus, maxSphere, withStereo);
 
             Utils.convertExplicitToImplicitHydrogens(structure);
 
@@ -479,7 +496,7 @@ public class HOSECodeController {
                                final Map<Integer, Double[]> predictionMeta,
                                final Map<Integer, Map<String, List<Integer>>> collection,
                                final List<Integer> predictedAtomIndices, final IAtomContainer structure,
-                               final String nucleus, final Integer maxSphere) {
+                               final String nucleus, final Integer maxSphere, final boolean withStereo) {
         Signal signal;
         Optional<HOSECodeRecord> hoseCodeRecordOptional;
         HOSECodeRecord hoseCodeRecord;
@@ -548,7 +565,10 @@ public class HOSECodeController {
                                  .add(atomIndex);
 
                     if (!predictionMeta.containsKey(signalIndex)) {
-                        predictionMeta.put(signalIndex, new Double[]{(double) sphere, (double) count, min, max});
+                        predictionMeta.put(signalIndex, new Double[]{(double) sphere, (double) count, min, max,
+                                                                     withStereo
+                                                                     ? 1.0
+                                                                     : 0.0});
                     }
                     predictedAtomIndices.add(atomIndex);
                 }

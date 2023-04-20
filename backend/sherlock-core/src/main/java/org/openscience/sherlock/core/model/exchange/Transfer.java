@@ -74,4 +74,6 @@ public class Transfer {
     private double shiftTolerance;
     private Double maximumAverageDeviation;
     private int nThreads;
+    // for stereo prediction
+    private String smiles;
 }

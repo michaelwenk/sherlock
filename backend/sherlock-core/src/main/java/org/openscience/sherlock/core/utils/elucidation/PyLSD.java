@@ -117,12 +117,13 @@ public class PyLSD {
                                                                             .getTimeLimitTotal(), TimeUnit.MINUTES);
                     if (pyLSDRunWasSuccessful) {
                         System.out.println("\n\n--> run was successful");
-                        System.out.println("\n\n--> parse and predict ("
-                                                   + (responseTransfer.getPredictionOptions()
-                                                                      .isPredictWithStereo()
-                                                      ? "stereo activated"
-                                                      : "stereo not activated")
-                                                   + ") ...");
+                        //                        System.out.println("\n\n--> parse and predict ("
+                        //                                                   + (responseTransfer.getPredictionOptions()
+                        //                                                                      .isPredictWithStereo()
+                        //                                                      ? "stereo activated"
+                        //                                                      : "stereo not activated")
+                        //                                                   + ") ...");
+                        System.out.println("\n\n--> parse and predict ...");
                         final String pathToSmilesFile = pathToPyLSDResultFileFolder
                                 + requestID
                                 + "_0.smiles";

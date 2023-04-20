@@ -17,7 +17,9 @@ public class Transfer {
 
     private Spectrum querySpectrum;
     private Detections detections;
+    // for stereo prediction
     private PredictionOptions predictionOptions;
+    private String smiles;
     // after prediction
     private List<DataSet> dataSetList;
 }

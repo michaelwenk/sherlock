@@ -39,6 +39,22 @@ public class Utilities {
                         .bodyToFlux(DataSet.class);
     }
 
+    public static Flux<DataSet> getStereoPredictedDataSetFlux(final Transfer transfer,
+                                                              final WebClient.Builder webClientBuilder,
+                                                              final ExchangeStrategies exchangeStrategies) {
+        final WebClient webClient = webClientBuilder.baseUrl(
+                                                            "http://sherlock-gateway:8080/sherlock-db-service-statistics/hosecode/predictAndFilterWithStereo")
+                                                    .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                   MediaType.APPLICATION_JSON_VALUE)
+                                                    .exchangeStrategies(exchangeStrategies)
+                                                    .build();
+
+        return webClient.post()
+                        .bodyValue(transfer)
+                        .retrieve()
+                        .bodyToFlux(DataSet.class);
+    }
+
     public static Mono<Map<String, int[]>> getMultiplicitySectionsSettings(final WebClient.Builder webClientBuilder,
                                                                            final ExchangeStrategies exchangeStrategies) {
         final WebClient webClient = webClientBuilder.baseUrl(
@@ -87,7 +103,7 @@ public class Utilities {
                         .bodyToFlux(DataSetRecord.class);
     }
 
-    public static DataSet addMolFileToDataSet(final DataSet dataSet) throws CDKException {
+    public static void addMolFileToDataSet(final DataSet dataSet) throws CDKException {
         // store as MOL file
         final MDLV3000Writer mdlv3000Writer = new MDLV3000Writer();
         final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
@@ -95,15 +111,11 @@ public class Utilities {
         mdlv3000Writer.write(dataSet.getStructure()
                                     .toAtomContainer());
         dataSet.addMetaInfo("molfile", byteArrayOutputStream.toString());
-
-        return dataSet;
     }
 
-    public static List<DataSet> addMolFileToDataSets(final List<DataSet> dataSetList) throws CDKException {
+    public static void addMolFileToDataSets(final List<DataSet> dataSetList) throws CDKException {
         for (final DataSet dataSet : dataSetList) {
             addMolFileToDataSet(dataSet);
         }
-
-        return dataSetList;
     }
 }

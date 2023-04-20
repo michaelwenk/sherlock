@@ -11,8 +11,9 @@ m = Chem.MolFromSmiles(smiles)
 opts = StereoEnumerationOptions(unique=True)
 isomers = tuple(EnumerateStereoisomers(m, options=opts))
 
-inputSmilesWithStereo = Chem.MolToSmiles(m)
-stereoSmiles = [inputSmilesWithStereo]
+# inputSmilesWithStereo = Chem.MolToSmiles(m)
+# stereoSmiles = [inputSmilesWithStereo]
+stereoSmiles = []
 for smi in sorted(Chem.MolToSmiles(x, isomericSmiles=True) for x in isomers):
 	stereoSmiles.append(smi)
 

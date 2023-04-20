@@ -32,6 +32,7 @@ import casekit.nmr.model.nmrium.Correlations;
 import casekit.nmr.utils.Utils;
 import org.bson.types.ObjectId;
 import org.openscience.cdk.exception.CDKException;
+import org.openscience.cdk.smiles.SmilesGenerator;
 import org.openscience.sherlock.core.model.db.ResultRecord;
 import org.openscience.sherlock.core.model.exchange.Transfer;
 import org.openscience.sherlock.core.utils.Utilities;
@@ -246,8 +247,11 @@ public class CoreController {
                                .setDetectionOptions(elucidationResultTransfer.getDetectionOptions());
                 requestTransfer.getResultRecord()
                                .setGrouping(elucidationResultTransfer.getGrouping());
+                requestTransfer.getResultRecord()
+                               .setPredictionOptions(requestTransfer.getResultRecord()
+                                                                    .getPredictionOptions());
 
-                transferResponseEntity = this.rankAndStore(requestTransfer.getResultRecord());
+                transferResponseEntity = this.rankAndStore(requestTransfer);
                 if (transferResponseEntity.getStatusCode()
                                           .isError()) {
                     System.out.println("ELUCIDATION -> configuration and storage request failed: "
@@ -316,14 +320,76 @@ public class CoreController {
         return PyLSD.cancel(false);
     }
 
-    private ResponseEntity<Transfer> rankAndStore(final ResultRecord resultRecord) {
+    private ResponseEntity<Transfer> rankAndStore(final Transfer requestTransfer) {
+        final ResultRecord resultRecord = requestTransfer.getResultRecord();
         final Transfer responseTransfer = new Transfer();
         try {
-            Utilities.addMolFileToDataSets(resultRecord.getDataSetList());
             // store results in DB if not empty and replace resultRecord in responseTransfer
             if (!resultRecord.getDataSetList()
                              .isEmpty()) {
                 FilterAndRank.rank(resultRecord.getDataSetList());
+
+                for (final DataSet dataSet : resultRecord.getDataSetList()) {
+                    dataSet.addMetaInfo("withStereo", "false");
+                }
+
+                if (resultRecord.getPredictionOptions()
+                                .isPredictWithStereo()) {
+                    int limit = resultRecord.getPredictionOptions()
+                                            .getStereoPredictionLimit();
+                    if (limit
+                            > resultRecord.getDataSetList()
+                                          .size()) {
+                        limit = resultRecord.getDataSetList()
+                                            .size();
+                    }
+                    System.out.println(" -> prediction with stereo for the first "
+                                               + limit
+                                               + " candidates");
+                    final List<DataSet> dataSetSubList = new ArrayList<>();
+                    for (int i = 0; i
+                            < limit; i++) {
+                        dataSetSubList.add(resultRecord.getDataSetList()
+                                                       .get(i));
+                    }
+                    for (final DataSet dataSet : dataSetSubList) {
+                        final String smiles = dataSet.getMeta()
+                                                     .containsKey("smiles")
+                                              ? dataSet.getMeta()
+                                                       .get("smiles")
+                                              : SmilesGenerator.unique()
+                                                               .create(dataSet.getStructure()
+                                                                              .toAtomContainer());
+                        System.out.println(" -> generated isomers and predict for \""
+                                                   + smiles
+                                                   + "\" ...");
+                        requestTransfer.setSmiles(smiles);
+                        requestTransfer.setQuerySpectrum(resultRecord.getQuerySpectrum()
+                                                                     .toSpectrum());
+                        requestTransfer.setPredictionOptions(resultRecord.getPredictionOptions());
+                        final List<DataSet> stereoPredictionDataSetList = Utilities.getStereoPredictedDataSetFlux(
+                                                                                           requestTransfer, this.webClientBuilder, this.exchangeStrategies)
+                                                                                   .collectList()
+                                                                                   .block();
+                        if (stereoPredictionDataSetList
+                                != null) {
+                            for (final DataSet stereoPredictionDataSet : stereoPredictionDataSetList) {
+                                stereoPredictionDataSet.addMetaInfo("withStereo", "true");
+                            }
+                            resultRecord.getDataSetList()
+                                        .addAll(stereoPredictionDataSetList);
+                            System.out.println(" --> added "
+                                                       + stereoPredictionDataSetList.size()
+                                                       + " candidates with stereo for \""
+                                                       + dataSet.getMeta()
+                                                                .get("smiles")
+                                                       + "\"");
+                        }
+                    }
+                }
+                FilterAndRank.rank(resultRecord.getDataSetList());
+
+                Utilities.addMolFileToDataSets(resultRecord.getDataSetList());
 
                 resultRecord.setDate(LocalDateTime.now(ZoneId.of("UTC"))
                                                   .toString());

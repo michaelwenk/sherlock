@@ -11,7 +11,7 @@ import java.util.List;
 @Setter
 @ToString
 public class PredictionOptions {
-    
+
     private List<String> smilesList;
     private int maxSphere;
     private boolean checkMultiplicity;
@@ -21,4 +21,5 @@ public class PredictionOptions {
     private double shiftTolerance;
     private double maximumAverageDeviation;
     private boolean predictWithStereo;
+    private int stereoPredictionLimit;
 }
