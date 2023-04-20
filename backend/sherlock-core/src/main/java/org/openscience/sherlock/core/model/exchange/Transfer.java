@@ -24,7 +24,6 @@
 
 package org.openscience.sherlock.core.model.exchange;
 
-import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.elucidation.model.Detections;
 import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.model.DataSet;
@@ -35,6 +34,7 @@ import lombok.*;
 import org.openscience.sherlock.core.model.DereplicationOptions;
 import org.openscience.sherlock.core.model.DetectionOptions;
 import org.openscience.sherlock.core.model.ElucidationOptions;
+import org.openscience.sherlock.core.model.PredictionOptions;
 import org.openscience.sherlock.core.model.db.ResultRecord;
 
 import java.util.List;
@@ -63,6 +63,7 @@ public class Transfer {
     private Boolean detected;
     private Detections detections;
     private DetectionOptions detectionOptions;
+    private PredictionOptions predictionOptions;
     private Grouping grouping;
     // error message
     private String errorMessage;
@@ -73,11 +74,4 @@ public class Transfer {
     private double shiftTolerance;
     private Double maximumAverageDeviation;
     private int nThreads;
-    // for prediction
-    private List<String> smilesList;
-    private int maxSphere;
-    private boolean checkMultiplicity;
-    private boolean checkEquivalencesCount;
-    private boolean allowLowerEquivalencesCount;
-    private MultiplicitySectionsBuilder multiplicitySectionsBuilder;
 }

@@ -219,6 +219,8 @@ public class CoreController {
                                                          .getGrouping());
                 queryTransfer.setRequestID(requestID);
                 queryTransfer.setMf(mf);
+                queryTransfer.setPredictionOptions(requestTransfer.getResultRecord()
+                                                                  .getPredictionOptions());
 
                 ResponseEntity<Transfer> transferResponseEntity = this.elucidationController.elucidate(queryTransfer);
                 if (transferResponseEntity.getStatusCode()

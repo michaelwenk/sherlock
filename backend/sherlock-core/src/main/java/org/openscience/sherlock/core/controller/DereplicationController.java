@@ -42,7 +42,9 @@ import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 import reactor.core.publisher.Mono;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -108,22 +110,23 @@ public class DereplicationController {
                                                                               .isCheckEquivalencesCount(),
                                                               this.multiplicitySectionsBuilder, false);
                     // unique the dereplication result
-                    final List<DataSet> uniqueDataSetList = new ArrayList<>();
-                    final Set<String> uniqueDataSetBySourceAndID = new HashSet<>();
-                    String id, source, sourceAndIDKey;
-                    for (final DataSet dataSet : dataSetList) {
-                        source = dataSet.getMeta()
-                                        .get("source");
-                        id = dataSet.getMeta()
-                                    .get("id");
-                        sourceAndIDKey = source
-                                + "_"
-                                + id;
-                        if (!uniqueDataSetBySourceAndID.contains(sourceAndIDKey)) {
-                            uniqueDataSetBySourceAndID.add(sourceAndIDKey);
-                            uniqueDataSetList.add(dataSet);
-                        }
-                    }
+                    final List<DataSet> uniqueDataSetList = new ArrayList<>(dataSetList);
+                    //                    final List<DataSet> uniqueDataSetList = new ArrayList<>();
+                    //                    final Set<String> uniqueSet = new HashSet<>();
+                    //                    String source, id, key;
+                    //                    for (final DataSet dataSet : dataSetList) {
+                    //                        source = dataSet.getMeta()
+                    //                                        .get("source");
+                    //                        id = dataSet.getMeta()
+                    //                                    .get("id");
+                    //                        key = source
+                    //                                + "_"
+                    //                                + id;
+                    //                        if (!uniqueSet.contains(key)) {
+                    //                            uniqueSet.add(key);
+                    //                            uniqueDataSetList.add(dataSet);
+                    //                        }
+                    //                    }
                     Utilities.addMolFileToDataSets(uniqueDataSetList);
 
                     responseTransfer.setDataSetList(uniqueDataSetList);

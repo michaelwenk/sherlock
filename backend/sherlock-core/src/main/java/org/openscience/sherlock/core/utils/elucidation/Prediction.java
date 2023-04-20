@@ -7,7 +7,7 @@ import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.nmrium.Correlations;
 import casekit.nmr.utils.Parser;
 import casekit.nmr.utils.Utils;
-import org.openscience.sherlock.core.model.ElucidationOptions;
+import org.openscience.sherlock.core.model.PredictionOptions;
 import org.openscience.sherlock.core.model.exchange.Transfer;
 import org.openscience.sherlock.core.utils.Utilities;
 import org.springframework.http.HttpStatus;
@@ -24,7 +24,7 @@ import java.util.Objects;
 public class Prediction {
 
     public static ResponseEntity<Transfer> parseAndPredictFromSmilesFile(final Correlations correlations,
-                                                                         final ElucidationOptions elucidationOptions,
+                                                                         final PredictionOptions predictionOptions,
                                                                          final Detections detections,
                                                                          final String pathToSmilesFile,
                                                                          final WebClient.Builder webClientBuilder,
@@ -35,7 +35,7 @@ public class Prediction {
             //            System.out.println("-----> requestSMILES: "
             //                                       + smilesList.size());
             try {
-                final List<DataSet> dataSetList = predictAndFilter(correlations, smilesList, elucidationOptions,
+                final List<DataSet> dataSetList = predictAndFilter(correlations, smilesList, predictionOptions,
                                                                    detections, webClientBuilder, exchangeStrategies);
                 responseTransfer.setDataSetList(dataSetList);
             } catch (final Exception e) {
@@ -54,9 +54,8 @@ public class Prediction {
     public static List<DataSet> predictAndFilter(final Correlations correlations,
                                                  //                                                 List<IAtomContainer> structureList,
                                                  final List<String> smilesList,
-                                                 final ElucidationOptions elucidationOptions,
-                                                 final Detections detections,
-            //                                                 final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
+                                                 final PredictionOptions predictionOptions, final Detections detections,
+                                                 //                                                 final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
                                                  final WebClient.Builder webClientBuilder,
                                                  final ExchangeStrategies exchangeStrategies) {
         // @TODO method modifications for different nuclei and solvent needed
@@ -68,19 +67,25 @@ public class Prediction {
                          .block());
         final Transfer queryTransfer = new Transfer();
         queryTransfer.setQuerySpectrum(querySpectrum);
-        queryTransfer.setShiftTolerance(elucidationOptions.getShiftTolerance());
-        queryTransfer.setMaximumAverageDeviation(elucidationOptions.getMaximumAverageDeviation());
-        queryTransfer.setCheckMultiplicity(true);
-        queryTransfer.setCheckEquivalencesCount(true);
-        queryTransfer.setAllowLowerEquivalencesCount(false);
+        queryTransfer.setPredictionOptions(predictionOptions);
+        queryTransfer.getPredictionOptions()
+                     .setCheckMultiplicity(true);
+        queryTransfer.getPredictionOptions()
+                     .setCheckEquivalencesCount(true);
+        queryTransfer.getPredictionOptions()
+                     .setAllowLowerEquivalencesCount(false);
+
         final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
         multiplicitySectionsBuilder.setMinLimit(multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[0]);
         multiplicitySectionsBuilder.setMaxLimit(multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[1]);
         multiplicitySectionsBuilder.setStepSize(multiplicitySectionsSettings.get(querySpectrum.getNuclei()[0])[2]);
-        queryTransfer.setMultiplicitySectionsBuilder(multiplicitySectionsBuilder);
+        queryTransfer.getPredictionOptions()
+                     .setMultiplicitySectionsBuilder(multiplicitySectionsBuilder);
         queryTransfer.setDetections(detections);
-        queryTransfer.setSmilesList(smilesList);
-        queryTransfer.setMaxSphere(maxSphere);
+        queryTransfer.getPredictionOptions()
+                     .setSmilesList(smilesList);
+        queryTransfer.getPredictionOptions()
+                     .setMaxSphere(maxSphere);
 
         return Utilities.getPredictedDataSetFlux(queryTransfer, webClientBuilder, exchangeStrategies)
                         .collectList()

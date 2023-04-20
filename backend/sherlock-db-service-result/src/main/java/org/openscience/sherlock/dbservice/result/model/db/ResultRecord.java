@@ -32,6 +32,7 @@ import casekit.nmr.model.nmrium.Correlations;
 import lombok.*;
 import org.openscience.sherlock.dbservice.result.model.DetectionOptions;
 import org.openscience.sherlock.dbservice.result.model.ElucidationOptions;
+import org.openscience.sherlock.dbservice.result.model.PredictionOptions;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
@@ -59,5 +60,6 @@ public class ResultRecord {
     private Grouping grouping;
     private DetectionOptions detectionOptions;
     private ElucidationOptions elucidationOptions;
+    private PredictionOptions predictionOptions;
     private SpectrumCompact querySpectrum;
 }

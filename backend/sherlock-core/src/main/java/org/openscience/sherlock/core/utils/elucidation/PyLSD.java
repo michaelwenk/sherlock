@@ -64,6 +64,7 @@ public class PyLSD {
         responseTransfer.setDetected(queryResultTransfer.getDetected());
         responseTransfer.setGrouping(queryResultTransfer.getGrouping());
         responseTransfer.setDetectionOptions(queryResultTransfer.getDetectionOptions());
+        responseTransfer.setPredictionOptions(queryResultTransfer.getPredictionOptions());
 
 
         System.out.println("\n ---> file content list size to process: "
@@ -116,12 +117,18 @@ public class PyLSD {
                                                                             .getTimeLimitTotal(), TimeUnit.MINUTES);
                     if (pyLSDRunWasSuccessful) {
                         System.out.println("\n\n--> run was successful");
+                        System.out.println("\n\n--> parse and predict ("
+                                                   + (responseTransfer.getPredictionOptions()
+                                                                      .isPredictWithStereo()
+                                                      ? "stereo activated"
+                                                      : "stereo not activated")
+                                                   + ") ...");
                         final String pathToSmilesFile = pathToPyLSDResultFileFolder
                                 + requestID
                                 + "_0.smiles";
 
                         transferResponseEntity = Prediction.parseAndPredictFromSmilesFile(
-                                responseTransfer.getCorrelations(), responseTransfer.getElucidationOptions(),
+                                responseTransfer.getCorrelations(), responseTransfer.getPredictionOptions(),
                                 responseTransfer.getDetections(),
                                 //                                hoseCodeDBEntriesMap,
                                 pathToSmilesFile, webClientBuilder, exchangeStrategies);

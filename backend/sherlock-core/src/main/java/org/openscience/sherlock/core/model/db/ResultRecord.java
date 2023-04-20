@@ -32,6 +32,7 @@ import casekit.nmr.model.nmrium.Correlations;
 import lombok.Data;
 import org.openscience.sherlock.core.model.DetectionOptions;
 import org.openscience.sherlock.core.model.ElucidationOptions;
+import org.openscience.sherlock.core.model.PredictionOptions;
 
 import java.util.List;
 
@@ -49,6 +50,7 @@ public class ResultRecord {
     private Detections detections;
     private DetectionOptions detectionOptions;
     private ElucidationOptions elucidationOptions;
+    private PredictionOptions predictionOptions;
     private Grouping grouping;
     private SpectrumCompact querySpectrum;
 }
