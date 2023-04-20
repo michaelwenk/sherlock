@@ -21,4 +21,5 @@ public class PredictionOptions {
     private double shiftTolerance;
     private double maximumAverageDeviation;
     private boolean predictWithStereo;
+    private int stereoPredictionLimit;
 }
