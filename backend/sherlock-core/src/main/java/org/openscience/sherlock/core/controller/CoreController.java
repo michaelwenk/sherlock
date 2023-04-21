@@ -384,12 +384,15 @@ public class CoreController {
                                                        + dataSet.getMeta()
                                                                 .get("smiles")
                                                        + "\"");
+                            // remove original dataset to avoid duplicates
+                            resultRecord.getDataSetList()
+                                        .remove(dataSet);
                         }
                     }
                 }
                 FilterAndRank.rank(resultRecord.getDataSetList());
 
-                Utilities.addMolFileToDataSets(resultRecord.getDataSetList());
+                //                Utilities.addMolFileToDataSets(resultRecord.getDataSetList());
 
                 resultRecord.setDate(LocalDateTime.now(ZoneId.of("UTC"))
                                                   .toString());

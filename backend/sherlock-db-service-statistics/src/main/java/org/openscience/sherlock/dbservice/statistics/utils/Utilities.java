@@ -1,5 +1,8 @@
 package org.openscience.sherlock.dbservice.statistics.utils;
 
+import org.openscience.cdk.exception.CDKException;
+import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.cdk.io.MDLV3000Writer;
 import org.openscience.sherlock.dbservice.statistics.service.model.DataSetRecord;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -8,6 +11,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.util.UriComponentsBuilder;
 import reactor.core.publisher.Flux;
 
+import java.io.ByteArrayOutputStream;
 import java.util.Arrays;
 
 public class Utilities {
@@ -47,5 +51,14 @@ public class Utilities {
                         .uri(uriComponentsBuilder.toUriString())
                         .retrieve()
                         .bodyToFlux(DataSetRecord.class);
+    }
+
+    public static String createMolFileContent(final IAtomContainer structure) throws CDKException {
+        final MDLV3000Writer mdlv3000Writer = new MDLV3000Writer();
+        final ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+        mdlv3000Writer.setWriter(byteArrayOutputStream);
+        mdlv3000Writer.write(structure);
+
+        return byteArrayOutputStream.toString();
     }
 }

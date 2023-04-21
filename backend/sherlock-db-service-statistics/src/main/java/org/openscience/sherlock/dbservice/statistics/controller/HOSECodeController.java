@@ -335,11 +335,11 @@ public class HOSECodeController {
     public Flux<DataSet> predictAndFilterWithStereo(@RequestBody final Transfer transfer) {
         final String nucleus = transfer.getQuerySpectrum()
                                        .getNuclei()[0];
-        final List<DataSet> dataSetListTemp = this.predictWithStereo(transfer.getSmiles(), nucleus,
-                                                                     transfer.getPredictionOptions()
-                                                                             .getMaxSphere());
+        final List<DataSet> dataSetList = this.predictWithStereo(transfer.getSmiles(), nucleus,
+                                                                 transfer.getPredictionOptions()
+                                                                         .getMaxSphere());
 
-        return Flux.fromIterable(this.filter(transfer, dataSetListTemp));
+        return Flux.fromIterable(this.filter(transfer, dataSetList));
     }
 
     @GetMapping(value = "/predictWithStereo")
@@ -420,6 +420,8 @@ public class HOSECodeController {
         int sphere;
 
         try {
+            final String molfile = Utilities.createMolFileContent(structure);
+
             Utils.placeExplicitHydrogens(structure);
             Utils.setAromaticityAndKekulize(structure);
 
@@ -428,6 +430,7 @@ public class HOSECodeController {
             meta.put("mfOriginal", mf);
             meta.put("mf", Utils.buildAlphabeticMF(mf));
             meta.put("smiles", structure.getProperty("smiles"));
+            meta.put("molfile", molfile);
 
             final DataSet dataSet = new DataSet();
             dataSet.setMeta(meta);
