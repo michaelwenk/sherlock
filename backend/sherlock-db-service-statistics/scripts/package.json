@@ -1,0 +1,17 @@
+{
+  "name": "Build Diastereotopics",
+  "version": "1.0.0",
+  "description": "",
+  "main": "buildDiastereotopics.js",
+  "scripts": {
+    "start": "node buildDiastereotopics.js"
+  },
+  "author": "Michael Wenk",
+  "license": "MIT",
+  "dependencies": {
+    "openchemlib": "^8.3.0"
+  },
+   "volta": {
+    "node": "18.16.0"
+  }
+}

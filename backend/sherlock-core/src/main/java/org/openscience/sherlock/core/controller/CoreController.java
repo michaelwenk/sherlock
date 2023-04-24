@@ -384,9 +384,9 @@ public class CoreController {
                                                        + dataSet.getMeta()
                                                                 .get("smiles")
                                                        + "\"");
-                            // remove original dataset to avoid duplicates
-                            resultRecord.getDataSetList()
-                                        .remove(dataSet);
+                            //                            // remove original dataset to avoid duplicates
+                            //                            resultRecord.getDataSetList()
+                            //                                        .remove(dataSet);
                         }
                     }
                 }

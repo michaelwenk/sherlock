@@ -351,16 +351,43 @@ public class HOSECodeController {
             final String requestID = UUID.randomUUID()
                                          .toString();
             final String tempDir = "/data/temp/";
-            final String tempFileName = tempDir
-                    + requestID
-                    + ".sdf";
+            //            final String tempFileName = tempDir
+            //                    + requestID
+            //                    + ".sdf";
+            //
+            //            String line = "python3 /scripts/createStereoisomers.py \""
+            //                    + requestID
+            //                    + "\" \""
+            //                    + this.decode(smiles)
+            //                    + "\" \""
+            //                    + tempFileName
+            //                    + "\"";
+            //            CommandLine cmdLine = CommandLine.parse(line);
+            //
+            //            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            //            PumpStreamHandler streamHandler = new PumpStreamHandler(outputStream);
+            //            DefaultExecutor executor = new DefaultExecutor();
+            //            executor.setStreamHandler(streamHandler);
+            //
+            //            executor.execute(cmdLine);
+            //
+            //            final IteratingSDFReader iteratingSDFReader = new IteratingSDFReader(new FileReader(tempFileName),
+            //                                                                                 SilentChemObjectBuilder.getInstance());
 
-            final String line = "python3 /scripts/createStereoisomers.py \""
+            final IAtomContainer structure;
+            final String tempFileName2;
+            final IteratingSDFReader iteratingSDFReader2;
+            //            while (iteratingSDFReader.hasNext()) {
+            //                structure = iteratingSDFReader.next();
+
+            tempFileName2 = tempDir
                     + requestID
-                    + "\" \""
+                    + "_2.sdf";
+            final String line = "node /scripts/buildDiastereotopics.js \""
                     + this.decode(smiles)
+                    //+ structure.getProperty("smiles")
                     + "\" \""
-                    + tempFileName
+                    + tempFileName2
                     + "\"";
             final CommandLine cmdLine = CommandLine.parse(line);
 
@@ -371,11 +398,19 @@ public class HOSECodeController {
 
             executor.execute(cmdLine);
 
-            final IteratingSDFReader iteratingSDFReader = new IteratingSDFReader(new FileReader(tempFileName),
-                                                                                 SilentChemObjectBuilder.getInstance());
-            while (iteratingSDFReader.hasNext()) {
-                structureList.add(iteratingSDFReader.next());
+            iteratingSDFReader2 = new IteratingSDFReader(new FileReader(tempFileName2),
+                                                         SilentChemObjectBuilder.getInstance());
+
+            structure = iteratingSDFReader2.next();
+            if (Utilities.setUpAndDownBondsOnTwoMethylGroups(structure, true)) { //false);
+                structureList.add(structure);
             }
+
+            //                        structure.setProperty("smiles", SmilesGenerator.isomeric()
+            //                                                                       .create(structure));
+            //
+            //            structureList.add(structure);
+            //            }
 
             FileSystem.cleanup(new String[]{tempDir}, requestID);
         } catch (final IOException e) {
