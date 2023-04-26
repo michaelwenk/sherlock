@@ -34,6 +34,8 @@ public interface DataSetService {
 
     Flux<DataSetRecord> findAll();
 
+    Flux<DataSetRecord> findFirstN(final long n);
+
     Mono<DataSetRecord> findById(final String id);
 
     Flux<DataSetRecord> findAllById(Iterable<String> iterable);

@@ -80,6 +80,11 @@ public class DataSetController {
         return this.dataSetServiceImplementation.findAll();
     }
 
+    @GetMapping(value = "/getFirstN", produces = "application/stream+json")
+    public Flux<DataSetRecord> getFirstN(@RequestParam final long n) {
+        return this.dataSetServiceImplementation.findFirstN(n);
+    }
+
     @GetMapping(value = "/getByMf", produces = "application/stream+json")
     public Flux<DataSetRecord> getByMf(@RequestParam final String mf) {
         return this.dataSetServiceImplementation.findByMf(mf);

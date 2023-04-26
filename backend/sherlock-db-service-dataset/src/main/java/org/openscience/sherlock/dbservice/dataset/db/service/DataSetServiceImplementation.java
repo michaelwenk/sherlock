@@ -51,6 +51,12 @@ public class DataSetServiceImplementation
     }
 
     @Override
+    public Flux<DataSetRecord> findFirstN(final long n) {
+        return this.dataSetRepository.findAll()
+                                     .take(n);
+    }
+
+    @Override
     public Mono<DataSetRecord> findById(final String id) {
         return this.dataSetRepository.findById(id);
     }
