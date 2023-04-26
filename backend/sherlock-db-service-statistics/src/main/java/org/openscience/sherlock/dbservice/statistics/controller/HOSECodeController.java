@@ -3,6 +3,7 @@ package org.openscience.sherlock.dbservice.statistics.controller;
 import casekit.io.FileSystem;
 import casekit.nmr.analysis.HOSECodeShiftStatistics;
 import casekit.nmr.filterandrank.FilterAndRank;
+import casekit.nmr.hose.HOSECodeBuilder;
 import casekit.nmr.model.*;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
@@ -126,26 +127,13 @@ public class HOSECodeController {
             if (printOutput) {
                 System.out.println(" --> dataset: "
                                            + i);
-                System.out.println(" --> building HOSE code statistics...");
+                System.out.println(" --> building HOSE codes...");
             }
-
             try {
-                final Map<String, Map<String, Double[]>> hoseCodeShiftStatisticsTemp3D = HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(
-                        dataSetListTemp, maxSphere, true, false);
-                if (printOutput) {
-                    System.out.println(" --> building HOSE code statistics done -> "
-                                               + hoseCodeShiftStatisticsTemp3D.size());
-                    System.out.println(" --> updating HOSE codes in database...");
-                }
-                this.insertOrUpdateHOSECodeRecord(hoseCodeShiftStatisticsTemp3D);
-                if (printOutput) {
-                    System.out.println(" --> updating HOSE codes in database done");
-                }
-
-
+                this.buildAndInsertHOSECodes(dataSetListTemp, maxSphere);
             } catch (final Exception e) {
                 e.printStackTrace();
-                System.out.println(" --> building HOSE code statistics failed");
+                System.out.println(" --> building HOSE codes failed");
             }
 
             i = i
@@ -157,23 +145,40 @@ public class HOSECodeController {
                                        + (dataSetList.size()
                     - i)
                                        + " datasets...");
-
             dataSetListTemp = new ArrayList<>();
             for (int j = i; j
                     < dataSetList.size(); j++) {
                 dataSetListTemp.add(dataSetList.get(j));
             }
-            System.out.println(" --> building HOSE code statistics...");
-            final Map<String, Map<String, Double[]>> hoseCodeShiftStatisticsTemp3D = HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(
-                    dataSetListTemp, maxSphere, true, false);
-            System.out.println(" --> building HOSE code statistics done -> "
-                                       + hoseCodeShiftStatisticsTemp3D.size());
-            System.out.println(" --> updating HOSE codes in database...");
-            this.insertOrUpdateHOSECodeRecord(hoseCodeShiftStatisticsTemp3D);
-            System.out.println(" --> updating HOSE codes in database done");
 
-            System.out.println(" --> rest is done");
+            try {
+                this.buildAndInsertHOSECodes(dataSetListTemp, maxSphere);
+                System.out.println("\n --> rest is done");
+            } catch (final Exception e) {
+                e.printStackTrace();
+                System.out.println(" --> building for the rest failed");
+            }
         }
+    }
+
+    private void buildAndInsertHOSECodes(final List<DataSet> dataSetList, final int maxSphere) {
+        System.out.println(" --> building 3D HOSE codes...");
+        Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(
+                dataSetList, maxSphere, true, false);
+        System.out.println(" --> building 3D HOSE codes done -> "
+                                   + hoseCodeShiftStatistics.size());
+        System.out.println(" --> updating 3D HOSE codes in database...");
+        this.insertOrUpdateHOSECodeRecord(hoseCodeShiftStatistics);
+        System.out.println(" --> updating 3D HOSE codes in database done");
+
+        System.out.println(" --> building 2D HOSE code statistics...");
+        hoseCodeShiftStatistics = HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(dataSetList, maxSphere, false,
+                                                                                       false);
+        System.out.println(" --> building 2D HOSE codes done -> "
+                                   + hoseCodeShiftStatistics.size());
+        System.out.println(" --> updating 2D HOSE codes in database...");
+        this.insertOrUpdateHOSECodeRecord(hoseCodeShiftStatistics);
+        System.out.println(" --> updating 2D HOSE codes in database done");
     }
 
     private void insertOrUpdateHOSECodeRecord(final Map<String, Map<String, Double[]>> hoseCodeShiftStatisticsTemp) {
@@ -278,25 +283,9 @@ public class HOSECodeController {
         for (final String smiles : transfer.getPredictionOptions()
                                            .getSmilesList()) {
             dataSetListTemp = new ArrayList<>();
-            dataSetListTemp.add(this.predict(this.decode(smiles), nucleus, transfer.getPredictionOptions()
-                                                                                   .getMaxSphere(), false));
-            final List<DataSet> resultDataSetList = this.filter(transfer, dataSetListTemp);
-            //            if (!resultDataSetList.isEmpty()) {
-            //                if (transfer.getPredictionOptions()
-            //                            .isPredictWithStereo()) {
-            //                    final List<DataSet> dataSetListToIterate = new ArrayList<>(resultDataSetList);
-            //                    for (final DataSet dataSet : dataSetListToIterate) {
-            //                        dataSetListTemp = this.predictWithStereo(dataSet.getMeta()
-            //                                                                        .get("smiles"), nucleus,
-            //                                                                 transfer.getPredictionOptions()
-            //                                                                         .getMaxSphere());
-            //                        dataSetList.addAll(this.filter(transfer, dataSetListTemp));
-            //                    }
-            //                } else {
-            //                    dataSetList.addAll(resultDataSetList);
-            //                }
-            //            }
-            dataSetList.addAll(resultDataSetList);
+            dataSetListTemp.add(this.predict(smiles, nucleus, transfer.getPredictionOptions()
+                                                                      .getMaxSphere()));
+            dataSetList.addAll(this.filter(transfer, dataSetListTemp));
         }
 
         return Flux.fromIterable(dataSetList);
@@ -335,11 +324,10 @@ public class HOSECodeController {
     public Flux<DataSet> predictAndFilterWithStereo(@RequestBody final Transfer transfer) {
         final String nucleus = transfer.getQuerySpectrum()
                                        .getNuclei()[0];
-        final List<DataSet> dataSetList = this.predictWithStereo(transfer.getSmiles(), nucleus,
-                                                                 transfer.getPredictionOptions()
-                                                                         .getMaxSphere());
 
-        return Flux.fromIterable(this.filter(transfer, dataSetList));
+        return Flux.fromIterable(this.filter(transfer, this.predictWithStereo(transfer.getSmiles(), nucleus,
+                                                                              transfer.getPredictionOptions()
+                                                                                      .getMaxSphere())));
     }
 
     @GetMapping(value = "/predictWithStereo")
@@ -420,7 +408,7 @@ public class HOSECodeController {
         final List<DataSet> dataSetList = new ArrayList<>();
         DataSet dataSet;
         for (final IAtomContainer structure : structureList) {
-            dataSet = this.predict(structure, nucleus, maxSphere, true);
+            dataSet = this.predict(structure, nucleus, maxSphere);
             if (dataSet
                     != null) {
                 dataSetList.add(dataSet);
@@ -432,14 +420,14 @@ public class HOSECodeController {
 
     @GetMapping(value = "/predict")
     private DataSet predict(@RequestParam final String smiles, @RequestParam final String nucleus,
-                            @RequestParam final int maxSphere, @RequestParam final boolean withStereo) {
+                            @RequestParam final int maxSphere) {
         final String decodedSmiles = this.decode(smiles);
         try {
             final IAtomContainer structure = new SmilesParser(SilentChemObjectBuilder.getInstance()).parseSmiles(
                     decodedSmiles);
             structure.setProperty("smiles", decodedSmiles);
 
-            return this.predict(structure, nucleus, maxSphere, withStereo);
+            return this.predict(structure, nucleus, maxSphere);
         } catch (final InvalidSmilesException e) {
             e.printStackTrace();
         }
@@ -447,8 +435,7 @@ public class HOSECodeController {
         return null;
     }
 
-    private DataSet predict(final IAtomContainer structure, final String nucleus, final int maxSphere,
-                            final boolean withStereo) {
+    private DataSet predict(final IAtomContainer structure, final String nucleus, final int maxSphere) {
         final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
         final Assignment assignment;
         String hoseCode;
@@ -476,9 +463,11 @@ public class HOSECodeController {
             predictedSpectrum.setSignals(new ArrayList<>());
 
             final Map<Integer, List<Integer>> assignmentMap = new HashMap<>();
-            final Map<Integer, Double[]> predictionMeta = new HashMap<>();
-            final Map<Integer, Map<String, List<Integer>>> collection = new HashMap<>();
+            final Map<Integer, String[]> predictionMeta = new HashMap<>();
+            final Map<Integer, Map<String, List<Integer>>> collection3D = new HashMap<>();
+            final Map<Integer, Map<String, List<Integer>>> collection2D = new HashMap<>();
 
+            IAtomContainer structureTemp;
             for (int i = 0; i
                     < structure.getAtomCount(); i++) {
                 if (!structure.getAtom(i)
@@ -490,24 +479,37 @@ public class HOSECodeController {
                 while (sphere
                         >= 1) {
                     hoseCode = this.extendedHOSECodeGenerator.getHOSECode(structure, structure.getAtom(i), sphere);
-                    collection.putIfAbsent(sphere, new HashMap<>());
-                    collection.get(sphere)
-                              .putIfAbsent(hoseCode, new ArrayList<>());
-                    collection.get(sphere)
-                              .get(hoseCode)
-                              .add(i);
+                    collection3D.putIfAbsent(sphere, new HashMap<>());
+                    collection3D.get(sphere)
+                                .putIfAbsent(hoseCode, new ArrayList<>());
+                    collection3D.get(sphere)
+                                .get(hoseCode)
+                                .add(i);
+
+                    structureTemp = new StructureCompact(structure).toAtomContainer();
+                    Utils.convertExplicitToImplicitHydrogens(structureTemp);
+                    hoseCode = HOSECodeBuilder.buildHOSECode(structureTemp, i, sphere, false);
+                    collection2D.putIfAbsent(sphere, new HashMap<>());
+                    collection2D.get(sphere)
+                                .putIfAbsent(hoseCode, new ArrayList<>());
+                    collection2D.get(sphere)
+                                .get(hoseCode)
+                                .add(i);
 
                     sphere--;
                 }
             }
             final List<Integer> predictedAtomIndices = new ArrayList<>();
-            this.assignToAtoms(predictedSpectrum, assignmentMap, predictionMeta, collection, predictedAtomIndices,
-                               structure, nucleus, maxSphere, withStereo);
+            this.assignToAtoms(predictedSpectrum, assignmentMap, predictionMeta, collection3D, predictedAtomIndices,
+                               structure, nucleus, maxSphere, true);
 
             Utils.convertExplicitToImplicitHydrogens(structure);
 
-            dataSet.setStructure(new StructureCompact(structure));
+            this.assignToAtoms(predictedSpectrum, assignmentMap, predictionMeta, collection2D, predictedAtomIndices,
+                               structure, nucleus, maxSphere, false);
 
+
+            dataSet.setStructure(new StructureCompact(structure));
             dataSet.setSpectrum(new SpectrumCompact(predictedSpectrum));
             assignment = new Assignment();
             assignment.setNuclei(predictedSpectrum.getNuclei());
@@ -531,19 +533,21 @@ public class HOSECodeController {
     }
 
     private void assignToAtoms(final Spectrum predictedSpectrum, final Map<Integer, List<Integer>> assignmentMap,
-                               final Map<Integer, Double[]> predictionMeta,
+                               final Map<Integer, String[]> predictionMeta,
                                final Map<Integer, Map<String, List<Integer>>> collection,
                                final List<Integer> predictedAtomIndices, final IAtomContainer structure,
                                final String nucleus, final Integer maxSphere, final boolean withStereo) {
-        Signal signal;
+        Signal predictedSignal;
         Optional<HOSECodeRecord> hoseCodeRecordOptional;
         HOSECodeRecord hoseCodeRecord;
         double predictedShift;
-        String hoseCode;
+        String hoseCode, multiplicity;
         Double[] statistics;
         int signalIndex, sphere, count;
         Double min, max;
         List<Double> medians;
+        boolean added;
+        List<Integer> closestSignalIndices;
 
         sphere = maxSphere;
         while (sphere
@@ -589,57 +593,65 @@ public class HOSECodeController {
                     if (predictedAtomIndices.contains(atomIndex)) {
                         continue;
                     }
-                    signal = new Signal();
-                    signal.setNuclei(new String[]{nucleus});
-                    signal.setShifts(new Double[]{predictedShift});
-                    signal.setMultiplicity(Utils.getMultiplicityFromProtonsCount(
-                            AtomUtils.getHcount(structure, structure.getAtom(atomIndex)))); // counts explicit H
-                    signal.setEquivalencesCount(1);
+                    predictedSignal = new Signal();
+                    predictedSignal.setNuclei(new String[]{nucleus});
+                    predictedSignal.setShifts(new Double[]{predictedShift});
+                    // counts explicit H
+                    multiplicity = Utils.getMultiplicityFromProtonsCount(
+                            AtomUtils.getHcount(structure, structure.getAtom(atomIndex)));
+                    predictedSignal.setMultiplicity(multiplicity);
+                    predictedSignal.setEquivalencesCount(1);
 
-                    signalIndex = predictedSpectrum.addSignal(signal);
+                    closestSignalIndices = predictedSpectrum.pickByClosestShift(predictedSignal.getShift(0), 0, 0);
+                    added = false;
+                    signalIndex = -1;
+                    for (final Integer closestSignalIndex : closestSignalIndices) {
+                        if (predictedSpectrum.getSignal(closestSignalIndex)
+                                             .getMultiplicity()
+                                             .equals(multiplicity)
+                                && predictionMeta.containsKey(closestSignalIndex)
+                                && !predictionMeta.get(closestSignalIndex)[5].equals(hoseCode)) {
+                            predictedSpectrum.addSignalWithoutEquivalenceSearch(predictedSignal);
+                            signalIndex = predictedSpectrum.getSignalCount()
+                                    - 1;
+                            added = true;
+                        }
+                        if (added) {
+                            break;
+                        }
+                    }
+                    if (!added) {
+                        signalIndex = predictedSpectrum.addSignal(predictedSignal);
+                    }
+                    if (signalIndex
+                            == -1) {
+                        continue;
+                    }
 
                     assignmentMap.putIfAbsent(signalIndex, new ArrayList<>());
                     assignmentMap.get(signalIndex)
                                  .add(atomIndex);
 
                     if (!predictionMeta.containsKey(signalIndex)) {
-                        predictionMeta.put(signalIndex, new Double[]{(double) sphere, (double) count, min, max,
+                        predictionMeta.put(signalIndex, new String[]{String.valueOf(sphere), String.valueOf(count),
+                                                                     String.valueOf(min), String.valueOf(max),
                                                                      withStereo
-                                                                     ? 1.0
-                                                                     : 0.0});
+                                                                     ? "3D"
+                                                                     : "2D", hoseCode});
                     }
                     predictedAtomIndices.add(atomIndex);
+                    System.out.println((withStereo
+                                        ? "3D"
+                                        : "2D")
+                                               + " -> "
+                                               + hoseCode
+                                               + " -> "
+                                               + Arrays.toString(predictionMeta.get(signalIndex)));
                 }
             }
             sphere--;
         }
     }
-
-    //    private void addUpAndDownBondsOnTwoMethylGroups(final IAtomContainer structure) {
-    //        for (final IAtom atom : structure.atoms()) {
-    //            if (AtomContainerManipulator.countHydrogens(structure, atom)
-    //                    == 3
-    //                    || atom.getSymbol()
-    //                           .equals("H")) {
-    //                continue;
-    //            }
-    //            final List<Integer> methylGroups = new ArrayList<>();
-    //            final List<IAtom> connectedAtomsList = structure.getConnectedAtomsList(atom);
-    //            for (final IAtom connectedAtom : connectedAtomsList) {
-    //                if (AtomContainerManipulator.countHydrogens(structure, connectedAtom)
-    //                        == 3) {
-    //                    methylGroups.add(connectedAtom.getIndex());
-    //                }
-    //            }
-    //            if (methylGroups.size()
-    //                    == 2) {
-    //                structure.getBond(atom, structure.getAtom(methylGroups.get(0)))
-    //                         .setStereo(IBond.Stereo.UP);
-    //                structure.getBond(atom, structure.getAtom(methylGroups.get(1)))
-    //                         .setStereo(IBond.Stereo.DOWN);
-    //            }
-    //        }
-    //    }
 
     //    @GetMapping(value = "/saveAllAsMap")
     //    public void saveAllAsMap() {
