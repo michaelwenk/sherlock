@@ -31,8 +31,6 @@ import casekit.nmr.model.SpectrumCompact;
 import casekit.nmr.model.nmrium.Correlations;
 import casekit.nmr.utils.Utils;
 import org.bson.types.ObjectId;
-import org.openscience.cdk.exception.CDKException;
-import org.openscience.cdk.smiles.SmilesGenerator;
 import org.openscience.sherlock.core.model.db.ResultRecord;
 import org.openscience.sherlock.core.model.exchange.Transfer;
 import org.openscience.sherlock.core.utils.Utilities;
@@ -323,138 +321,129 @@ public class CoreController {
     private ResponseEntity<Transfer> rankAndStore(final Transfer requestTransfer) {
         final ResultRecord resultRecord = requestTransfer.getResultRecord();
         final Transfer responseTransfer = new Transfer();
-        try {
-            // store results in DB if not empty and replace resultRecord in responseTransfer
-            if (!resultRecord.getDataSetList()
-                             .isEmpty()) {
-                FilterAndRank.rank(resultRecord.getDataSetList());
+        // store results in DB if not empty and replace resultRecord in responseTransfer
+        if (!resultRecord.getDataSetList()
+                         .isEmpty()) {
+            FilterAndRank.rank(resultRecord.getDataSetList());
 
-                for (final DataSet dataSet : resultRecord.getDataSetList()) {
-                    dataSet.addMetaInfo("withStereo", "false");
+            for (final DataSet dataSet : resultRecord.getDataSetList()) {
+                dataSet.addMetaInfo("withStereo", "false");
+            }
+
+            if (resultRecord.getPredictionOptions()
+                            .isPredictWithStereo()) {
+                int limit = resultRecord.getPredictionOptions()
+                                        .getStereoPredictionLimit();
+                if (limit
+                        > resultRecord.getDataSetList()
+                                      .size()) {
+                    limit = resultRecord.getDataSetList()
+                                        .size();
                 }
-
-                if (resultRecord.getPredictionOptions()
-                                .isPredictWithStereo()) {
-                    int limit = resultRecord.getPredictionOptions()
-                                            .getStereoPredictionLimit();
-                    if (limit
-                            > resultRecord.getDataSetList()
-                                          .size()) {
-                        limit = resultRecord.getDataSetList()
-                                            .size();
-                    }
-                    System.out.println(" -> prediction with stereo for the first "
-                                               + limit
-                                               + " candidates");
-                    final List<DataSet> dataSetSubList = new ArrayList<>();
-                    for (int i = 0; i
-                            < limit; i++) {
-                        dataSetSubList.add(resultRecord.getDataSetList()
-                                                       .get(i));
-                    }
-                    for (final DataSet dataSet : dataSetSubList) {
-                        final String smiles = dataSet.getMeta()
-                                                     .containsKey("smiles")
-                                              ? dataSet.getMeta()
-                                                       .get("smiles")
-                                              : SmilesGenerator.unique()
-                                                               .create(dataSet.getStructure()
-                                                                              .toAtomContainer());
-                        System.out.println(" -> generated isomers and predict for \""
-                                                   + smiles
-                                                   + "\" ...");
-                        requestTransfer.setSmiles(smiles);
-                        requestTransfer.setQuerySpectrum(resultRecord.getQuerySpectrum()
-                                                                     .toSpectrum());
-                        requestTransfer.setPredictionOptions(resultRecord.getPredictionOptions());
-                        final List<DataSet> stereoPredictionDataSetList = Utilities.getStereoPredictedDataSetFlux(
-                                                                                           requestTransfer, this.webClientBuilder, this.exchangeStrategies)
-                                                                                   .collectList()
-                                                                                   .block();
-                        if (stereoPredictionDataSetList
-                                != null) {
-                            for (final DataSet stereoPredictionDataSet : stereoPredictionDataSetList) {
-                                stereoPredictionDataSet.addMetaInfo("withStereo", "true");
-                            }
-                            resultRecord.getDataSetList()
-                                        .addAll(stereoPredictionDataSetList);
-                            System.out.println(" --> added "
-                                                       + stereoPredictionDataSetList.size()
-                                                       + " candidates with stereo for \""
-                                                       + dataSet.getMeta()
-                                                                .get("smiles")
-                                                       + "\"");
-                            //                            // remove original dataset to avoid duplicates
-                            //                            resultRecord.getDataSetList()
-                            //                                        .remove(dataSet);
-                        }
-                    }
-                }
-                FilterAndRank.rank(resultRecord.getDataSetList());
-
-                //                Utilities.addMolFileToDataSets(resultRecord.getDataSetList());
-
-                resultRecord.setDate(LocalDateTime.now(ZoneId.of("UTC"))
-                                                  .toString());
-                final List<DataSet> cutDataSetList = new ArrayList<>();
+                System.out.println(" -> prediction with stereo for the first "
+                                           + limit
+                                           + " candidates");
+                final List<DataSet> dataSetSubList = new ArrayList<>();
                 for (int i = 0; i
-                        < 500; i++) {
-                    if (i
-                            >= resultRecord.getDataSetList()
-                                           .size()) {
-                        break;
-                    }
-                    cutDataSetList.add(resultRecord.getDataSetList()
+                        < limit; i++) {
+                    dataSetSubList.add(resultRecord.getDataSetList()
                                                    .get(i));
                 }
-                resultRecord.setDataSetList(cutDataSetList);
-                resultRecord.setDataSetListSize(cutDataSetList.size());
-                resultRecord.setPreviewDataSet(cutDataSetList.get(0));
-
-                final WebClient webClient = this.webClientBuilder.baseUrl(
-                                                        "http://sherlock-gateway:8080/sherlock-db-service-result/insert")
-                                                                 .defaultHeader(HttpHeaders.CONTENT_TYPE,
-                                                                                MediaType.APPLICATION_JSON_VALUE)
-                                                                 .exchangeStrategies(this.exchangeStrategies)
-                                                                 .build();
-                try {
-                    final ResponseEntity<ObjectId> resultStorageResponseEntity = webClient.post()
-                                                                                          .bodyValue(resultRecord)
-                                                                                          .retrieve()
-                                                                                          .toEntity(ObjectId.class)
-                                                                                          .block();
-                    if (resultStorageResponseEntity.getStatusCode()
-                                                   .isError()
-                            || resultStorageResponseEntity.getBody()
-                            == null) {
-                        responseTransfer.setResultRecord(resultRecord);
-                        responseTransfer.setErrorMessage("Result storage request failed: "
-                                                                 + resultStorageResponseEntity.getStatusCode());
-                        return new ResponseEntity<>(responseTransfer, resultStorageResponseEntity.getStatusCode());
+                for (final DataSet dataSet : dataSetSubList) {
+                    final String smiles = dataSet.getMeta()
+                                                 .get("smiles");
+                    System.out.println(" -> generated isomers and predict for \""
+                                               + smiles
+                                               + "\" ...");
+                    requestTransfer.setSmiles(smiles);
+                    requestTransfer.setQuerySpectrum(resultRecord.getQuerySpectrum()
+                                                                 .toSpectrum());
+                    requestTransfer.setPredictionOptions(resultRecord.getPredictionOptions());
+                    final List<DataSet> stereoPredictionDataSetList = Utilities.getStereoPredictedDataSetFlux(
+                                                                                       requestTransfer, this.webClientBuilder, this.exchangeStrategies)
+                                                                               .collectList()
+                                                                               .block();
+                    if (stereoPredictionDataSetList
+                            != null) {
+                        for (final DataSet stereoPredictionDataSet : stereoPredictionDataSetList) {
+                            stereoPredictionDataSet.addMetaInfo("withStereo", "true");
+                        }
+                        resultRecord.getDataSetList()
+                                    .addAll(stereoPredictionDataSetList);
+                        System.out.println(" --> added "
+                                                   + stereoPredictionDataSetList.size()
+                                                   + " candidates with stereo for \""
+                                                   + dataSet.getMeta()
+                                                            .get("smiles")
+                                                   + "\"");
+                        //                            // remove original dataset to avoid duplicates
+                        //                            resultRecord.getDataSetList()
+                        //                                        .remove(dataSet);
                     }
-                    responseTransfer.setResultRecord(resultRecord);
-                    responseTransfer.getResultRecord()
-                                    .setId(resultStorageResponseEntity.getBody()
-                                                                      .toString());
-                } catch (final Exception e) {
-                    responseTransfer.setResultRecord(resultRecord);
-                    responseTransfer.setErrorMessage(e.getMessage());
-                    return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
                 }
-            } else {
-                responseTransfer.setResultRecord(resultRecord);
-
-                responseTransfer.getResultRecord()
-                                .setDataSetList(new ArrayList<>());
-                responseTransfer.getResultRecord()
-                                .setDataSetListSize(0);
-                responseTransfer.getResultRecord()
-                                .setPreviewDataSet(null);
-                responseTransfer.getResultRecord()
-                                .setId(null);
             }
-        } catch (final CDKException e) {
-            e.printStackTrace();
+            FilterAndRank.rank(resultRecord.getDataSetList());
+
+            //                Utilities.addMolFileToDataSets(resultRecord.getDataSetList());
+
+            resultRecord.setDate(LocalDateTime.now(ZoneId.of("UTC"))
+                                              .toString());
+            final List<DataSet> cutDataSetList = new ArrayList<>();
+            for (int i = 0; i
+                    < 500; i++) {
+                if (i
+                        >= resultRecord.getDataSetList()
+                                       .size()) {
+                    break;
+                }
+                cutDataSetList.add(resultRecord.getDataSetList()
+                                               .get(i));
+            }
+            resultRecord.setDataSetList(cutDataSetList);
+            resultRecord.setDataSetListSize(cutDataSetList.size());
+            resultRecord.setPreviewDataSet(cutDataSetList.get(0));
+
+            final WebClient webClient = this.webClientBuilder.baseUrl(
+                                                    "http://sherlock-gateway:8080/sherlock-db-service-result/insert")
+                                                             .defaultHeader(HttpHeaders.CONTENT_TYPE,
+                                                                            MediaType.APPLICATION_JSON_VALUE)
+                                                             .exchangeStrategies(this.exchangeStrategies)
+                                                             .build();
+            try {
+                final ResponseEntity<ObjectId> resultStorageResponseEntity = webClient.post()
+                                                                                      .bodyValue(resultRecord)
+                                                                                      .retrieve()
+                                                                                      .toEntity(ObjectId.class)
+                                                                                      .block();
+                if (resultStorageResponseEntity.getStatusCode()
+                                               .isError()
+                        || resultStorageResponseEntity.getBody()
+                        == null) {
+                    responseTransfer.setResultRecord(resultRecord);
+                    responseTransfer.setErrorMessage("Result storage request failed: "
+                                                             + resultStorageResponseEntity.getStatusCode());
+                    return new ResponseEntity<>(responseTransfer, resultStorageResponseEntity.getStatusCode());
+                }
+                responseTransfer.setResultRecord(resultRecord);
+                responseTransfer.getResultRecord()
+                                .setId(resultStorageResponseEntity.getBody()
+                                                                  .toString());
+            } catch (final Exception e) {
+                responseTransfer.setResultRecord(resultRecord);
+                responseTransfer.setErrorMessage(e.getMessage());
+                return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
+            }
+        } else {
+            responseTransfer.setResultRecord(resultRecord);
+
+            responseTransfer.getResultRecord()
+                            .setDataSetList(new ArrayList<>());
+            responseTransfer.getResultRecord()
+                            .setDataSetListSize(0);
+            responseTransfer.getResultRecord()
+                            .setPreviewDataSet(null);
+            responseTransfer.getResultRecord()
+                            .setId(null);
         }
 
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);

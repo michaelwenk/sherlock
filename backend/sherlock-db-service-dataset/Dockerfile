@@ -2,5 +2,4 @@ FROM adoptopenjdk/openjdk11:alpine
 COPY target/sherlock-db-service-dataset-0.0.1-SNAPSHOT.jar /
 ENTRYPOINT ["java", "-Xmx4G", "-jar", "sherlock-db-service-dataset-0.0.1-SNAPSHOT.jar" ]
 EXPOSE 8080
-COPY data/nmrshiftdb/ data/nmrshiftdb/
-COPY data/coconut/ data/coconut/
+COPY data data

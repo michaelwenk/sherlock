@@ -26,13 +26,13 @@ package org.openscience.sherlock.dbservice.dataset.controller;
 
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.dbservice.COCONUT;
+import casekit.nmr.dbservice.LOTUS;
 import casekit.nmr.dbservice.NMRShiftDB;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.SpectrumCompact;
 import casekit.nmr.similarity.Similarity;
 import casekit.nmr.utils.Utils;
-import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
@@ -177,7 +177,7 @@ public class DataSetController {
                                            + ": "
                                            + Arrays.toString(limits.get("13C")));
             }
-        } catch (final FileNotFoundException | CDKException e) {
+        } catch (final FileNotFoundException e) {
             e.printStackTrace();
         }
         System.out.println(" -> set new limits done");
@@ -218,8 +218,14 @@ public class DataSetController {
                     dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(
                             SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT[fileIndex], nuclei);
                 }
+            } else if (dbName.equals("lotus")) {
+                System.out.println(" -> datasets creation for \""
+                                           + dbName
+                                           + "\" ...");
+                dataSetList = LOTUS.getDataSetsWithShiftPredictionFromLOTUS(
+                        SherlockDbServiceDatasetApplication.PATH_TO_LOTUS, nuclei);
             }
-        } catch (final FileNotFoundException | CDKException e) {
+        } catch (final FileNotFoundException e) {
             e.printStackTrace();
         }
 

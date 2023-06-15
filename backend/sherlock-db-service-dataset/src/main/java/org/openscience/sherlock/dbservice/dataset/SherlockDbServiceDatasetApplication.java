@@ -27,6 +27,7 @@ public class SherlockDbServiceDatasetApplication {
                                                            "/data/coconut/acd_coconut_16.sdf",
                                                            "/data/coconut/acd_coconut_17.sdf",
                                                            "/data/coconut/acd_coconut_18.sdf"};
+    public static final String PATH_TO_LOTUS = "/data/lotus/lotus.sdf";
 
     public static void main(final String[] args) {
         SpringApplication.run(SherlockDbServiceDatasetApplication.class, args);
