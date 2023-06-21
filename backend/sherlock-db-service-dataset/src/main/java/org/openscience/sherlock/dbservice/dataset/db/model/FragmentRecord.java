@@ -5,7 +5,8 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
-import javax.persistence.*;
+import javax.persistence.Entity;
+import javax.persistence.Id;
 
 @NoArgsConstructor
 @Getter
@@ -13,26 +14,12 @@ import javax.persistence.*;
 @ToString
 
 @Entity
-@Table
 public class FragmentRecord {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    @Column(name = "id")
-    private int id;
-
-    @Column(name = "nucleus", nullable = false)
+    private long id;
     private String nucleus;
-
-    @Column(name = "signal_count", nullable = false)
-    private int signalCount;
-
-    @Column(name = "set_bits", nullable = false, columnDefinition = "BIT(209)")
     private String setBits;
-
-    @Column(name = "n_bits", nullable = false)
     private long nBits;
-
-    @Column(name = "sub_data_set_string", nullable = false, columnDefinition = "TEXT")
     private String subDataSetString;
 }
