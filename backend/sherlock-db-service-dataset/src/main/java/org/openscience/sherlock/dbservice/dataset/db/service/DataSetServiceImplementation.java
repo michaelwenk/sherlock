@@ -124,4 +124,9 @@ public class DataSetServiceImplementation
     public Mono<Void> deleteAll() {
         return this.dataSetRepository.deleteAll();
     }
+
+    @Override
+    public Mono<Void> deleteById(final String id) {
+        return this.dataSetRepository.deleteById(id);
+    }
 }

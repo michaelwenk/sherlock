@@ -1,6 +1,5 @@
 package org.openscience.sherlock.dbservice.statistics.controller;
 
-import casekit.nmr.analysis.HOSECodeShiftStatistics;
 import casekit.nmr.filterandrank.FilterAndRank;
 import casekit.nmr.model.*;
 import casekit.nmr.utils.Statistics;
@@ -15,6 +14,7 @@ import org.openscience.nmrshiftdb.util.AtomUtils;
 import org.openscience.nmrshiftdb.util.ExtendedHOSECodeGenerator;
 import org.openscience.sherlock.dbservice.statistics.service.HOSECodeRepositoryReactive;
 import org.openscience.sherlock.dbservice.statistics.service.HOSECodeServiceImplementation;
+import org.openscience.sherlock.dbservice.statistics.service.model.DataSetRecord;
 import org.openscience.sherlock.dbservice.statistics.service.model.HOSECodeRecord;
 import org.openscience.sherlock.dbservice.statistics.service.model.exchange.Transfer;
 import org.openscience.sherlock.dbservice.statistics.utils.Utilities;
@@ -29,6 +29,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "/hosecode")
@@ -76,7 +77,6 @@ public class HOSECodeController {
         return this.hoseCodeServiceImplementation.findAll();
     }
 
-
     @DeleteMapping(value = "/deleteAll")
     public void deleteAll() {
         this.hoseCodeServiceImplementation.deleteAll();
@@ -89,55 +89,65 @@ public class HOSECodeController {
         System.out.println(" --> deleted all DB entries!");
 
         System.out.println(" --> fetching all datasets, build HOSE code collection and store...");
-        Utilities.getByDataSetSpectrumNuclei(this.webClientBuilder, this.exchangeStrategies, nuclei)
-                 .doOnNext(dataSetRecord -> {
-                     final List<DataSet> dataSetList = new ArrayList<>();
-                     dataSetList.add(dataSetRecord.getDataSet());
-                     final Map<String, Map<String, Double[]>> hoseCodeShiftStatisticsTemp = HOSECodeShiftStatistics.buildHOSECodeShiftStatistics(
-                             dataSetList, maxSphere, true, false);
-                     for (final Map.Entry<String, Map<String, Double[]>> entryPerHOSECode : hoseCodeShiftStatisticsTemp.entrySet()) {
-                         final String hoseCode = entryPerHOSECode.getKey();
-                         if (!this.hoseCodeServiceImplementation.existsById(hoseCode)) {
-                             final HOSECodeRecord hoseCodeRecord = new HOSECodeRecord(hoseCode, new HashMap<>(),
-                                                                                      new HashMap<>());
-                             this.insertIntoHoseCodeRecord(entryPerHOSECode, hoseCodeRecord);
-                             this.hoseCodeServiceImplementation.insert(hoseCodeRecord);
-                         } else {
-                             final HOSECodeRecord hoseCodeRecord = this.hoseCodeServiceImplementation.findById(hoseCode)
-                                                                                                     .get();
-                             this.insertIntoHoseCodeRecord(entryPerHOSECode, hoseCodeRecord);
-                             this.hoseCodeServiceImplementation.save(hoseCodeRecord);
-                         }
-                     }
-                 })
-                 .doAfterTerminate(() -> {
-                     System.out.println(" -> build and store HOSE code collection done: "
-                                                + this.getCount());
-                 })
-                 .doOnError(Throwable::printStackTrace)
-                 .subscribe();
-    }
 
-    private void insertIntoHoseCodeRecord(final Map.Entry<String, Map<String, Double[]>> entryPerHOSECode,
-                                          final HOSECodeRecord hoseCodeRecord) {
-        String solvent, shiftString;
-        for (final Map.Entry<String, Double[]> entryPerSolvent : entryPerHOSECode.getValue()
-                                                                                 .entrySet()) {
-            solvent = entryPerSolvent.getKey();
-            hoseCodeRecord.getValues()
-                          .putIfAbsent(solvent, new HashMap<>());
-            for (final Double shift : entryPerSolvent.getValue()) {
-                shiftString = String.valueOf(Statistics.roundDouble(shift, 1))
-                                    .replaceAll("\\.", "_");
-                hoseCodeRecord.getValues()
-                              .get(solvent)
-                              .putIfAbsent(shiftString, 0L);
-                hoseCodeRecord.getValues()
-                              .get(solvent)
-                              .put(shiftString, hoseCodeRecord.getValues()
-                                                              .get(solvent)
-                                                              .get(shiftString)
-                                      + 1);
+        final List<DataSet> dataSetList = Objects.requireNonNull(Utilities.getByDataSetSpectrumNuclei(
+                                                                                  this.webClientBuilder, this.exchangeStrategies, nuclei)
+                                                                          .collectList()
+                                                                          .block())
+                                                 .stream()
+                                                 .map(DataSetRecord::getDataSet)
+                                                 .collect(Collectors.toList());
+        System.out.println(" --> fetched all datasets: "
+                                   + dataSetList.size());
+        List<DataSet> dataSetListTemp;
+        boolean printOutput;
+        int i = 0;
+        final int steps = 50;
+        while (i
+                + steps
+                < dataSetList.size()) {
+            dataSetListTemp = new ArrayList<>();
+            for (int j = i; j
+                    < i
+                    + steps; j++) {
+                dataSetListTemp.add(dataSetList.get(j));
+            }
+            printOutput = i
+                    % steps
+                    == 0;
+            if (printOutput) {
+                System.out.println(" --> dataset: "
+                                           + i);
+                System.out.println(" --> building HOSE codes...");
+            }
+            try {
+                Utilities.buildAndInsertHOSECodes(dataSetListTemp, maxSphere, this.hoseCodeServiceImplementation);
+            } catch (final Exception e) {
+                e.printStackTrace();
+                System.out.println(" --> building HOSE codes failed");
+            }
+
+            i = i
+                    + steps;
+        }
+        if (i
+                < dataSetList.size()) {
+            System.out.println(" --> walking through the rest -> "
+                                       + (dataSetList.size()
+                    - i)
+                                       + " datasets...");
+            dataSetListTemp = new ArrayList<>();
+            for (int j = i; j
+                    < dataSetList.size(); j++) {
+                dataSetListTemp.add(dataSetList.get(j));
+            }
+
+            try {
+                Utilities.buildAndInsertHOSECodes(dataSetListTemp, maxSphere, this.hoseCodeServiceImplementation);
+                System.out.println("\n --> rest is done");
+            } catch (final Exception e) {
+                e.printStackTrace();
+                System.out.println(" --> building for the rest failed");
             }
         }
     }
@@ -168,6 +178,7 @@ public class HOSECodeController {
                                                        values.add(shift);
                                                    }
                                                }
+                                               values = Statistics.removeOutliers(values, 1.5);
                                                if (!values.isEmpty()) {
                                                    statistics.put(entryPerSolvent.getKey(),
                                                                   new Double[]{(double) values.size(),
@@ -251,7 +262,7 @@ public class HOSECodeController {
             Utils.placeExplicitHydrogens(structure);
             Utils.setAromaticityAndKekulize(structure);
 
-            final DataSet dataSet = Utils.atomContainerToDataSet(structure);
+            final DataSet dataSet = Utils.atomContainerToDataSet(structure, false);
 
             final Spectrum predictedSpectrum = new Spectrum();
             predictedSpectrum.setNuclei(new String[]{nucleus});

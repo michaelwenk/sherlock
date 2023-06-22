@@ -14,11 +14,9 @@ import com.google.gson.GsonBuilder;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.cdk.smiles.SmilesGenerator;
-import org.openscience.sherlock.dbservice.dataset.db.model.FragmentRecord;
 import org.openscience.sherlock.dbservice.dataset.db.model.MultiplicitySectionsSettingsRecord;
 import org.openscience.sherlock.dbservice.dataset.db.service.CustomFragmentRepositoryImplementation;
 import org.openscience.sherlock.dbservice.dataset.db.service.DataSetServiceImplementation;
-import org.openscience.sherlock.dbservice.dataset.db.service.FragmentRepository;
 import org.openscience.sherlock.dbservice.dataset.db.service.MultiplicitySectionsSettingsServiceImplementation;
 import org.openscience.sherlock.dbservice.dataset.model.exchange.Transfer;
 import org.openscience.sherlock.dbservice.dataset.utils.BitUtilities;
@@ -39,32 +37,17 @@ import java.util.stream.Collectors;
 @RequestMapping(value = "/fragment")
 public class FragmentController {
 
-    //    public final static String[] SINGLE_BIT_STRINGS = BitUtilities.buildSingleBitBigIntegerStrings(209);
-
     private final Gson gson = new GsonBuilder().create();
-    private final FragmentRepository fragmentRepository;
     private final DataSetServiceImplementation dataSetServiceImplementation;
     private final CustomFragmentRepositoryImplementation customFragmentRepositoryImplementation;
     private final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation;
 
-    public FragmentController(final FragmentRepository fragmentRepository,
-                              final DataSetServiceImplementation dataSetServiceImplementation,
+    public FragmentController(final DataSetServiceImplementation dataSetServiceImplementation,
                               final CustomFragmentRepositoryImplementation customFragmentRepositoryImplementation,
                               final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation) {
-        this.fragmentRepository = fragmentRepository;
         this.dataSetServiceImplementation = dataSetServiceImplementation;
         this.customFragmentRepositoryImplementation = customFragmentRepositoryImplementation;
         this.multiplicitySectionsSettingsServiceImplementation = multiplicitySectionsSettingsServiceImplementation;
-    }
-
-    @GetMapping(value = "/count")
-    public long getCount() {
-        return this.fragmentRepository.count();
-    }
-
-    @GetMapping(value = "/getAll")
-    public List<FragmentRecord> getAll() {
-        return this.fragmentRepository.findAll();
     }
 
     public List<DataSet> getFragments(final Spectrum querySpectrum, final BitSetFingerprint bitSetFingerprint,
@@ -81,7 +64,9 @@ public class FragmentController {
         //            }
         //        }
 
-        System.out.println(" -> query bits: "
+        System.out.println(" -> query bits ("
+                                   + bitLength
+                                   + "): "
                                    + BitUtilities.buildBitsString(bigInteger, bitLength)
                                    + " -> with nThreads: "
                                    + nThreads);
@@ -110,11 +95,13 @@ public class FragmentController {
             final String setBitsString = "B'"
                     + BitUtilities.buildBitsString(bigInteger, bitLength)
                     + "'";
+
             for (final int i : indices) {
+                final String tableName = "fragment_record_"
+                        + i;
                 callables.add(() -> {
                     final List<String> subDataSetStringList = this.customFragmentRepositoryImplementation.findBySetBits(
-                            setBitsString, "fragment_record_"
-                                    + i);
+                            tableName, setBitsString);
                     this.fineSearch(fragmentsMap, subDataSetStringList, querySpectrum, shiftTolerance,
                                     maximumAverageDeviation, hybridizationList, mf);
 
@@ -216,7 +203,7 @@ public class FragmentController {
 
             final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(
                     fragmentsDetectionTransfer.getQuerySpectrum(), 0, multiplicitySectionsBuilder);
-            // also set neighbor bits to give more flexibility in request
+            // also set neighbour bits to give more flexibility in request
             for (final int setBit : bitSetFingerprint.getSetbits()) {
                 if (setBit
                         > multiplicitySectionsBuilder.getMinLimit()) {
@@ -242,13 +229,20 @@ public class FragmentController {
     }
 
     @PostMapping(value = "/replaceAll")
-    public void replaceAll(@RequestParam final String[] nuclei) {
+    public void replaceAll(@RequestParam final String[] nuclei, @RequestParam final String tableName) {
         System.out.println("-> deleting fragments in DB...");
-        this.fragmentRepository.deleteAll();
+        this.customFragmentRepositoryImplementation.dropTable(tableName);
         System.out.println("-> deleted fragments in DB");
 
-        final Map<String, Integer[]> multiplicitySectionSettings = new HashMap<>();
-        multiplicitySectionSettings.put("13C", new Integer[]{-123, 296, 2});
+        final Map<String, int[]> multiplicitySectionSettings = new HashMap<>();
+        MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord;
+        for (final String nucleus : nuclei) {
+            multiplicitySectionsSettingsRecord = this.multiplicitySectionsSettingsServiceImplementation.findByNucleus(
+                                                             nucleus)
+                                                                                                       .block();
+            multiplicitySectionSettings.put(multiplicitySectionsSettingsRecord.getNucleus(),
+                                            multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings());
+        }
 
         for (final String nucleus : nuclei) {
             System.out.println("-> build and store fragments in DB for nucleus: "
@@ -265,6 +259,8 @@ public class FragmentController {
                                            + " -> steps: "
                                            + multiplicitySectionsBuilder.getSteps()
                                            + "\n");
+                this.customFragmentRepositoryImplementation.createTable(tableName,
+                                                                        multiplicitySectionsBuilder.getSteps());
 
 
                 final String[] nucleiTemp = new String[]{nucleus};
@@ -284,9 +280,8 @@ public class FragmentController {
                                                                                              .toSpectrum(), 0,
                                                                               multiplicitySectionsBuilder);
 
-                                                                      this.fragmentRepository.insertFragmentRecord(
-                                                                              nucleus, fragmentDataSet.getSpectrum()
-                                                                                                      .getSignals().length,
+                                                                      this.customFragmentRepositoryImplementation.insertIntoTable(
+                                                                              tableName, nucleus,
                                                                               BitUtilities.buildBitsString(
                                                                                       BitUtilities.buildBits(
                                                                                               bitSetFingerprint,
@@ -306,29 +301,85 @@ public class FragmentController {
         }
     }
 
-    @PostMapping(value = "/createIndexStrings")
-    public void createIndexString() {
-        final StringBuilder stringBuilder = new StringBuilder();
-        final int bitLength = 209;
-        BigInteger bigInteger;
-        String bigIntegerString;
-        for (int i = 0; i
-                < bitLength; i++) {
-            bigInteger = BitUtilities.buildBits(i, bitLength);
-
-            bigIntegerString = "B'"
-                    + BitUtilities.buildBitsString(bigInteger, bitLength)
-                    + "'";
-            stringBuilder.append("CREATE INDEX set_bits_index_")
-                         .append(i)
-                         .append("_not_equal ON fragment_record(id) WHERE set_bits & ")
-                         .append(bigIntegerString)
-                         .append(" != ")
-                         .append(bigIntegerString)
-                         .append(";")
-                         .append("\n");
-        }
-
-        System.out.println(stringBuilder);
-    }
+    //    @PostMapping(value = "/filterByShift")
+    //    public void filterByShift(@RequestParam final int minShift, @RequestParam final int maxShift) {
+    //        final String nucleus = "13C";
+    //        final MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord = this.multiplicitySectionsSettingsServiceImplementation.findByNucleus(
+    //                                                                                                  nucleus)
+    //                                                                                                                                            .block();
+    //        if (multiplicitySectionsSettingsRecord
+    //                != null) {
+    //            String tableName;
+    //            for (int i = 1; i
+    //                    <= 50; i++) {
+    //                tableName = "fragment_record_"
+    //                        + i;
+    //                final List<String> subDataSetStringList = this.customFragmentRepositoryImplementation.findByTableName(
+    //                        tableName);
+    //
+    //                System.out.println(" --> i: "
+    //                                           + i
+    //                                           + " -> "
+    //                                           + tableName
+    //                                           + " -> "
+    //                                           + subDataSetStringList.size());
+    //
+    //                tableName = tableName
+    //                        + "x";
+    //
+    //                final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
+    //                multiplicitySectionsBuilder.setMinLimit(
+    //                        multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings()[0]);
+    //                multiplicitySectionsBuilder.setMaxLimit(
+    //                        multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings()[1]);
+    //                multiplicitySectionsBuilder.setStepSize(
+    //                        multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings()[2]);
+    //                this.customFragmentRepositoryImplementation.createTable(tableName,
+    //                                                                        multiplicitySectionsBuilder.getSteps());
+    //
+    //                DataSet fragmentDataSet;
+    //                BitSetFingerprint bitSetFingerprint;
+    //                for (int k = 0; k
+    //                        < subDataSetStringList.size(); k++) {
+    //                    fragmentDataSet = this.gson.fromJson(subDataSetStringList.get(k), DataSet.class);
+    //
+    //                    if (ShiftUtilities.checkShifts(fragmentDataSet, minShift, maxShift)) {
+    //                        bitSetFingerprint = Similarity.getBitSetFingerprint(fragmentDataSet.getSpectrum()
+    //                                                                                           .toSpectrum(), 0,
+    //                                                                            multiplicitySectionsBuilder);
+    //
+    //                        this.customFragmentRepositoryImplementation.insertIntoTable(tableName, nucleus,
+    //                                                                                    BitUtilities.buildBitsString(
+    //                                                                                            BitUtilities.buildBits(
+    //                                                                                                    bitSetFingerprint,
+    //                                                                                                    multiplicitySectionsBuilder.getSteps()),
+    //                                                                                            multiplicitySectionsBuilder.getSteps()),
+    //                                                                                    multiplicitySectionsBuilder.getSteps(),
+    //                                                                                    this.gson.toJson(fragmentDataSet,
+    //                                                                                                     DataSet.class));
+    //
+    //                    } else {
+    //                        System.out.println(" -> fragment "
+    //                                                   + k
+    //                                                   + " is NOT valid! -> "
+    //                                                   + Arrays.toString(fragmentDataSet.getSpectrum()
+    //                                                                                    .getSignals()));
+    //                    }
+    //                }
+    //            }
+    //        }
+    //    }
+    //
+    //    @PostMapping(value = "/replace")
+    //    public void replace() {
+    //        String tableName;
+    //        for (int i = 1; i
+    //                <= 50; i++) {
+    //            tableName = "fragment_record_"
+    //                    + i;
+    //            this.customFragmentRepositoryImplementation.dropTable(tableName);
+    //            this.customFragmentRepositoryImplementation.renameTable(tableName
+    //                                                                            + "x", tableName);
+    //        }
+    //    }
 }

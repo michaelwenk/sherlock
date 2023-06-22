@@ -1,7 +1,10 @@
-curl -X POST -i 'http://localhost:8081/sherlock-db-service-dataset/replaceAll?nuclei=13C&setLimits=true'
+sh fill_datasets.sh
 curl -X POST -i 'http://localhost:8081/sherlock-db-service-statistics/hybridization/replaceAll?nuclei=13C'
 curl -X POST -i 'http://localhost:8081/sherlock-db-service-statistics/connectivity/replaceAll?nuclei=13C'
-curl -X POST -i 'http://localhost:8081/sherlock-db-service-statistics/hosecode/replaceAll?nuclei=13C&maxSphere=6'
+curl -X POST -i 'http://localhost:8081/sherlock-db-service-statistics/heavyAtomStatistics/replaceAll'
+curl -X POST -i 'http://localhost:8081/sherlock-db-service-statistics/hosecode/replaceAll?nuclei=13C&maxSphere=6' && curl -X POST -i 'http://localhost:8081/sherlock-db-service-statistics/hosecode/buildStatistics'
+# fragments...
+
 
 ## before publishing
 # copy the HOSE code map from shared volume into local data folder

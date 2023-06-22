@@ -65,4 +65,6 @@ public interface DataSetService {
     Flux<DataSetRecord> insertMany(final Flux<DataSetRecord> dataSetRecordFlux);
 
     Mono<Void> deleteAll();
+
+    Mono<Void> deleteById(String id);
 }
