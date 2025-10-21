@@ -1,3 +1,5 @@
+#!/bin/bash
+
 #curl -X DELETE -i 'http://localhost:8081/sherlock-db-service-dataset/dataset/deleteAll'
 #sleep 120
 #curl -X POST -i 'http://localhost:8081/sherlock-db-service-dataset/dataset/setLimits?nuclei=13C&minShift=-5&maxShift=230'

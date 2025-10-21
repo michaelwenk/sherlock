@@ -1,3 +1,4 @@
+#!/bin/bash
 
 cd backend/sherlock-discovery-server && mvn clean package -DskipTests
 cd ../..
