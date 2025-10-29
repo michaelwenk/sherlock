@@ -39,7 +39,6 @@ import org.openscience.sherlock.core.model.db.ResultRecord;
 
 import java.util.List;
 
-
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter

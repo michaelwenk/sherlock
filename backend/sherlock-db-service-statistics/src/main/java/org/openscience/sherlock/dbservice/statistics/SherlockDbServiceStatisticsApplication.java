@@ -2,13 +2,13 @@ package org.openscience.sherlock.dbservice.statistics;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.cloud.netflix.eureka.EnableEurekaClient;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.web.reactive.function.client.ExchangeStrategies;
 import org.springframework.web.reactive.function.client.WebClient;
 
 @SpringBootApplication
-@EnableEurekaClient
+@EnableDiscoveryClient
 public class SherlockDbServiceStatisticsApplication {
 
     @Bean
@@ -21,11 +21,11 @@ public class SherlockDbServiceStatisticsApplication {
         // set ExchangeSettings
         final int maxInMemorySizeMB = 1000;
         return ExchangeStrategies.builder()
-                                 .codecs(configurer -> configurer.defaultCodecs()
-                                                                 .maxInMemorySize(maxInMemorySizeMB
-                                                                                          * 1024
-                                                                                          * 1024))
-                                 .build();
+                .codecs(configurer -> configurer.defaultCodecs()
+                        .maxInMemorySize(maxInMemorySizeMB
+                                * 1024
+                                * 1024))
+                .build();
     }
 
     public static void main(final String[] args) {

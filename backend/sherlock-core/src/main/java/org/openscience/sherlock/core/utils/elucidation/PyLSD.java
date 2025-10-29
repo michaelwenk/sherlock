@@ -37,24 +37,23 @@ public class PyLSD {
     private final static String pathToPyLSDResultFileFolder = "/data/lsd/PyLSD/Variant/";
     private final static String pathToNeighborsFilesFolder = "/data/lsd/PyLSD/Variant/";
     private final static String pathToFragmentsFilesFolder = "/data/lsd/PyLSD/Variant/";
-    private final static String[] directoriesToCheck = new String[]{pathToPyLSDInputFileFolder,
-                                                                    pathToPyLSDResultFileFolder,
-                                                                    pathToNeighborsFilesFolder,
-                                                                    pathToFragmentsFilesFolder};
-
+    private final static String[] directoriesToCheck = new String[] { pathToPyLSDInputFileFolder,
+            pathToPyLSDResultFileFolder,
+            pathToNeighborsFilesFolder,
+            pathToFragmentsFilesFolder };
 
     public static ResponseEntity<Transfer> runPyLSD(final Transfer requestTransfer,
-                                                    final WebClient.Builder webClientBuilder,
-                                                    final ExchangeStrategies exchangeStrategies) {
+            final WebClient.Builder webClientBuilder,
+            final ExchangeStrategies exchangeStrategies) {
         // build PyLSD input file
         requestTransfer.getElucidationOptions()
-                       .setPathToNeighborsFiles(pathToNeighborsFilesFolder
-                                                        + requestTransfer.getRequestID()
-                                                        + "_neighbor");
+                .setPathToNeighborsFiles(pathToNeighborsFilesFolder
+                        + requestTransfer.getRequestID()
+                        + "_neighbor");
         requestTransfer.getElucidationOptions()
-                       .setPathToFragmentFiles(pathToFragmentsFilesFolder
-                                                       + requestTransfer.getRequestID()
-                                                       + "_fragment");
+                .setPathToFragmentFiles(pathToFragmentsFilesFolder
+                        + requestTransfer.getRequestID()
+                        + "_fragment");
         final Transfer queryResultTransfer = createPyLSDInputFiles(webClientBuilder, requestTransfer);
         final Transfer responseTransfer = new Transfer();
         responseTransfer.setRequestID(requestTransfer.getRequestID());
@@ -65,11 +64,10 @@ public class PyLSD {
         responseTransfer.setGrouping(queryResultTransfer.getGrouping());
         responseTransfer.setDetectionOptions(queryResultTransfer.getDetectionOptions());
 
-
         System.out.println("\n ---> file content list size to process: "
-                                   + queryResultTransfer.getPyLSDInputFileContentList()
-                                                        .size()
-                                   + "\n");
+                + queryResultTransfer.getPyLSDInputFileContentList()
+                        .size()
+                + "\n");
         String pyLSDInputFileContent, pathToPyLSDInputFile, requestID;
         ProcessBuilder processBuilder;
         Process process;
@@ -77,19 +75,18 @@ public class PyLSD {
         boolean pyLSDRunWasSuccessful;
         ResponseEntity<Transfer> transferResponseEntity;
         boolean stop = false;
-        for (int i = 0; i
-                < queryResultTransfer.getPyLSDInputFileContentList()
-                                     .size(); i++) {
+        for (int i = 0; i < queryResultTransfer.getPyLSDInputFileContentList()
+                .size(); i++) {
             pyLSDInputFileContent = queryResultTransfer.getPyLSDInputFileContentList()
-                                                       .get(i);
+                    .get(i);
             requestID = responseTransfer.getRequestID()
                     + "_"
                     + i;
             System.out.println("\n----------------------\n -> i: "
-                                       + i
-                                       + " -> \n"
-                                       + pyLSDInputFileContent
-                                       + "\n----------------------\n");
+                    + i
+                    + " -> \n"
+                    + pyLSDInputFileContent
+                    + "\n----------------------\n");
 
             pathToPyLSDInputFile = pathToPyLSDInputFileFolder
                     + requestID
@@ -97,23 +94,23 @@ public class PyLSD {
 
             // run PyLSD if file was written successfully
             if (FileSystem.writeFile(pathToPyLSDInputFile, pyLSDInputFileContent)) {
-                //                System.out.println("--> has been written successfully: "
-                //                                           + pathToPyLSDInputFile);
+                // System.out.println("--> has been written successfully: "
+                // + pathToPyLSDInputFile);
                 try {
                     // try to execute PyLSD
                     processBuilder = new ProcessBuilder();
                     processBuilder.directory(new File(pathToPyLSDExecutableFolder))
-                                  .redirectError(new File(pathToPyLSDInputFileFolder
-                                                                  + requestID
-                                                                  + "_error.txt"))
-                                  .redirectOutput(new File(pathToPyLSDInputFileFolder
-                                                                   + requestID
-                                                                   + "_log.txt"))
-                                  .command("python2.7", pathToPyLSDExecutableFolder
-                                          + "lsd.py", pathToPyLSDInputFile);
+                            .redirectError(new File(pathToPyLSDInputFileFolder
+                                    + requestID
+                                    + "_error.txt"))
+                            .redirectOutput(new File(pathToPyLSDInputFileFolder
+                                    + requestID
+                                    + "_log.txt"))
+                            .command("python", pathToPyLSDExecutableFolder
+                                    + "lsd.py", pathToPyLSDInputFile);
                     process = processBuilder.start();
                     pyLSDRunWasSuccessful = process.waitFor(responseTransfer.getElucidationOptions()
-                                                                            .getTimeLimitTotal(), TimeUnit.MINUTES);
+                            .getTimeLimitTotal(), TimeUnit.MINUTES);
                     if (pyLSDRunWasSuccessful) {
                         System.out.println("\n\n--> run was successful");
                         final String pathToSmilesFile = pathToPyLSDResultFileFolder
@@ -123,20 +120,20 @@ public class PyLSD {
                         transferResponseEntity = Prediction.parseAndPredictFromSmilesFile(
                                 responseTransfer.getCorrelations(), responseTransfer.getElucidationOptions(),
                                 responseTransfer.getDetections(),
-                                //                                hoseCodeDBEntriesMap,
+                                // hoseCodeDBEntriesMap,
                                 pathToSmilesFile, webClientBuilder, exchangeStrategies);
                         if (transferResponseEntity.getStatusCode()
-                                                  .isError()) {
+                                .isError()) {
                             return transferResponseEntity;
                         }
                         System.out.println("\n\n--> parse and prediction was successful");
                         for (final DataSet dataSet : transferResponseEntity.getBody()
-                                                                           .getDataSetList()) {
+                                .getDataSetList()) {
                             if (dataSetList.stream()
-                                           .noneMatch(ds -> ds.getMeta()
-                                                              .get("smiles")
-                                                              .equals(dataSet.getMeta()
-                                                                             .get("smiles")))) {
+                                    .noneMatch(ds -> ds.getMeta()
+                                            .get("smiles")
+                                            .equals(dataSet.getMeta()
+                                                    .get("smiles")))) {
                                 dataSetList.add(dataSet);
                             }
                         }
@@ -144,7 +141,7 @@ public class PyLSD {
                         System.out.println(
                                 "--> reached time limit -> run was NOT successful -> killing PyLSD run if it is still running");
                         responseTransfer.setErrorMessage(cancel(true).getBody()
-                                                                     .getErrorMessage());
+                                .getErrorMessage());
                         stop = true;
                     }
                 } catch (final Exception e) {
@@ -158,51 +155,46 @@ public class PyLSD {
                     break;
                 }
             } else {
-                //                System.out.println("--> input file creation failed at "
-                //                                           + pathToPyLSDInputFile);
+                // System.out.println("--> input file creation failed at "
+                // + pathToPyLSDInputFile);
                 responseTransfer.setErrorMessage("PyLSD input file creation failed at "
-                                                         + pathToPyLSDInputFile);
+                        + pathToPyLSDInputFile);
                 return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         }
         System.out.println("\n\n ---> total count of unique parsed and ranked structures: "
-                                   + dataSetList.size());
+                + dataSetList.size());
         responseTransfer.setDataSetList(dataSetList);
 
         return new ResponseEntity<>(responseTransfer, stop
-                                                      ? HttpStatus.INTERNAL_SERVER_ERROR
-                                                      : HttpStatus.OK);
+                ? HttpStatus.INTERNAL_SERVER_ERROR
+                : HttpStatus.OK);
     }
 
     public static Transfer createPyLSDInputFiles(final WebClient.Builder webClientBuilder,
-                                                 final Transfer requestTransfer) {
+            final Transfer requestTransfer) {
         System.out.println("-> detection was already done?: "
-                                   + (requestTransfer.getDetected()
-                != null
-                && requestTransfer.getDetected()));
-        //        System.out.println(requestTransfer.getDetections());
+                + (requestTransfer.getDetected() != null
+                        && requestTransfer.getDetected()));
+        // System.out.println(requestTransfer.getDetections());
 
-        if (requestTransfer.getDetected()
-                == null
+        if (requestTransfer.getDetected() == null
                 || !requestTransfer.getDetected()
-                || requestTransfer.getDetections()
-                == null) {
+                || requestTransfer.getDetections() == null) {
             final Transfer detectionTransfer = Detection.detect(webClientBuilder, requestTransfer);
             requestTransfer.setDetected(detectionTransfer.getDetected());
             requestTransfer.setDetections(detectionTransfer.getDetections());
             requestTransfer.setElucidationOptions(detectionTransfer.getElucidationOptions());
             System.out.println(" -> new detections: "
-                                       + requestTransfer.getDetections());
+                    + requestTransfer.getDetections());
         }
         System.out.println("-> grouping was already given?: "
-                                   + (requestTransfer.getGrouping()
-                != null));
+                + (requestTransfer.getGrouping() != null));
         System.out.println(requestTransfer.getGrouping());
-        if (requestTransfer.getGrouping()
-                == null) {
+        if (requestTransfer.getGrouping() == null) {
             requestTransfer.setGrouping(Detection.detectGroups(requestTransfer.getCorrelations()));
             System.out.println(" -> new grouping: "
-                                       + requestTransfer.getGrouping());
+                    + requestTransfer.getGrouping());
         }
 
         // add (custom) filters to elucidation options
@@ -212,59 +204,55 @@ public class PyLSD {
         List<String> filterList = new ArrayList<>();
         try {
             filterList = Files.walk(pathToCustomFilters)
-                              .filter(path -> !Files.isDirectory(path))
-                              .map(path -> path.toFile()
-                                               .getAbsolutePath())
-                              .collect(Collectors.toList());
+                    .filter(path -> !Files.isDirectory(path))
+                    .map(path -> path.toFile()
+                            .getAbsolutePath())
+                    .collect(Collectors.toList());
         } catch (final IOException e) {
             e.printStackTrace();
         }
         if (requestTransfer.getElucidationOptions()
-                           .isUseFilterLsdRing3()) {
+                .isUseFilterLsdRing3()) {
             filterList.add(pathToFilterRing3);
         }
         if (requestTransfer.getElucidationOptions()
-                           .isUseFilterLsdRing4()) {
+                .isUseFilterLsdRing4()) {
             filterList.add(pathToFilterRing4);
         }
         requestTransfer.getElucidationOptions()
-                       .setFilterPaths(filterList.toArray(String[]::new));
+                .setFilterPaths(filterList.toArray(String[]::new));
 
-        if (requestTransfer.getDetections()
-                != null
+        if (requestTransfer.getDetections() != null
                 && requestTransfer.getDetections()
-                                  .getFragments()
-                != null) {
+                        .getFragments() != null) {
             // check for manual added custom fragment and build atom container
             DataSet fragmentDataSet, newFragmentDataSet;
             MDLV3000Reader mdlv3000Reader;
             IAtomContainer fragment;
-            for (int i = 0; i
-                    < requestTransfer.getDetections()
-                                     .getFragments()
-                                     .size(); i++) {
+            for (int i = 0; i < requestTransfer.getDetections()
+                    .getFragments()
+                    .size(); i++) {
                 fragmentDataSet = requestTransfer.getDetections()
-                                                 .getFragments()
-                                                 .get(i);
+                        .getFragments()
+                        .get(i);
                 if (fragmentDataSet.getAttachment()
-                                   .containsKey("custom")
+                        .containsKey("custom")
                         && (boolean) fragmentDataSet.getAttachment()
-                                                    .get("custom")
-                        && fragmentDataSet.getStructure()
-                        == null) {
+                                .get("custom")
+                        && fragmentDataSet.getStructure() == null) {
                     try {
                         mdlv3000Reader = new MDLV3000Reader(new StringReader(fragmentDataSet.getMeta()
-                                                                                            .get("molfile")));
+                                .get("molfile")));
                         fragment = mdlv3000Reader.read(new AtomContainer());
                         newFragmentDataSet = Utils.atomContainerToDataSet(fragment, true);
                         newFragmentDataSet.addAttachment("custom", true);
                         newFragmentDataSet.addAttachment("include", fragmentDataSet.getAttachment()
-                                                                                   .get("include"));
+                                .get("include"));
                         newFragmentDataSet.addMetaInfo("molfile", fragmentDataSet.getMeta()
-                                                                                 .get("molfile"));
+                                .get("molfile"));
                         requestTransfer.getDetections()
-                                       .getFragments()
-                                       .set(i, newFragmentDataSet);
+                                .getFragments()
+                                .set(i, newFragmentDataSet);
                     } catch (final CDKException e) {
                         e.printStackTrace();
                     }
@@ -273,68 +261,64 @@ public class PyLSD {
         }
 
         final Detections detectionsToUse = new Detections(new HashMap<>(), new HashMap<>(), new HashMap<>(),
-                                                          new HashMap<>(), requestTransfer.getDetections()
-                                                                                   != null
-                                                                                   && requestTransfer.getDetections()
-                                                                                                     .getFixedNeighbors()
-                != null
-                                                                           ? requestTransfer.getDetections()
-                                                                                            .getFixedNeighbors()
-                                                                           : new HashMap<>(),
-                                                          requestTransfer.getDetections()
-                                                                  != null
-                                                                  && requestTransfer.getDetections()
-                                                                                    .getFragments()
-                                                                  != null
-                                                          ? requestTransfer.getDetections()
-                                                                           .getFragments()
-                                                          : new ArrayList<>());
+                new HashMap<>(), requestTransfer.getDetections() != null
+                        && requestTransfer.getDetections()
+                                .getFixedNeighbors() != null
+                                        ? requestTransfer.getDetections()
+                                                .getFixedNeighbors()
+                                        : new HashMap<>(),
+                requestTransfer.getDetections() != null
+                        && requestTransfer.getDetections()
+                                .getFragments() != null
+                                        ? requestTransfer.getDetections()
+                                                .getFragments()
+                                        : new ArrayList<>());
         // check for allowed detection usage
         if (requestTransfer.getDetectionOptions()
-                           .isUseHybridizationDetections()) {
+                .isUseHybridizationDetections()) {
             detectionsToUse.setDetectedHybridizations(requestTransfer.getDetections()
-                                                                     .getDetectedHybridizations());
+                    .getDetectedHybridizations());
         } else {
             for (final Correlation correlation : requestTransfer.getCorrelations()
-                                                                .getValues()) {
+                    .getValues()) {
                 correlation.setHybridization(new ArrayList<>());
             }
         }
         if (requestTransfer.getDetectionOptions()
-                           .isUseNeighborDetections()) {
+                .isUseNeighborDetections()) {
             detectionsToUse.setDetectedConnectivities(requestTransfer.getDetections()
-                                                                     .getDetectedConnectivities());
+                    .getDetectedConnectivities());
             detectionsToUse.setForbiddenNeighbors(requestTransfer.getDetections()
-                                                                 .getForbiddenNeighbors());
+                    .getForbiddenNeighbors());
             detectionsToUse.setSetNeighbors(requestTransfer.getDetections()
-                                                           .getSetNeighbors());
+                    .getSetNeighbors());
         }
 
         // define default bond distances
         final Map<String, Integer[]> defaultBondDistances = new HashMap<>();
-        defaultBondDistances.put("hmbc", new Integer[]{2, 3});
-        defaultBondDistances.put("cosy", new Integer[]{3, 4});
+        defaultBondDistances.put("hmbc", new Integer[] { 2, 3 });
+        defaultBondDistances.put("cosy", new Integer[] { 3, 4 });
 
         requestTransfer.setPyLSDInputFileContentList(
                 PyLSDInputFileBuilder.buildPyLSDInputFileContentList(requestTransfer.getCorrelations(),
-                                                                     requestTransfer.getMf(), detectionsToUse,
-                                                                     requestTransfer.getElucidationOptions()
-                                                                                    .isUseCombinatorics()
-                                                                     ? requestTransfer.getGrouping()
-                                                                     : new Grouping(new HashMap<>(), new HashMap<>(),
-                                                                                    new HashMap<>()),
-                                                                     requestTransfer.getElucidationOptions(),
-                                                                     defaultBondDistances));
+                        requestTransfer.getMf(), detectionsToUse,
+                        requestTransfer.getElucidationOptions()
+                                .isUseCombinatorics()
+                                        ? requestTransfer.getGrouping()
+                                        : new Grouping(new HashMap<>(), new HashMap<>(),
+                                                new HashMap<>()),
+                        requestTransfer.getElucidationOptions(),
+                        defaultBondDistances));
         return requestTransfer;
     }
 
     private static boolean isStillRunning(final ProcessHandle processHandle) {
         return processHandle.isAlive()
                 && (processHandle.info()
-                                 .command()
-                                 .orElse("unknown")
-                                 .contains("python2.7")
-                || processHandle.info()
+                        .command()
+                        .orElse("unknown")
+                        .contains("python2.7")
+                        || processHandle.info()
                                 .command()
                                 .orElse("unknown")
                                 .contains("LSD/lsd"));
@@ -351,26 +335,26 @@ public class PyLSD {
         }
 
         while (ProcessHandle.allProcesses()
-                            .anyMatch(PyLSD::isStillRunning)) {
+                .anyMatch(PyLSD::isStillRunning)) {
             ProcessHandle.allProcesses()
-                         .filter(PyLSD::isStillRunning)
-                         .findFirst()
-                         .ifPresent(processHandleLSD -> {
-                             System.out.println("-> killing PID "
-                                                        + processHandleLSD.pid()
-                                                        + ": "
-                                                        + processHandleLSD.info()
-                                                                          .command()
-                                                                          .orElse("unknown"));
-                             while (!processHandleLSD.destroyForcibly()) {
-                                 try {
-                                     TimeUnit.SECONDS.sleep(1);
-                                 } catch (final InterruptedException e) {
-                                     e.printStackTrace();
-                                     errorMessageList.add(e.getMessage());
-                                 }
-                             }
-                         });
+                    .filter(PyLSD::isStillRunning)
+                    .findFirst()
+                    .ifPresent(processHandleLSD -> {
+                        System.out.println("-> killing PID "
+                                + processHandleLSD.pid()
+                                + ": "
+                                + processHandleLSD.info()
+                                        .command()
+                                        .orElse("unknown"));
+                        while (!processHandleLSD.destroyForcibly()) {
+                            try {
+                                TimeUnit.SECONDS.sleep(1);
+                            } catch (final InterruptedException e) {
+                                e.printStackTrace();
+                                errorMessageList.add(e.getMessage());
+                            }
+                        }
+                    });
         }
 
         if (!errorMessageList.isEmpty()) {
@@ -381,7 +365,7 @@ public class PyLSD {
     }
 
     public static ResponseEntity<Transfer> detection(final Transfer requestTransfer,
-                                                     final WebClient.Builder webClientBuilder) {
+            final WebClient.Builder webClientBuilder) {
         return new ResponseEntity<>(Detection.detect(webClientBuilder, requestTransfer), HttpStatus.OK);
     }
 }

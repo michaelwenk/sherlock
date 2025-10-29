@@ -25,7 +25,7 @@
 package org.openscience.sherlock.dbservice.dataset.controller;
 
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
-import casekit.nmr.dbservice.COCONUT;
+// import casekit.nmr.dbservice.COCONUT;
 import casekit.nmr.dbservice.NMRShiftDB;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
@@ -47,9 +47,8 @@ import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.*;
-
 
 @RestController
 @RequestMapping(value = "/dataset")
@@ -61,7 +60,7 @@ public class DataSetController {
     private final Map<String, int[]> multiplicitySectionsSettings = new HashMap<>();
 
     public DataSetController(final DataSetServiceImplementation dataSetServiceImplementation,
-                             final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation) {
+            final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation) {
         this.dataSetServiceImplementation = dataSetServiceImplementation;
         this.multiplicitySectionsSettingsServiceImplementation = multiplicitySectionsSettingsServiceImplementation;
     }
@@ -98,37 +97,37 @@ public class DataSetController {
 
     @GetMapping(value = "/getByNucleiAndSource", produces = "application/stream+json")
     public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndSource(@RequestParam final String[] nuclei,
-                                                                   @RequestParam final String source) {
+            @RequestParam final String source) {
         return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndSource(nuclei, source);
     }
 
     @GetMapping(value = "/getByNucleiAndSetBits", produces = "application/stream+json")
     public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndAttachmentSetBits(@RequestParam final String[] nuclei,
-                                                                              @RequestParam final int[] setBits) {
+            @RequestParam final int[] setBits) {
         return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndAttachmentSetBits(nuclei, setBits);
     }
 
     @GetMapping(value = "/getByNucleiAndSetBitsAndMf", produces = "application/stream+json")
     public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndAttachmentSetBitsAndMf(@RequestParam final String[] nuclei,
-                                                                                   @RequestParam final int[] setBits,
-                                                                                   final String mf) {
+            @RequestParam final int[] setBits,
+            final String mf) {
         return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndAttachmentSetBitsAndMf(nuclei, setBits,
-                                                                                                      mf);
+                mf);
     }
 
     @GetMapping(value = "/getByNucleiAndSignalCount", produces = "application/stream+json")
     public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(
             @RequestParam final String[] nuclei, @RequestParam final int signalCount) {
         return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(nuclei,
-                                                                                                          signalCount);
+                signalCount);
     }
 
     @GetMapping(value = "/getByNucleiAndSignalCountAndMf", produces = "application/stream+json")
     public Flux<DataSetRecord> getByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(
             @RequestParam final String[] nuclei, @RequestParam final int signalCount, @RequestParam final String mf) {
         return this.dataSetServiceImplementation.findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(nuclei,
-                                                                                                               signalCount,
-                                                                                                               mf);
+                signalCount,
+                mf);
     }
 
     @PostMapping(value = "/insert", consumes = "application/json")
@@ -141,41 +140,42 @@ public class DataSetController {
         return this.dataSetServiceImplementation.deleteAll();
     }
 
-    //    @PostMapping(value = "/deleteByShift")
-    //    public void deleteByShift(@RequestParam final int minShift, @RequestParam final int maxShift) {
-    //        System.out.println(" -> filtering by shift: "
-    //                                   + minShift
-    //                                   + " to "
-    //                                   + maxShift
-    //                                   + " ppm");
-    //        final ConcurrentLinkedQueue<String> idsToRemove = new ConcurrentLinkedQueue<>();
-    //        this.getAll()
-    //            .doOnNext(dataSetRecord -> {
-    //                if (!this.checkShifts(dataSetRecord.getDataSet(), minShift, maxShift)) {
-    //                    System.out.println(dataSetRecord.getId());
-    //                    idsToRemove.add(dataSetRecord.getId());
-    //                }
-    //            })
-    //            .doOnTerminate(() -> {
-    //                System.out.println(" -> delete in DB...");
-    //                System.out.println(" -> delete "
-    //                                           + idsToRemove.size()
-    //                                           + " entries...");
-    //                for (final String id : idsToRemove) {
-    //                    System.out.println("delete "
-    //                                               + id
-    //                                               + " ...");
-    //                    this.dataSetServiceImplementation.deleteById(id);
-    //                }
-    //                System.out.println(" -> done");
-    //            })
-    //            .subscribe();
-    //    }
-
+    // @PostMapping(value = "/deleteByShift")
+    // public void deleteByShift(@RequestParam final int minShift, @RequestParam
+    // final int maxShift) {
+    // System.out.println(" -> filtering by shift: "
+    // + minShift
+    // + " to "
+    // + maxShift
+    // + " ppm");
+    // final ConcurrentLinkedQueue<String> idsToRemove = new
+    // ConcurrentLinkedQueue<>();
+    // this.getAll()
+    // .doOnNext(dataSetRecord -> {
+    // if (!this.checkShifts(dataSetRecord.getDataSet(), minShift, maxShift)) {
+    // System.out.println(dataSetRecord.getId());
+    // idsToRemove.add(dataSetRecord.getId());
+    // }
+    // })
+    // .doOnTerminate(() -> {
+    // System.out.println(" -> delete in DB...");
+    // System.out.println(" -> delete "
+    // + idsToRemove.size()
+    // + " entries...");
+    // for (final String id : idsToRemove) {
+    // System.out.println("delete "
+    // + id
+    // + " ...");
+    // this.dataSetServiceImplementation.deleteById(id);
+    // }
+    // System.out.println(" -> done");
+    // })
+    // .subscribe();
+    // }
 
     @PostMapping(value = "/setLimits")
     public void setLimits(@RequestParam final String[] nuclei, @RequestParam final int minShift,
-                          @RequestParam final int maxShift) {
+            @RequestParam final int maxShift) {
         System.out.println(" -> setting new limits...");
         try {
             List<DataSet> dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(
@@ -183,32 +183,34 @@ public class DataSetController {
             dataSetList = ShiftUtilities.filterByShift(dataSetList, minShift, maxShift);
             this.setMultiplicityByProtonsCount(dataSetList, "13C");
             Map<String, Integer[]> limits = this.setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(dataSetList,
-                                                                                                     new HashMap<>());
+                    new HashMap<>());
             System.out.println("dataset size NMRShiftDB -> "
-                                       + dataSetList.size());
+                    + dataSetList.size());
             System.out.println("limits NMRShiftDB: "
-                                       + Arrays.toString(limits.get("13C")));
-            for (int i = 0; i
-                    < SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT.length; i++) {
-                System.out.println(" -> COCONUT "
-                                           + i
-                                           + " -> "
-                                           + SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT[i]);
-                dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(
-                        SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT[i], nuclei);
-                dataSetList = ShiftUtilities.filterByShift(dataSetList, minShift, maxShift);
-                this.setMultiplicityByProtonsCount(dataSetList, "13C");
-                System.out.println("dataset size COCONUT "
-                                           + i
-                                           + " -> "
-                                           + dataSetList.size());
-                limits = this.setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(dataSetList, limits);
-                System.out.println("limits COCONUT "
-                                           + i
-                                           + ": "
-                                           + Arrays.toString(limits.get("13C")));
-            }
-        } catch (final FileNotFoundException | CDKException e) {
+                    + Arrays.toString(limits.get("13C")));
+            // for (int i = 0; i
+            // < SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT.length; i++) {
+            // System.out.println(" -> COCONUT "
+            // + i
+            // + " -> "
+            // + SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT[i]);
+            // dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(
+            // SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT[i], nuclei);
+            // dataSetList = ShiftUtilities.filterByShift(dataSetList, minShift, maxShift);
+            // this.setMultiplicityByProtonsCount(dataSetList, "13C");
+            // System.out.println("dataset size COCONUT "
+            // + i
+            // + " -> "
+            // + dataSetList.size());
+            // limits =
+            // this.setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(dataSetList,
+            // limits);
+            // System.out.println("limits COCONUT "
+            // + i
+            // + ": "
+            // + Arrays.toString(limits.get("13C")));
+            // }
+        } catch (final IOException | CDKException e) {
             e.printStackTrace();
         }
         System.out.println(" -> set new limits done");
@@ -216,86 +218,88 @@ public class DataSetController {
 
     @PostMapping(value = "/insertByDBNameAndFileIndex")
     public void insertByDBNameAndFileIndex(@RequestParam final String[] nuclei, @RequestParam final String dbName,
-                                           @RequestParam final int fileIndex, @RequestParam final int minShift,
-                                           @RequestParam final int maxShift) {
+            @RequestParam final int fileIndex, @RequestParam final int minShift,
+            @RequestParam final int maxShift) {
         MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord;
         for (final String nucleus : nuclei) {
             multiplicitySectionsSettingsRecord = this.multiplicitySectionsSettingsServiceImplementation.findByNucleus(
-                                                             nucleus)
-                                                                                                       .block();
+                    nucleus)
+                    .block();
             this.multiplicitySectionsSettings.put(multiplicitySectionsSettingsRecord.getNucleus(),
-                                                  multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings());
+                    multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings());
         }
 
         List<DataSet> dataSetList = new ArrayList<>();
         try {
             if (dbName.equals("nmrshiftdb")) {
                 System.out.println(" -> datasets creation for \""
-                                           + dbName
-                                           + "\" ...");
+                        + dbName
+                        + "\" ...");
                 dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(
                         SherlockDbServiceDatasetApplication.PATH_TO_NMRSHIFTDB, nuclei);
                 dataSetList = ShiftUtilities.filterByShift(dataSetList, minShift, maxShift);
-            } else if (dbName.equals("coconut")) {
-                if (fileIndex
-                        >= SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT.length) {
-                    System.out.println("!!! File index too large!!!");
-                } else {
-                    System.out.println(" -> datasets creation for \""
-                                               + dbName
-                                               + "\" and file index \""
-                                               + fileIndex
-                                               + "\" -> \""
-                                               + SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT[fileIndex]
-                                               + "\" ...");
-                    dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(
-                            SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT[fileIndex], nuclei);
-                    dataSetList = ShiftUtilities.filterByShift(dataSetList, minShift, maxShift);
-                }
             }
-        } catch (final FileNotFoundException | CDKException e) {
+            // else if (dbName.equals("coconut")) {
+            // if (fileIndex >= SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT.length)
+            // {
+            // System.out.println("!!! File index too large!!!");
+            // } else {
+            // System.out.println(" -> datasets creation for \""
+            // + dbName
+            // + "\" and file index \""
+            // + fileIndex
+            // + "\" -> \""
+            // + SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT[fileIndex]
+            // + "\" ...");
+            // dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(
+            // SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT[fileIndex], nuclei);
+            // dataSetList = ShiftUtilities.filterByShift(dataSetList, minShift, maxShift);
+            // }
+            // }
+        } catch (final IOException | CDKException e) {
             e.printStackTrace();
         }
 
         this.setMultiplicityByProtonsCount(dataSetList, "13C");
-        System.out.println(" -> dataset size -> "
-                                   + dataSetList.size());
+        System.out.println(" -> dataset size -> " + dataSetList.size());
         System.out.println(" -> insert datasets ...");
         this.insertDataSetRecords(dataSetList);
     }
 
     private void insertDataSetRecords(final List<DataSet> dataSetList) {
         this.dataSetServiceImplementation.insertMany(Flux.fromIterable(dataSetList)
-                                                         .map(dataSet -> {
-                                                             final String nucleusTemp = dataSet.getSpectrum()
-                                                                                               .getNuclei()[0];
-                                                             final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
-                                                             multiplicitySectionsBuilder.setMinLimit(
-                                                                     this.multiplicitySectionsSettings.get(
-                                                                             nucleusTemp)[0]);
-                                                             multiplicitySectionsBuilder.setMaxLimit(
-                                                                     this.multiplicitySectionsSettings.get(
-                                                                             nucleusTemp)[1]);
-                                                             multiplicitySectionsBuilder.setStepSize(
-                                                                     this.multiplicitySectionsSettings.get(
-                                                                             nucleusTemp)[2]);
-                                                             final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(
-                                                                     dataSet.getSpectrum()
-                                                                            .toSpectrum(), 0,
-                                                                     multiplicitySectionsBuilder);
+                .map(dataSet -> {
+                    final String nucleusTemp = dataSet.getSpectrum()
+                            .getNuclei()[0];
+                    final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
+                    multiplicitySectionsBuilder.setMinLimit(
+                            this.multiplicitySectionsSettings.get(
+                                    nucleusTemp)[0]);
+                    multiplicitySectionsBuilder.setMaxLimit(
+                            this.multiplicitySectionsSettings.get(
+                                    nucleusTemp)[1]);
+                    multiplicitySectionsBuilder.setStepSize(
+                            this.multiplicitySectionsSettings.get(
+                                    nucleusTemp)[2]);
+                    final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(
+                            dataSet.getSpectrum()
+                                    .toSpectrum(),
+                            0,
+                            multiplicitySectionsBuilder);
 
-                                                             dataSet.addAttachment("fpSize", bitSetFingerprint.size());
-                                                             dataSet.addAttachment("setBits",
-                                                                                   bitSetFingerprint.getSetbits());
+                    dataSet.addAttachment("fpSize", bitSetFingerprint.size());
+                    dataSet.addAttachment("setBits",
+                            bitSetFingerprint.getSetbits());
 
-                                                             return new DataSetRecord(null, dataSet);
-                                                         }))
-                                         .doAfterTerminate(() -> System.out.println(" --> inserted dataset list"))
-                                         .subscribe();
+                    return new DataSetRecord(null, dataSet);
+                }))
+                .doAfterTerminate(() -> System.out.println(" --> inserted dataset list"))
+                .subscribe();
     }
 
     /**
-     * Overwrite (non-)existing multiplicity value through protons count in signals from given nucleus type
+     * Overwrite (non-)existing multiplicity value through protons count in signals
+     * from given nucleus type
      *
      * @param dataSetList
      * @param nucleus
@@ -306,17 +310,16 @@ public class DataSetController {
         IAtom atom;
         for (final DataSet dataSet : dataSetList) {
             spectrum = dataSet.getSpectrum()
-                              .toSpectrum();
+                    .toSpectrum();
             if (!spectrum.getNuclei()[0].equals(nucleus)) {
                 continue;
             }
             structure = dataSet.getStructure()
-                               .toAtomContainer();
-            for (int i = 0; i
-                    < spectrum.getSignals()
-                              .size(); i++) {
+                    .toAtomContainer();
+            for (int i = 0; i < spectrum.getSignals()
+                    .size(); i++) {
                 atom = structure.getAtom(dataSet.getAssignment()
-                                                .getAssignment(0, i, 0));
+                        .getAssignment(0, i, 0));
                 spectrum.getSignal(i)
                         .setMultiplicity(Utils.getMultiplicityFromProtonsCount(
                                 AtomContainerManipulator.countHydrogens(structure, atom)));
@@ -327,14 +330,14 @@ public class DataSetController {
 
     @GetMapping(value = "/getMultiplicitySectionsSettings", produces = "application/json")
     public Map<String, int[]> getMultiplicitySectionsSettings() {
-        final List<MultiplicitySectionsSettingsRecord> multiplicitySectionsSettingsRecordList = this.multiplicitySectionsSettingsServiceImplementation.findAll()
-                                                                                                                                                      .collectList()
-                                                                                                                                                      .block();
-        if (multiplicitySectionsSettingsRecordList
-                != null) {
+        final List<MultiplicitySectionsSettingsRecord> multiplicitySectionsSettingsRecordList = this.multiplicitySectionsSettingsServiceImplementation
+                .findAll()
+                .collectList()
+                .block();
+        if (multiplicitySectionsSettingsRecordList != null) {
             for (final MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord : multiplicitySectionsSettingsRecordList) {
                 this.multiplicitySectionsSettings.put(multiplicitySectionsSettingsRecord.getNucleus(),
-                                                      multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings());
+                        multiplicitySectionsSettingsRecord.getMultiplicitySectionsSettings());
             }
         }
 
@@ -342,7 +345,7 @@ public class DataSetController {
     }
 
     private Map<String, Integer[]> setMinLimitAndMaxLimitOfMultiplicitySectionsBuilder(final List<DataSet> dataSetList,
-                                                                                       final Map<String, Integer[]> prevLimits) {
+            final Map<String, Integer[]> prevLimits) {
         final Map<String, Integer> stepSizes = new HashMap<>();
         stepSizes.put("13C", 2);
         stepSizes.put("15N", 2);
@@ -353,29 +356,25 @@ public class DataSetController {
         Spectrum spectrum;
         for (final DataSet dataSet : dataSetList) {
             spectrum = dataSet.getSpectrum()
-                              .toSpectrum();
+                    .toSpectrum();
             nucleus = spectrum.getNuclei()[0];
-            limits.putIfAbsent(nucleus, new Integer[]{null, null});
+            limits.putIfAbsent(nucleus, new Integer[] { null, null });
 
             tempMin = Collections.min(spectrum.getShifts(0));
             tempMax = Collections.max(spectrum.getShifts(0));
-            if (limits.get(nucleus)[0]
-                    == null
-                    || tempMin
-                    < limits.get(nucleus)[0]) {
+            if (limits.get(nucleus)[0] == null
+                    || tempMin < limits.get(nucleus)[0]) {
                 limits.get(nucleus)[0] = tempMin.intValue();
             }
-            if (limits.get(nucleus)[1]
-                    == null
-                    || tempMax
-                    > limits.get(nucleus)[1]) {
+            if (limits.get(nucleus)[1] == null
+                    || tempMax > limits.get(nucleus)[1]) {
                 limits.get(nucleus)[1] = tempMax.intValue();
             }
         }
 
         // delete previously stored multiplicity sections settings
         this.multiplicitySectionsSettingsServiceImplementation.deleteAll()
-                                                              .block();
+                .block();
         int[] settings;
         for (final Map.Entry<String, Integer[]> entry : limits.entrySet()) {
             nucleus = entry.getKey();
@@ -388,8 +387,8 @@ public class DataSetController {
             settings[2] = stepSizes.get(nucleus);
             this.multiplicitySectionsSettings.put(nucleus, settings);
             this.multiplicitySectionsSettingsServiceImplementation.insert(
-                        new MultiplicitySectionsSettingsRecord(null, nucleus, settings))
-                                                                  .block();
+                    new MultiplicitySectionsSettingsRecord(null, nucleus, settings))
+                    .block();
         }
 
         return limits;

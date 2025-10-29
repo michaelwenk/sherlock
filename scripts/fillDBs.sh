@@ -1,6 +1,9 @@
 #!/bin/bash
 
-sh fill_datasets.sh
+sh scripts/fill_datasets.sh
+# delete all result entries
+curl -X DELETE -i 'http://localhost:8081/sherlock-db-service-result/deleteAll'
+# build statistics
 curl -X POST -i 'http://localhost:8081/sherlock-db-service-statistics/hybridization/replaceAll?nuclei=13C'
 curl -X POST -i 'http://localhost:8081/sherlock-db-service-statistics/connectivity/replaceAll?nuclei=13C'
 curl -X POST -i 'http://localhost:8081/sherlock-db-service-statistics/heavyAtomStatistics/replaceAll'

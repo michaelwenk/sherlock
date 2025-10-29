@@ -24,27 +24,29 @@ import java.util.Objects;
 public class Prediction {
 
     public static ResponseEntity<Transfer> parseAndPredictFromSmilesFile(final Correlations correlations,
-                                                                         final ElucidationOptions elucidationOptions,
-                                                                         final Detections detections,
-                                                                         final String pathToSmilesFile,
-                                                                         final WebClient.Builder webClientBuilder,
-                                                                         final ExchangeStrategies exchangeStrategies) {
+            final ElucidationOptions elucidationOptions,
+            final Detections detections,
+            final String pathToSmilesFile,
+            final WebClient.Builder webClientBuilder,
+            final ExchangeStrategies exchangeStrategies) {
         final Transfer responseTransfer = new Transfer();
         try {
             final List<String> smilesList = Parser.smilesFileToList(pathToSmilesFile);
-            //            System.out.println("-----> requestSMILES: "
-            //                                       + smilesList.size());
+            // System.out.println("-----> requestSMILES: "
+            // + smilesList.size() + " -> " + smilesList);
             try {
                 final List<DataSet> dataSetList = predictAndFilter(correlations, smilesList, elucidationOptions,
-                                                                   detections, webClientBuilder, exchangeStrategies);
+                        detections, webClientBuilder, exchangeStrategies);
                 responseTransfer.setDataSetList(dataSetList);
             } catch (final Exception e) {
+                System.out.println("--> prediction error: "
+                        + e.getMessage());
                 responseTransfer.setErrorMessage(e.getMessage());
                 return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
             }
         } catch (final FileNotFoundException e) {
-            //            System.out.println("--> could not parse SMILES file: "
-            //                                       + requestTransfer.getPathToSmilesFile());
+            System.out.println("--> could not parse SMILES file: "
+                    + pathToSmilesFile + " -> " + e.getMessage());
             responseTransfer.setDataSetList(new ArrayList<>());
         }
 
@@ -52,20 +54,20 @@ public class Prediction {
     }
 
     public static List<DataSet> predictAndFilter(final Correlations correlations,
-                                                 //                                                 List<IAtomContainer> structureList,
-                                                 final List<String> smilesList,
-                                                 final ElucidationOptions elucidationOptions,
-                                                 final Detections detections,
-            //                                                 final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
-                                                 final WebClient.Builder webClientBuilder,
-                                                 final ExchangeStrategies exchangeStrategies) {
+            // List<IAtomContainer> structureList,
+            final List<String> smilesList,
+            final ElucidationOptions elucidationOptions,
+            final Detections detections,
+            // final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
+            final WebClient.Builder webClientBuilder,
+            final ExchangeStrategies exchangeStrategies) {
         // @TODO method modifications for different nuclei and solvent needed
         final String nucleus = "13C";
         final int maxSphere = 6;
         final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(correlations.getValues(), nucleus);
         final Map<String, int[]> multiplicitySectionsSettings = Objects.requireNonNull(
                 Utilities.getMultiplicitySectionsSettings(webClientBuilder, exchangeStrategies)
-                         .block());
+                        .block());
         final Transfer queryTransfer = new Transfer();
         queryTransfer.setQuerySpectrum(querySpectrum);
         queryTransfer.setShiftTolerance(elucidationOptions.getShiftTolerance());
@@ -83,28 +85,31 @@ public class Prediction {
         queryTransfer.setMaxSphere(maxSphere);
 
         return Utilities.getPredictedDataSetFlux(queryTransfer, webClientBuilder, exchangeStrategies)
-                        .collectList()
-                        .block();
+                .collectList()
+                .block();
 
-        //        final int nThreads = 2;
+        // final int nThreads = 2;
         //
-        //        return casekit.nmr.prediction.Prediction.predict1DByStereoHOSECodeAndFilter(querySpectrum,
-        //                                                                                    elucidationOptions.getShiftTolerance(),
-        //                                                                                    elucidationOptions.getMaximumAverageDeviation(),
-        //                                                                                    true, true, false, detections,
-        //                                                                                    maxSphere, structureList,
-        //                                                                                    hoseCodeDBEntriesMap,
-        //                                                                                    Objects.requireNonNull(
-        //                                                                                            Utilities.getMultiplicitySectionsSettings(
-        //                                                                                                             webClientBuilder,
-        //                                                                                                             exchangeStrategies)
-        //                                                                                                     .block()),
-        //                                                                                    nThreads);
+        // return
+        // casekit.nmr.prediction.Prediction.predict1DByStereoHOSECodeAndFilter(querySpectrum,
+        // elucidationOptions.getShiftTolerance(),
+        // elucidationOptions.getMaximumAverageDeviation(),
+        // true, true, false, detections,
+        // maxSphere, structureList,
+        // hoseCodeDBEntriesMap,
+        // Objects.requireNonNull(
+        // Utilities.getMultiplicitySectionsSettings(
+        // webClientBuilder,
+        // exchangeStrategies)
+        // .block()),
+        // nThreads);
     }
 
-    //    public static DataSet predict(final IAtomContainer structure, final String nucleus, final int maxSphere,
-    //                                  final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap) {
-    //        return casekit.nmr.prediction.Prediction.predict1DByStereoHOSECode(structure, nucleus, maxSphere,
-    //                                                                           hoseCodeDBEntriesMap);
-    //    }
+    // public static DataSet predict(final IAtomContainer structure, final String
+    // nucleus, final int maxSphere,
+    // final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap) {
+    // return casekit.nmr.prediction.Prediction.predict1DByStereoHOSECode(structure,
+    // nucleus, maxSphere,
+    // hoseCodeDBEntriesMap);
+    // }
 }

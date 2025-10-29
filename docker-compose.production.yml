@@ -1,5 +1,3 @@
-version: "3"
-
 services:
   sherlock-db-service-dataset:
     build:
@@ -25,11 +23,11 @@ services:
     image: postgres:14
     volumes:
       - "./backend/db-instance-fragment/data/db/fragment:/var/lib/postgresql/data"
-      - type: tmpfs
-        target: /var/lib/postgresql/data/pg_stat_tmp
-        tmpfs:
-          # 256 Mb - beware the default, it's infinity(!)
-          size: 268435456
+      # - type: tmpfs
+      #   target: /var/lib/postgresql/data/pg_stat_tmp
+      #   tmpfs:
+      #     # 256 Mb - beware the default, it's infinity(!)
+      #     size: 268435456
     environment:
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=password

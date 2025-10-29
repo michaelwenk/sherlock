@@ -26,8 +26,8 @@ public class HeavyAtomStatisticsController {
 
     @Autowired
     public HeavyAtomStatisticsController(final WebClient.Builder webClientBuilder,
-                                         final ExchangeStrategies exchangeStrategies,
-                                         final HeavyAtomStatisticsServiceImplementation heavyAtomStatisticsServiceImplementation) {
+            final ExchangeStrategies exchangeStrategies,
+            final HeavyAtomStatisticsServiceImplementation heavyAtomStatisticsServiceImplementation) {
         this.webClientBuilder = webClientBuilder;
         this.exchangeStrategies = exchangeStrategies;
         this.heavyAtomStatisticsServiceImplementation = heavyAtomStatisticsServiceImplementation;
@@ -53,7 +53,7 @@ public class HeavyAtomStatisticsController {
 
     @GetMapping(value = "/findByAtomPair", produces = "application/stream+json")
     public Flux<HeavyAtomStatisticsRecord> findByAtomPair(@RequestParam final String atomType1,
-                                                          @RequestParam final String atomType2) {
+            @RequestParam final String atomType2) {
         final String atomPair = ConnectivityStatistics.buildAtomPairString(atomType1, atomType2);
         return this.heavyAtomStatisticsServiceImplementation.findHeavyAtomStatisticsRecordByAtomPair(atomPair);
     }
@@ -65,37 +65,33 @@ public class HeavyAtomStatisticsController {
 
     @PostMapping(value = "/replaceAll")
     public void replaceAll() {
-        System.out.println(" --> delete all DB entries...");
         this.deleteAll()
-            .block();
-        System.out.println(" --> deleted all DB entries!");
+                .block();
 
-        System.out.println(" --> fetching all datasets, build heavy atom statistics and store...");
+        System.out.println(" -> building heavy atom statistics ...");
         final Map<String, Map<String, Integer>> heavyAtomStatistics = new ConcurrentHashMap<>();
         Utilities.getAllDataSets(this.webClientBuilder, this.exchangeStrategies)
-                 .map(DataSetRecord::getDataSet)
-                 .doOnNext(dataSet -> {
-                     final IAtomContainer structure = dataSet.getStructure()
-                                                             .toAtomContainer();
-                     ConnectivityStatistics.buildHeavyAtomsStatistics(structure, heavyAtomStatistics);
-                 })
-                 .doAfterTerminate(() -> {
-                     System.out.println("\nreached doAfterTerminate\n");
-
-                     for (final Map.Entry<String, Map<String, Integer>> entryPerElementsString : heavyAtomStatistics.entrySet()) {
-                         for (final Map.Entry<String, Integer> entryByAtomPair : entryPerElementsString.getValue()
-                                                                                                       .entrySet()) {
-                             this.heavyAtomStatisticsServiceImplementation.insert(
-                                         new HeavyAtomStatisticsRecord(null, entryPerElementsString.getKey(),
-                                                                       entryByAtomPair.getKey(),
-                                                                       entryByAtomPair.getValue()))
-                                                                          .doOnError(Throwable::printStackTrace)
-                                                                          .subscribe();
-                         }
-                     }
-
-                     System.out.println(" -> done");
-                 })
-                 .subscribe();
+                .map(DataSetRecord::getDataSet)
+                .doOnNext(dataSet -> {
+                    final IAtomContainer structure = dataSet.getStructure()
+                            .toAtomContainer();
+                    ConnectivityStatistics.buildHeavyAtomsStatistics(structure, heavyAtomStatistics);
+                })
+                .doAfterTerminate(() -> {
+                    for (final Map.Entry<String, Map<String, Integer>> entryPerElementsString : heavyAtomStatistics
+                            .entrySet()) {
+                        for (final Map.Entry<String, Integer> entryByAtomPair : entryPerElementsString.getValue()
+                                .entrySet()) {
+                            this.heavyAtomStatisticsServiceImplementation.insert(
+                                    new HeavyAtomStatisticsRecord(null, entryPerElementsString.getKey(),
+                                            entryByAtomPair.getKey(),
+                                            entryByAtomPair.getValue()))
+                                    .doOnError(Throwable::printStackTrace)
+                                    .subscribe();
+                        }
+                    }
+                    System.out.println(" -> heavy atom statistics done");
+                })
+                .subscribe();
     }
 }
