@@ -6,12 +6,11 @@ class Defaults:
 	"""container for OS and system specific values"""
 	def __init__(self):
 		self.statuslist = "statuslist.txt"
-		self.datafolder = os.path.normpath(".")
+		self.datafolder = os.path.normpath(".") # os.path.normpath("../LSD/Data")
 		self.lsdbin = os.path.normpath("../LSD")
 		self.rootname = "file"
 		self.isWin = sys.platform == "win32"
-		# self.lsd_extension = r".lsd" if self.isWin else ""
-		self.lsd_extension = ".lsd"
+		self.lsd_extension = ".lsd" # r".lsd" if self.isWin else ""
 		self.nulldev = "NUL" if self.isWin else "/dev/null"
 		self.solncounter = "solncounter"
 		self.stopfile = "stoplsd"

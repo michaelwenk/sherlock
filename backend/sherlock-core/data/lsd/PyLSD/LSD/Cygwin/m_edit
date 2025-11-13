@@ -1,2 +1,0 @@
-#!/bin/sh
-wish m_edit.tcl $*
