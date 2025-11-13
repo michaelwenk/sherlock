@@ -43,3 +43,7 @@ backend/sherlock-core/data/hosecode
 # sherlock-db-instance-fragment: zipped fragments library
 backend/db-instance-fragment/data/db/fragment.tar.gz
 
+# PyLSD folders and files, except lsd.py and defaults.py as modified files in Variant folder
+backend/sherlock-core/data/lsd/PyLSD/*
+!backend/sherlock-core/data/lsd/PyLSD/Variant/lsd.py
+!backend/sherlock-core/data/lsd/PyLSD/Variant/defaults.py
