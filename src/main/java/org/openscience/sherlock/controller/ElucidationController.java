@@ -14,15 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping(value = "/elucidation")
 public class ElucidationController {
 
-    // private final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap;
-
-    // @Autowired
-    // public ElucidationController(
-    // // final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap
-    // ) {
-    // // this.hoseCodeDBEntriesMap = hoseCodeDBEntriesMap;
-    // }
-
     @Autowired
     private PyLSD pyLSD;
 
@@ -33,9 +24,7 @@ public class ElucidationController {
         // run PyLSD
         try {
             final ResponseEntity<Transfer> responseEntity = pyLSD.runPyLSD(
-                    requestTransfer
-            // this.hoseCodeDBEntriesMap,
-            );
+                    requestTransfer);
             if (responseEntity.getStatusCode()
                     .isError()) {
                 responseTransfer.setErrorMessage(responseEntity.getBody() != null
@@ -59,25 +48,4 @@ public class ElucidationController {
         return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
     }
 
-    // @GetMapping(value = "/predictBySmiles")
-    // public DataSet predict(@RequestParam final String smiles, final String
-    // nucleus, final Integer maxSphere) {
-    // try {
-    // final SmilesParser smilesParser = new
-    // SmilesParser(SilentChemObjectBuilder.getInstance());
-    // final IAtomContainer structure = smilesParser.parseSmiles(smiles);
-    //
-    // return Prediction.predict(structure, nucleus
-    // != null
-    // ? nucleus
-    // : "13C", maxSphere
-    // != null
-    // ? maxSphere
-    // : 6, this.hoseCodeDBEntriesMap);
-    // } catch (final InvalidSmilesException e) {
-    // e.printStackTrace();
-    // }
-    //
-    // return null;
-    // }
 }

@@ -35,7 +35,7 @@ public class MultiplicitySectionsSettingsServiceImplementation
     }
 
     @Override
-    public Mono<MultiplicitySectionsSettingsRecord> findByNucleus(final String nucleus) {
+    public Flux<MultiplicitySectionsSettingsRecord> findByNucleus(final String nucleus) {
         return this.multiplicitySectionsSettingsRepository.findByNucleus(nucleus);
     }
 
@@ -48,5 +48,10 @@ public class MultiplicitySectionsSettingsServiceImplementation
     @Override
     public Mono<Void> deleteAll() {
         return this.multiplicitySectionsSettingsRepository.deleteAll();
+    }
+
+    @Override
+    public Mono<Void> deleteByNucleus(final String nucleus) {
+        return this.multiplicitySectionsSettingsRepository.deleteByNucleus(nucleus);
     }
 }

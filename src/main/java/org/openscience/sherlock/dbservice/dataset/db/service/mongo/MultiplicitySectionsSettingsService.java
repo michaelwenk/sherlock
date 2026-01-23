@@ -12,7 +12,7 @@ public interface MultiplicitySectionsSettingsService {
 
     Mono<MultiplicitySectionsSettingsRecord> findById(final String id);
 
-    Mono<MultiplicitySectionsSettingsRecord> findByNucleus(final String nucleus);
+    Flux<MultiplicitySectionsSettingsRecord> findByNucleus(final String nucleus);
 
     // insertions/deletions
 
@@ -20,4 +20,6 @@ public interface MultiplicitySectionsSettingsService {
             final MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord);
 
     Mono<Void> deleteAll();
+
+    Mono<Void> deleteByNucleus(final String nucleus);
 }

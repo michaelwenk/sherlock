@@ -1,6 +1,7 @@
 package org.openscience.sherlock.dbservice.statistics.controller;
 
 import casekit.nmr.elucidation.Constants;
+import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.utils.Utils;
 
@@ -18,6 +19,7 @@ import reactor.core.publisher.Mono;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequestMapping(value = "/statistics/hybridization")
@@ -76,15 +78,24 @@ public class HybridizationController {
 
     @PostMapping(value = "/replaceAll")
     public void replaceAll(@RequestParam final String[] nuclei) {
+        this.replaceAll(utilities.getByDataSetSpectrumNuclei(nuclei)
+                .map(DataSetRecord::getDataSet));
+    }
+
+    public void replaceAll(Flux<DataSet> dataSetFlux) {
+        System.out.println("-> replacing hybridisation statistics ...");
+        System.out.println(" -> deleting old hybridisation statistics ...");
         this.hybridizationServiceImplementation.deleteAll()
                 .block();
+        System.out.println(" -> previous hybridisation statistics deleted.");
 
         // nucleus -> shift -> multiplicity -> elemental composition -> list of
         // hybridizations
         final ConcurrentHashMap<String, ConcurrentHashMap<Integer, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentLinkedDeque<String>>>>> entries = new ConcurrentHashMap<>();
-        System.out.println(" -> building hybridisation statistics ...");
-        utilities.getByDataSetSpectrumNuclei(nuclei)
-                .map(DataSetRecord::getDataSet)
+        System.out.println(" -> building new hybridisation statistics ...");
+        final AtomicInteger counter = new AtomicInteger(0);
+
+        dataSetFlux
                 .doOnNext(dataSet -> {
                     final Spectrum spectrum = dataSet.getSpectrum()
                             .toSpectrum();
@@ -146,8 +157,14 @@ public class HybridizationController {
                                     .add(hybridization);
                         }
                     }
+
+                    final int currentCount = counter.incrementAndGet();
+                    if (currentCount % 50000 == 0) {
+                        System.out.println(" --> processed " + currentCount + " datasets");
+                    }
                 })
                 .doAfterTerminate(() -> {
+                    System.out.println(" -> datasets processed: building hybridisation statistics entries ...");
                     Map<String, Integer[]> hybridizationCounts;
                     for (final String nucleus : entries.keySet()) {
                         for (final int shift : entries.get(nucleus)

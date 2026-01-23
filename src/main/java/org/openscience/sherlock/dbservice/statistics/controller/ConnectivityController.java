@@ -1,6 +1,7 @@
 package org.openscience.sherlock.dbservice.statistics.controller;
 
 import casekit.nmr.analysis.ConnectivityStatistics;
+import casekit.nmr.model.DataSet;
 import casekit.nmr.utils.Utils;
 
 import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
@@ -14,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 @RestController
@@ -55,62 +57,73 @@ public class ConnectivityController {
 
         @PostMapping(value = "/replaceAll")
         public void replaceAll(@RequestParam final String[] nuclei) {
+                this.replaceAll(utilities.getByDataSetSpectrumNuclei(nuclei).map(DataSetRecord::getDataSet));
+        }
+
+        public void replaceAll(final Flux<DataSet> dataSetFlux) {
+                System.out.println(" -> replacing connectivity statistics ...");
+                System.out.println(" -> deleting previous connectivity statistics ...");
                 this.deleteAll()
                                 .block();
+                System.out.println(" -> previous connectivity statistics deleted");
 
-                System.out.println(" -> building connectivity statistics ...");
+                System.out.println(" -> building new connectivity statistics ...");
+                final AtomicInteger counter = new AtomicInteger(0);
 
                 // nucleus -> multiplicity -> hybridization -> shift (int) -> "elemental
                 // composition" -> connected atom symbol -> [#found, #notFound]
                 final Map<String, Map<String, Map<String, Map<Integer, Map<String, Map<String, Integer[]>>>>>> occurrenceStatistics = new HashMap<>();
-                utilities.getByDataSetSpectrumNuclei(nuclei)
-                                .map(DataSetRecord::getDataSet)
-                                .doOnNext(dataSet -> {
-                                        final String nucleus = dataSet.getSpectrum()
-                                                        .getNuclei()[0];
-                                        final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
-                                        occurrenceStatistics.putIfAbsent(nucleus, new ConcurrentHashMap<>());
-                                        ConnectivityStatistics.buildOccurrenceStatistics(dataSet, atomType,
-                                                        occurrenceStatistics.get(nucleus));
-                                })
-                                .doAfterTerminate(() -> {
-                                        occurrenceStatistics.keySet()
-                                                        .forEach(nucleus -> occurrenceStatistics.get(nucleus)
-                                                                        .keySet()
-                                                                        .forEach(
-                                                                                        multiplicity -> occurrenceStatistics
-                                                                                                        .get(
-                                                                                                                        nucleus)
-                                                                                                        .get(multiplicity)
-                                                                                                        .keySet()
-                                                                                                        .forEach(
-                                                                                                                        hybridization -> occurrenceStatistics
-                                                                                                                                        .get(
-                                                                                                                                                        nucleus)
-                                                                                                                                        .get(multiplicity)
-                                                                                                                                        .get(hybridization)
-                                                                                                                                        .keySet()
-                                                                                                                                        .forEach(
-                                                                                                                                                        shift -> {
-                                                                                                                                                                this.connectivityServiceImplementation
-                                                                                                                                                                                .insert(
-                                                                                                                                                                                                new ConnectivityRecord(
-                                                                                                                                                                                                                null,
-                                                                                                                                                                                                                nucleus,
-                                                                                                                                                                                                                hybridization,
-                                                                                                                                                                                                                multiplicity,
-                                                                                                                                                                                                                shift,
-                                                                                                                                                                                                                occurrenceStatistics
-                                                                                                                                                                                                                                .get(
-                                                                                                                                                                                                                                                nucleus)
-                                                                                                                                                                                                                                .get(multiplicity)
-                                                                                                                                                                                                                                .get(hybridization)
-                                                                                                                                                                                                                                .get(shift)))
-                                                                                                                                                                                .subscribe();
-                                                                                                                                                        }))));
-                                        System.out.println(" -> connectivity statistics done");
-                                })
-                                .subscribe();
+                dataSetFlux.doOnNext(dataSet -> {
+                        final String nucleus = dataSet.getSpectrum()
+                                        .getNuclei()[0];
+                        final String atomType = Utils.getAtomTypeFromNucleus(nucleus);
+                        occurrenceStatistics.putIfAbsent(nucleus, new ConcurrentHashMap<>());
+                        ConnectivityStatistics.buildOccurrenceStatistics(dataSet, atomType,
+                                        occurrenceStatistics.get(nucleus));
+
+                        final int currentCount = counter.incrementAndGet();
+                        if (currentCount % 50000 == 0) {
+                                System.out.println(" --> processed " + currentCount + " datasets");
+                        }
+                }).doAfterTerminate(() -> {
+                        System.out.println(
+                                        " -> datasets processed: inserting connectivity statistics ...");
+                        occurrenceStatistics.keySet()
+                                        .forEach(nucleus -> occurrenceStatistics.get(nucleus)
+                                                        .keySet()
+                                                        .forEach(
+                                                                        multiplicity -> occurrenceStatistics
+                                                                                        .get(
+                                                                                                        nucleus)
+                                                                                        .get(multiplicity)
+                                                                                        .keySet()
+                                                                                        .forEach(
+                                                                                                        hybridization -> occurrenceStatistics
+                                                                                                                        .get(
+                                                                                                                                        nucleus)
+                                                                                                                        .get(multiplicity)
+                                                                                                                        .get(hybridization)
+                                                                                                                        .keySet()
+                                                                                                                        .forEach(
+                                                                                                                                        shift -> {
+                                                                                                                                                this.connectivityServiceImplementation
+                                                                                                                                                                .insert(
+                                                                                                                                                                                new ConnectivityRecord(
+                                                                                                                                                                                                null,
+                                                                                                                                                                                                nucleus,
+                                                                                                                                                                                                hybridization,
+                                                                                                                                                                                                multiplicity,
+                                                                                                                                                                                                shift,
+                                                                                                                                                                                                occurrenceStatistics
+                                                                                                                                                                                                                .get(
+                                                                                                                                                                                                                                nucleus)
+                                                                                                                                                                                                                .get(multiplicity)
+                                                                                                                                                                                                                .get(hybridization)
+                                                                                                                                                                                                                .get(shift)))
+                                                                                                                                                                .subscribe();
+                                                                                                                                        }))));
+                        System.out.println(" -> connectivity statistics done");
+                }).subscribe();
         }
 
         @GetMapping(value = "/detectOccurrenceCounts", produces = "application/json")

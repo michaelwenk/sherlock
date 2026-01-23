@@ -15,12 +15,22 @@ import reactor.core.publisher.Flux;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Component
 public class Utilities {
 
         @Autowired
         private DataSetController dataSetController;
+
+        public long getDataSetCount() {
+                return dataSetController.getCount().block();
+        }
+
+        public Flux<DataSetRecord> getDataSetsByIds(final Iterable<String> ids) {
+                return dataSetController.getByIds(ids);
+        }
 
         public Flux<DataSetRecord> getAllDataSets() {
                 return dataSetController.getAll();
@@ -59,31 +69,8 @@ public class Utilities {
                 }
         }
 
-        public void insertIntoHoseCodeRecord(final Map.Entry<String, Map<String, Double[]>> entryPerHOSECode,
-                        final HOSECodeRecord hoseCodeRecord) {
-                String solvent, shiftString;
-                for (final Map.Entry<String, Double[]> entryPerSolvent : entryPerHOSECode.getValue()
-                                .entrySet()) {
-                        solvent = entryPerSolvent.getKey();
-                        hoseCodeRecord.getValues()
-                                        .putIfAbsent(solvent, new HashMap<>());
-                        for (final Double shift : entryPerSolvent.getValue()) {
-                                shiftString = String.valueOf(Statistics.roundDouble(shift, 1))
-                                                .replaceAll("\\.", "_");
-                                hoseCodeRecord.getValues()
-                                                .get(solvent)
-                                                .putIfAbsent(shiftString, 0L);
-                                hoseCodeRecord.getValues()
-                                                .get(solvent)
-                                                .put(shiftString, hoseCodeRecord.getValues()
-                                                                .get(solvent)
-                                                                .get(shiftString)
-                                                                + 1);
-                        }
-                }
-        }
-
         public void buildAndInsertHOSECodes(final List<DataSet> dataSetList, final int maxSphere,
+                        final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts,
                         final HOSECodeServiceImplementation hoseCodeServiceImplementation) {
                 // final List<Boolean> containsStereo = new ArrayList<>();
                 // for (final DataSet dataSet : dataSetList) {
@@ -140,18 +127,20 @@ public class Utilities {
                 for (final DataSet dataSet : dataSetList) {
                         this.removeStereoConfiguration(dataSet);
                 }
-                System.out.println(" --> building 3D HOSE codes without stereo configuration in "
-                                + dataSetList.size()
-                                + " cases...");
+                // System.out.println(" --> building 3D HOSE codes without stereo configuration
+                // in " + dataSetList.size()
+                // + " cases...");
                 final Map<String, Map<String, Double[]>> hoseCodeShiftStatistics = HOSECodeShiftStatistics
                                 .buildHOSECodeShiftStatistics(
                                                 dataSetList, maxSphere, true, false);
-                System.out.println(" --> building 3D HOSE codes without stereo configuration done -> "
-                                + hoseCodeShiftStatistics.size());
-                System.out.println(" --> updating 3D HOSE codes in database...");
+                // System.out.println(" --> building 3D HOSE codes without stereo configuration
+                // done -> "
+                // + hoseCodeShiftStatistics.size());
+                // System.out.println(" --> updating 3D HOSE codes in database...");
 
-                insertOrUpdateHOSECodeRecord(hoseCodeShiftStatistics, hoseCodeServiceImplementation);
-                System.out.println(" --> updating 3D HOSE codes in database done");
+                insertOrUpdateHOSECodeRecord(hoseCodeShiftStatistics,
+                                hoseCodeServiceImplementation);
+                // System.out.println(" --> updating 3D HOSE codes in database done");
         }
 
         public void insertOrUpdateHOSECodeRecord(
@@ -170,6 +159,30 @@ public class Utilities {
                                                 .block();
                                 insertIntoHoseCodeRecord(entryPerHOSECode, hoseCodeRecord);
                                 hoseCodeServiceImplementation.save(hoseCodeRecord).block();
+                        }
+                }
+        }
+
+        public void insertIntoHoseCodeRecord(final Map.Entry<String, Map<String, Double[]>> entryPerHOSECode,
+                        final HOSECodeRecord hoseCodeRecord) {
+                String solvent, shiftString;
+                for (final Map.Entry<String, Double[]> entryPerSolvent : entryPerHOSECode.getValue()
+                                .entrySet()) {
+                        solvent = entryPerSolvent.getKey();
+                        hoseCodeRecord.getValues()
+                                        .putIfAbsent(solvent, new HashMap<>());
+                        for (final Double shift : entryPerSolvent.getValue()) {
+                                shiftString = String.valueOf(Statistics.roundDouble(shift, 1))
+                                                .replaceAll("\\.", "_");
+                                hoseCodeRecord.getValues()
+                                                .get(solvent)
+                                                .putIfAbsent(shiftString, 0L);
+                                hoseCodeRecord.getValues()
+                                                .get(solvent)
+                                                .put(shiftString, hoseCodeRecord.getValues()
+                                                                .get(solvent)
+                                                                .get(shiftString)
+                                                                + 1);
                         }
                 }
         }

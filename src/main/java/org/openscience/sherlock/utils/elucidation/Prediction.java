@@ -58,12 +58,9 @@ public class Prediction {
         }
 
         public List<DataSet> predictAndFilter(final Correlations correlations,
-                        // List<IAtomContainer> structureList,
                         final List<String> smilesList,
                         final ElucidationOptions elucidationOptions,
-                        final Detections detections
-        // final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap,
-        ) {
+                        final Detections detections) {
                 // @TODO method modifications for different nuclei and solvent needed
                 final String nucleus = "13C";
                 final int maxSphere = 6;
@@ -93,28 +90,6 @@ public class Prediction {
                                 .collectList()
                                 .block();
 
-                // final int nThreads = 2;
-                //
-                // return
-                // casekit.nmr.prediction.Prediction.predict1DByStereoHOSECodeAndFilter(querySpectrum,
-                // elucidationOptions.getShiftTolerance(),
-                // elucidationOptions.getMaximumAverageDeviation(),
-                // true, true, false, detections,
-                // maxSphere, structureList,
-                // hoseCodeDBEntriesMap,
-                // Objects.requireNonNull(
-                // Utilities.getMultiplicitySectionsSettings(
-                // webClientBuilder,
-                // exchangeStrategies)
-                // .block()),
-                // nThreads);
         }
 
-        // public static DataSet predict(final IAtomContainer structure, final String
-        // nucleus, final int maxSphere,
-        // final Map<String, Map<String, Double[]>> hoseCodeDBEntriesMap) {
-        // return casekit.nmr.prediction.Prediction.predict1DByStereoHOSECode(structure,
-        // nucleus, maxSphere,
-        // hoseCodeDBEntriesMap);
-        // }
 }

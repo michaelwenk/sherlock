@@ -1,7 +1,3 @@
-volumes:
-  hosecode-file-storage:
-    driver: local
-
 services:
   sherlock:
     container_name: sherlock
@@ -13,38 +9,26 @@ services:
       - "8080:8080"
     depends_on:
       - sherlock-db-mongo
-      - sherlock-db-postgres       
-    volumes:
-      - hosecode-file-storage:/data/hosecode
+      - sherlock-db-postgres
 
   sherlock-db-mongo:
     container_name: sherlock-db-mongo
-    image: mongo:4
+    image: mongo:8
     ports:
       - "8081:27017"
-    command:
-      --wiredTigerCacheSizeGB 2
+    # command:
+    #   --wiredTigerCacheSizeGB 4
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD=password
     volumes:
       - "./data/db-mongo:/data/db"
 
-  # in case of: "WARNING: could not open statistics file "pg_stat_tmp/global.stat": Operation not permitted"
-  # first time
-  # 1) start without this tmpfs section
-  # 2) after postgres finished initialising bring the service down
-  # 3) enable the tmpfs and restart
   sherlock-db-postgres:
     container_name: sherlock-db-postgres
-    image: postgres:14
+    image: postgres:18
     volumes:
-      - "./data/db-postgres/:/var/lib/postgresql/data"
-      # - type: tmpfs
-      #   target: /var/lib/postgresql/data/pg_stat_tmp
-      #   tmpfs:
-      #     # 256 Mb - beware the default, it's infinity(!)
-      #     size: 268435456
+      - "./data/db-postgres/:/var/lib/postgresql"      
     environment:
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=password

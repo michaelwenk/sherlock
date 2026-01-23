@@ -1,136 +1,69 @@
 package org.openscience.sherlock.dbservice.dataset.utils;
 
+import org.openscience.sherlock.dbservice.dataset.config.DatasetJpaConfig;
+
 public class QueryUtilities {
 
-    //    public static String buildFindByWITHQuery(final List<String> singleBitList) {
-    //        final String excludeListString = "exclude_list_";
-    //        final StringBuilder queryStringBuilder = new StringBuilder("WITH ");
-    //        final List<String> excludeListStrings = new ArrayList<>();
-    //        String singleBitString;
-    //        for (int i = 0; i
-    //                < singleBitList.size(); i++) {
-    //            singleBitString = singleBitList.get(i);
-    //            excludeListStrings.add(excludeListString
-    //                                           + i);
-    //            queryStringBuilder.append(excludeListStrings.get(i))
-    //                              .append(" AS (SELECT id FROM fragment_record WHERE set_bits & ")
-    //                              .append(singleBitString)
-    //                              .append(" = ")
-    //                              .append(singleBitString)
-    //                              .append(")");
-    //            if (i
-    //                    < singleBitList.size()
-    //                    - 1) {
-    //                queryStringBuilder.append(",\n");
-    //            }
-    //        }
-    //        queryStringBuilder.append("\n");
-    //        queryStringBuilder.append("SELECT f.id\n");
-    //        queryStringBuilder.append("FROM fragment_record f ");
-    //        for (final String listString : excludeListStrings) {
-    //            queryStringBuilder.append("LEFT JOIN ")
-    //                              .append(listString)
-    //                              .append(" ON ")
-    //                              .append("f.id = ")
-    //                              .append(listString)
-    //                              .append(".id ");
-    //        }
-    //        queryStringBuilder.append("\n");
-    //        queryStringBuilder.append("WHERE ");
-    //        for (int i = 0; i
-    //                < excludeListStrings.size(); i++) {
-    //            queryStringBuilder.append(excludeListStrings.get(i))
-    //                              .append(".id IS NULL");
-    //            if (i
-    //                    < excludeListStrings.size()
-    //                    - 1) {
-    //                queryStringBuilder.append(" AND ");
-    //            }
-    //        }
-    //        queryStringBuilder.append(";");
-    //        System.out.println("\n -> query: "
-    //                                   + queryStringBuilder);
-    //
-    //        return queryStringBuilder.toString();
-    //    }
-    //
-    //    public static String buildFindAllSubDataSetStringsByIdQuery(final Collection<Integer> ids) {
-    //        final StringBuilder queryStringBuilder = new StringBuilder();
-    //        queryStringBuilder.append("SELECT sub_data_set_string ")
-    //                          .append("FROM fragment_record ")
-    //                          .append("WHERE id IN (");
-    //        int i = 0;
-    //        for (final int id : ids) {
-    //            queryStringBuilder.append(id);
-    //            if (i
-    //                    < ids.size()
-    //                    - 1) {
-    //                queryStringBuilder.append(", ");
-    //            }
-    //            i++;
-    //        }
-    //        queryStringBuilder.append(");");
-    //        //        System.out.println("\n -> query: "
-    //        //                                   + queryStringBuilder);
-    //
-    //        return queryStringBuilder.toString();
-    //}
-
-    //    public static String buildFindBySingleBitsQuery(final String setBitsString) {
-    //        return "SELECT sub_data_set_string FROM fragment_record WHERE set_bits & "
-    //                + setBitsString
-    //                + " = set_bits;";
-    //}
-
-    public static String buildFindByTableName(final String tableName) {
+    public static String buildFindByTableName() {
         return "SELECT sub_data_set_string FROM "
-                + tableName
+                + DatasetJpaConfig.FRAGMENT_TABLE_NAME
                 + ";";
     }
 
-    public static String buildFindBySingleBitsQuery(final String tableName, final String setBitsString) {
-        return "SELECT sub_data_set_string FROM "
-                + tableName
-                + " WHERE set_bits & "
-                + setBitsString
-                + " = set_bits;";
+    public static String buildFindBySetBitsQuery(final String nucleus, final String bitString) {
+        final int[] setBitsIndices = BitUtilities.extractSetBitsIndices(bitString);
+        final StringBuilder bitStringBuilder = new StringBuilder();
+        for (int i = 0; i < setBitsIndices.length; i++) {
+            bitStringBuilder.append(setBitsIndices[i]);
+            if (i < setBitsIndices.length - 1) {
+                bitStringBuilder.append(", ");
+            }
+        }
+        final String query = "SELECT sub_data_set_string FROM "
+                + DatasetJpaConfig.FRAGMENT_TABLE_NAME
+                + " WHERE id IN (SELECT id FROM "
+                + DatasetJpaConfig.BITS_TABLE_NAME
+                + " WHERE nucleus = '" + nucleus + "'"
+                + " AND n_set_bits <= " + setBitsIndices.length
+                + " AND bit_array <@ ARRAY["
+                + bitStringBuilder.toString()
+                + "]);";
+
+        System.out.println("Built query: " + query);
+
+        return query;
     }
 
-    public static String buildCreateTable(final String tableName, final int nBits) {
-        return "CREATE TABLE IF NOT EXISTS "
-                + tableName
-                + "(id SERIAL PRIMARY KEY NOT NULL, nucleus VARCHAR(5) NOT NULL, set_bits BIT("
-                + nBits
-                + ") NOT NULL, n_bits INTEGER NOT NULL, sub_data_set_string TEXT);";
+    public static String buildCreateFragmentsTable() {
+        return "CREATE TABLE "
+                + DatasetJpaConfig.FRAGMENT_TABLE_NAME
+                + "(id SERIAL PRIMARY KEY NOT NULL, nucleus VARCHAR(5) NOT NULL, sub_data_set_string TEXT);";
     }
 
-    public static String buildInsertIntoTable(final String tableName, final String nucleus, final String setBits,
-                                              final int nBits, final String subDataSetString) {
+    public static String buildCreateBitsTable(final int nBits) {
+        return "CREATE TABLE "
+                + DatasetJpaConfig.BITS_TABLE_NAME
+                + "(id SERIAL REFERENCES " + DatasetJpaConfig.FRAGMENT_TABLE_NAME
+                + "(id), nucleus VARCHAR(5) NOT NULL, n_set_bits INTEGER NOT NULL, n_bits INTEGER NOT NULL, bit_array INTEGER[] NOT NULL, PRIMARY KEY (id, nucleus));";
+
+    }
+
+    public static String buildInsertIntoFragmentsTable() {
         return "INSERT INTO "
-                + tableName
-                + "(nucleus, set_bits, n_bits, sub_data_set_string) VALUES ("
-                + nucleus
-                + ", CAST("
-                + setBits
-                + " AS BIT("
-                + nBits
-                + ")), "
-                //                + subDataSetString
-                + subDataSetString.replaceAll(":", "\\:")
-                + ");";
+                + DatasetJpaConfig.FRAGMENT_TABLE_NAME
+                + " (nucleus, sub_data_set_string) VALUES (?, ?\\:\\:TEXT) RETURNING id;";
+    }
+
+    public static String buildInsertIntoBitsTable() {
+        return "INSERT INTO "
+                + DatasetJpaConfig.BITS_TABLE_NAME
+                + " (id, nucleus, n_set_bits, n_bits, bit_array) VALUES (?, ?, ?, ?, ?);";
+
     }
 
     public static String buildDropTable(final String tableName) {
         return "DROP TABLE IF EXISTS "
                 + tableName
-                + ";";
-    }
-
-    public static String buildRenameTable(final String tableName, final String newTableName) {
-        return "ALTER TABLE IF EXISTS "
-                + tableName
-                + " RENAME TO "
-                + newTableName
                 + ";";
     }
 }

@@ -30,41 +30,42 @@ import reactor.core.publisher.Mono;
 
 public interface DataSetService {
 
-    Mono<Long> count();
+        Mono<Long> count();
 
-    Flux<DataSetRecord> findAll();
+        Flux<DataSetRecord> findAll();
 
-    Mono<DataSetRecord> findById(final String id);
+        Mono<DataSetRecord> findById(final String id);
 
-    Flux<DataSetRecord> findAllById(Iterable<String> iterable);
+        Flux<DataSetRecord> findAllById(Iterable<String> iterable);
 
-    Flux<DataSetRecord> findByMf(final String mf);
+        Flux<DataSetRecord> findByMf(final String mf);
 
-    Flux<DataSetRecord> findBySource(final String source);
+        Flux<DataSetRecord> findBySource(final String source);
 
-    Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
+        Flux<DataSetRecord> findByDataSetSpectrumNuclei(final String[] nuclei);
 
-    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndSource(final String[] nuclei, final String source);
+        Flux<DataSetRecord> findByDataSetSpectrumNucleiAndSource(final String[] nuclei, final String source);
 
-    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndAttachmentSetBits(final String[] nuclei, final int[] setBits);
+        Flux<DataSetRecord> findByDataSetSpectrumNucleiAndAttachmentSetBits(final String[] nuclei, final int[] setBits);
 
-    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndAttachmentSetBitsAndMf(final String[] nuclei, final int[] setBits,
-            final String mf);
+        Flux<DataSetRecord> findByDataSetSpectrumNucleiAndAttachmentSetBitsAndMf(final String[] nuclei,
+                        final int[] setBits,
+                        final String mf);
 
-    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei,
-            final int signalCount);
+        Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCount(final String[] nuclei,
+                        final int signalCount);
 
-    Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(final String[] nuclei,
-            final int signalCount,
-            final String mf);
+        Flux<DataSetRecord> findByDataSetSpectrumNucleiAndDataSetSpectrumSignalCountAndMf(final String[] nuclei,
+                        final int signalCount,
+                        final String mf);
 
-    // insertions/deletions
+        // insertions/deletions
 
-    Mono<DataSetRecord> insert(final DataSetRecord dataSetRecord);
+        Mono<DataSetRecord> insert(final DataSetRecord dataSetRecord);
 
-    Flux<DataSetRecord> insertMany(final Flux<DataSetRecord> dataSetRecordFlux);
+        Flux<DataSetRecord> insertMany(final Flux<DataSetRecord> dataSetRecordFlux);
 
-    Mono<Void> deleteAll();
+        Mono<Void> deleteAll();
 
-    Mono<Void> deleteById(String id);
+        Mono<Void> deleteById(String id);
 }

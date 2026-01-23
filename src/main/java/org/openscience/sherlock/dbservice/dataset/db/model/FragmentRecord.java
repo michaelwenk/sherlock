@@ -5,8 +5,12 @@ import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.ToString;
 
+import org.openscience.sherlock.dbservice.dataset.config.DatasetJpaConfig;
+
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 
 @NoArgsConstructor
 @Getter
@@ -14,12 +18,12 @@ import jakarta.persistence.Id;
 @ToString
 
 @Entity
+@Table(name = DatasetJpaConfig.FRAGMENT_TABLE_NAME)
 public class FragmentRecord {
 
     @Id
     private long id;
     private String nucleus;
-    private String setBits;
-    private long nBits;
+    @Column(columnDefinition = "TEXT")
     private String subDataSetString;
 }

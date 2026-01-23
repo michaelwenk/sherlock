@@ -4,6 +4,7 @@ import casekit.nmr.filterandrank.FilterAndRank;
 import casekit.nmr.model.*;
 import casekit.nmr.utils.Statistics;
 import casekit.nmr.utils.Utils;
+
 import org.openscience.cdk.exception.InvalidSmilesException;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.silent.SilentChemObjectBuilder;
@@ -24,8 +25,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "/statistics/hosecode")
@@ -70,68 +72,51 @@ public class HOSECodeController {
 
     @PostMapping(value = "/replaceAll")
     public void replaceAll(@RequestParam final String[] nuclei, @RequestParam final int maxSphere) {
+        this.replaceAll(utilities.getByDataSetSpectrumNuclei(
+                nuclei).map(DataSetRecord::getDataSet), maxSphere, false);
+    }
+
+    public void replaceAll(final Flux<DataSet> dataSetFlux, final int maxSphere, final boolean buildStatistics) {
+        System.out.println(" -> replacing HOSE code collection ...");
+        System.out.println(" -> deleting previous HOSE code collection ...");
         this.deleteAll();
-        System.out.println(" --> building HOSE code collection ...");
+        System.out.println(" -> previous HOSE code collection deleted");
 
-        final List<DataSet> dataSetList = Objects.requireNonNull(utilities.getByDataSetSpectrumNuclei(
-                nuclei)
-                .collectList()
-                .block())
-                .stream()
-                .map(DataSetRecord::getDataSet)
-                .collect(Collectors.toList());
-        System.out.println(" --> fetched all datasets: "
-                + dataSetList.size());
-        List<DataSet> dataSetListTemp;
-        boolean printOutput;
-        int i = 0;
-        final int steps = 100;
-        while (i
-                + steps < dataSetList.size()) {
-            dataSetListTemp = new ArrayList<>();
-            for (int j = i; j < i
-                    + steps; j++) {
-                dataSetListTemp.add(dataSetList.get(j));
-            }
-            printOutput = i
-                    % steps == 0;
-            if (printOutput) {
-                System.out.println(" --> dataset: "
-                        + i);
-                System.out.println(" --> building HOSE codes...");
-            }
-            try {
-                utilities.buildAndInsertHOSECodes(dataSetListTemp, maxSphere, this.hoseCodeServiceImplementation);
-            } catch (final Exception e) {
-                e.printStackTrace();
-                System.out.println(" --> building HOSE codes failed");
-            }
+        System.out.println(" --> building new HOSE code collection ...");
+        final AtomicInteger counter = new AtomicInteger(0);
+        final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts = new ConcurrentHashMap<>();
+        dataSetFlux.doOnNext(
+                dataSet -> {
+                    final List<DataSet> dataSetList = new ArrayList<>();
+                    dataSetList.add(dataSet);
+                    try {
+                        this.utilities.buildAndInsertHOSECodes(dataSetList, maxSphere,
+                                hoseCodeShifts, this.hoseCodeServiceImplementation);
+                        // System.out.println(" --> building HOSE codes successful");
+                    } catch (final Exception e) {
+                        e.printStackTrace();
+                        // System.out.println(" --> building HOSE codes failed -> skipping dataset");
+                    }
 
-            i = i
-                    + steps;
-        }
-        if (i < dataSetList.size()) {
-            System.out.println(" --> walking through the rest -> "
-                    + (dataSetList.size()
-                            - i)
-                    + " datasets...");
-            dataSetListTemp = new ArrayList<>();
-            for (int j = i; j < dataSetList.size(); j++) {
-                dataSetListTemp.add(dataSetList.get(j));
-            }
+                    if (counter.incrementAndGet()
+                            % 10000 == 0) {
+                        System.out.println(" --> reached: "
+                                + counter.get()
+                                + " datasets");
+                    }
+                })
+                .doAfterTerminate(() -> {
+                    System.out.println(" --> new HOSE code collection built");
+                    if (buildStatistics) {
+                        this.buildStatistics();
+                    }
+                }).subscribe();
 
-            try {
-                utilities.buildAndInsertHOSECodes(dataSetListTemp, maxSphere, this.hoseCodeServiceImplementation);
-                System.out.println("\n --> rest is done");
-            } catch (final Exception e) {
-                e.printStackTrace();
-                System.out.println(" --> building for the rest failed");
-            }
-        }
     }
 
     @PostMapping(value = "/buildStatistics")
     public void buildStatistics() {
+        System.out.println(" -> building HOSE code statistics ...");
         final AtomicInteger count = new AtomicInteger(0);
         this.hoseCodeServiceImplementation.findAll()
                 .doOnNext(hoseCodeRecord -> {
@@ -175,7 +160,7 @@ public class HOSECodeController {
                     }
                 })
                 .doAfterTerminate(() -> {
-                    System.out.println(" -> build statistics done");
+                    System.out.println(" -> build HOSE code statistics done");
                 })
                 .subscribe();
 
@@ -354,28 +339,4 @@ public class HOSECodeController {
         return null;
     }
 
-    // @GetMapping(value = "/saveAllAsMap")
-    // public void saveAllAsMap() {
-    //
-    // final Gson gson = new GsonBuilder().create();
-    // final String pathToHOSECodesFile = "/data/hosecode/hosecodes.json";
-    // System.out.println("-> store json file in shared volume under \""
-    // + pathToHOSECodesFile
-    // + "\"");
-    //
-    // final StringBuilder stringBuilder = new StringBuilder();
-    // stringBuilder.append("[");
-    //
-    // this.getAll()
-    // .doOnNext(hoseCodeObject -> stringBuilder.append(gson.toJson(hoseCodeObject))
-    // .append(","))
-    // .doAfterTerminate(() -> {
-    // stringBuilder.deleteCharAt(stringBuilder.length()
-    // - 1);
-    // stringBuilder.append("]");
-    // FileSystem.writeFile(pathToHOSECodesFile, stringBuilder.toString());
-    // System.out.println("-> done");
-    // })
-    // .subscribe();
-    // }
 }

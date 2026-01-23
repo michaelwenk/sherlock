@@ -11,10 +11,8 @@ import org.openscience.cdk.AtomContainer;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.io.MDLV3000Reader;
-import org.openscience.sherlock.dbservice.statistics.controller.HeavyAtomStatisticsController;
 import org.openscience.sherlock.model.exchange.Transfer;
 import org.openscience.sherlock.utils.detection.Detection;
-import org.openscience.sherlock.utils.detection.HybridizationDetection;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -127,7 +125,6 @@ public class PyLSD {
                                                                 responseTransfer.getCorrelations(),
                                                                 responseTransfer.getElucidationOptions(),
                                                                 responseTransfer.getDetections(),
-                                                                // hoseCodeDBEntriesMap,
                                                                 pathToSmilesFile);
                                                 if (transferResponseEntity.getStatusCode()
                                                                 .isError()) {

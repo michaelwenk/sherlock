@@ -7,4 +7,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @EnableJpaRepositories(basePackages = "org.openscience.sherlock.dbservice.dataset.db.service.jpa")
 public class DatasetJpaConfig {
     // JPA configuration is auto-configured by Spring Boot
+
+    public static final String FRAGMENT_TABLE_NAME = "fragments";
+    public static final String BITS_TABLE_NAME = "bits";
 }

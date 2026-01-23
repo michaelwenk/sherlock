@@ -1,6 +1,8 @@
 package org.openscience.sherlock.dbservice.statistics.controller;
 
 import casekit.nmr.analysis.ConnectivityStatistics;
+import casekit.nmr.model.DataSet;
+
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
 import org.openscience.sherlock.dbservice.statistics.service.HeavyAtomStatisticsServiceImplementation;
@@ -13,6 +15,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
 @RequestMapping(value = "/statistics/heavyAtomStatistics")
@@ -55,33 +58,46 @@ public class HeavyAtomStatisticsController {
 
     @PostMapping(value = "/replaceAll")
     public void replaceAll() {
+        this.replaceAll(utilities.getAllDataSets()
+                .map(DataSetRecord::getDataSet));
+    }
+
+    public void replaceAll(final Flux<DataSet> dataSetFlux) {
+        System.out.println(" -> replacing heavy atom statistics ...");
+        System.out.println(" -> deleting previous heavy atom statistics ...");
         this.deleteAll()
                 .block();
+        System.out.println(" -> previous heavy atom statistics deleted");
 
         System.out.println(" -> building heavy atom statistics ...");
+        final AtomicInteger counter = new AtomicInteger(0);
+
         final Map<String, Map<String, Integer>> heavyAtomStatistics = new ConcurrentHashMap<>();
-        utilities.getAllDataSets()
-                .map(DataSetRecord::getDataSet)
-                .doOnNext(dataSet -> {
-                    final IAtomContainer structure = dataSet.getStructure()
-                            .toAtomContainer();
-                    ConnectivityStatistics.buildHeavyAtomsStatistics(structure, heavyAtomStatistics);
-                })
-                .doAfterTerminate(() -> {
-                    for (final Map.Entry<String, Map<String, Integer>> entryPerElementsString : heavyAtomStatistics
-                            .entrySet()) {
-                        for (final Map.Entry<String, Integer> entryByAtomPair : entryPerElementsString.getValue()
-                                .entrySet()) {
-                            this.heavyAtomStatisticsServiceImplementation.insert(
-                                    new HeavyAtomStatisticsRecord(null, entryPerElementsString.getKey(),
-                                            entryByAtomPair.getKey(),
-                                            entryByAtomPair.getValue()))
-                                    .doOnError(Throwable::printStackTrace)
-                                    .subscribe();
-                        }
-                    }
-                    System.out.println(" -> heavy atom statistics done");
-                })
-                .subscribe();
+        dataSetFlux.doOnNext(dataSet -> {
+            final IAtomContainer structure = dataSet.getStructure()
+                    .toAtomContainer();
+            ConnectivityStatistics.buildHeavyAtomsStatistics(structure, heavyAtomStatistics);
+
+            final int currentCount = counter.incrementAndGet();
+            if (currentCount % 50000 == 0) {
+                System.out.println(" --> processed " + currentCount + " datasets");
+            }
+        }).doAfterTerminate(() -> {
+            System.out.println(
+                    " -> datasets processed: inserting heavy atom statistics ...");
+            for (final Map.Entry<String, Map<String, Integer>> entryPerElementsString : heavyAtomStatistics
+                    .entrySet()) {
+                for (final Map.Entry<String, Integer> entryByAtomPair : entryPerElementsString.getValue()
+                        .entrySet()) {
+                    this.heavyAtomStatisticsServiceImplementation.insert(
+                            new HeavyAtomStatisticsRecord(null, entryPerElementsString.getKey(),
+                                    entryByAtomPair.getKey(),
+                                    entryByAtomPair.getValue()))
+                            .doOnError(Throwable::printStackTrace)
+                            .subscribe();
+                }
+            }
+            System.out.println(" -> heavy atom statistics done");
+        }).subscribe();
     }
 }
