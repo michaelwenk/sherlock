@@ -2,8 +2,8 @@ FROM alpine:3.22.2
 
 COPY target/sherlock-0.0.1-SNAPSHOT.jar /
 COPY data/lsd data/lsd
-COPY data/nmrshiftdb data/nmrshiftdb
-COPY data/coconut data/coconut
+# COPY data/nmrshiftdb data/nmrshiftdb
+# COPY data/coconut data/coconut
 
 RUN apk update && apk upgrade && \
     apk add --no-cache openjdk21 make g++ python3

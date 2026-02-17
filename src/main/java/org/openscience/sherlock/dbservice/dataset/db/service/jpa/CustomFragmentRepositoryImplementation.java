@@ -7,8 +7,10 @@ import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import jakarta.persistence.Query;
 import jakarta.transaction.Transactional;
+
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -24,22 +26,30 @@ public class CustomFragmentRepositoryImplementation
 
         @Override
         public List<String> findBySetBits(final String nucleus, final String bitString) {
-                return this.entityManager
+                final List<Integer> resultIDs = this.entityManager
                                 .createNativeQuery(QueryUtilities.buildFindBySetBitsQuery(nucleus, bitString))
                                 .getResultList();
+
+                System.out.println("Query result IDs: " + resultIDs.size());
+
+                final List<String> subDataSetStringList = Collections.synchronizedList(new ArrayList<>());
+                resultIDs.parallelStream()
+                                .forEach(id -> {
+                                        final String subDataSetString = (String) this.entityManager
+                                                        .createNativeQuery(QueryUtilities.buildFindByIdQuery(id))
+                                                        .getSingleResult();
+                                        subDataSetStringList.add(subDataSetString);
+                                });
+
+                System.out.println("Retrieved subDataSetStringList size: " + subDataSetStringList.size());
+
+                return subDataSetStringList;
         }
 
         @Transactional
         @Override
-        public void createFragmentsTable() {
-                this.entityManager.createNativeQuery(QueryUtilities.buildCreateFragmentsTable())
-                                .executeUpdate();
-        }
-
-        @Transactional
-        @Override
-        public void createBitsTable(final int nBits) {
-                this.entityManager.createNativeQuery(QueryUtilities.buildCreateBitsTable(nBits))
+        public void createFragmentsTable(final int nBits) {
+                this.entityManager.createNativeQuery(QueryUtilities.buildCreateFragmentsTable(nBits))
                                 .executeUpdate();
         }
 
@@ -56,63 +66,54 @@ public class CustomFragmentRepositoryImplementation
                         final String subDataSetString) {
                 // insert into fragment table
                 final int nSetBits = BitUtilities.countSetBits(bitString);
-                String queryString = QueryUtilities.buildInsertIntoFragmentsTable();
-                final long fragmentRecordId = ((Number) this.entityManager.createNativeQuery(queryString)
+                String queryString = QueryUtilities.buildInsertIntoFragmentsTable(nBits);
+                this.entityManager.createNativeQuery(queryString)
                                 .setParameter(1, nucleus)
                                 .setParameter(2, subDataSetString)
-                                .getSingleResult()).longValue();
-                // Insert into bits table
-                queryString = QueryUtilities.buildInsertIntoBitsTable();
-                final Query query = this.entityManager.createNativeQuery(queryString);
-                query.setParameter(1, fragmentRecordId)
-                                .setParameter(2, nucleus)
                                 .setParameter(3, nSetBits)
-                                .setParameter(4, nBits);
-                // set bits parameters
-                query.setParameter(5, BitUtilities.extractSetBitsIndices(bitString));
-                query.executeUpdate();
+                                .setParameter(4, nBits)
+                                .setParameter(5, bitString)
+                                .executeUpdate();
         }
 
         @Transactional
         @Override
-        public void createIndices(final int nBits) {
+        public void createIndicesAndAnalyze() {
+                // analyze table first time
+                System.out.println(
+                                "Analyzing '" + DatasetJpaConfig.FRAGMENT_TABLE_NAME + "' table before indexing.");
+                final String analyzeQuery = "ANALYZE " + DatasetJpaConfig.FRAGMENT_TABLE_NAME + ";";
+                this.entityManager.createNativeQuery(analyzeQuery)
+                                .executeUpdate();
+                System.out.println(
+                                "Analyzing '" + DatasetJpaConfig.FRAGMENT_TABLE_NAME + "' table -> DONE.");
+
                 // create indices on fragments table
-                // create index on id
-                System.out.println("Creating indices for fragments and bits table...");
-                final String idIndexQuery = "CREATE INDEX idx_fragment_id"
+                System.out.println("Creating indices for '" + DatasetJpaConfig.FRAGMENT_TABLE_NAME + "' table...");
+                // create index on id, nucleus, n_set_bits and bit_string
+                final String idNucleusNSetBitsBitStringIndexQuery = "CREATE INDEX idx_id_nucleus_n_set_bits_bit_string"
                                 + " ON "
                                 + DatasetJpaConfig.FRAGMENT_TABLE_NAME
-                                + " (id);";
-                this.entityManager.createNativeQuery(idIndexQuery)
+                                + " (id, nucleus, n_set_bits, bit_string);";
+                this.entityManager.createNativeQuery(idNucleusNSetBitsBitStringIndexQuery)
                                 .executeUpdate();
-                // create indices on bits table
-                // create index on n_set_bits
-                final String nSetBitsIndexQuery = "CREATE INDEX idx_n_set_bits"
+                // create index on id and sub_data_set_string to improve retrieval of
+                // sub_data_set_string by id
+                final String idSubDataSetStringIndexQuery = "CREATE INDEX idx_id_sub_data_set_string"
                                 + " ON "
-                                + DatasetJpaConfig.BITS_TABLE_NAME
-                                + " (n_set_bits);";
-                this.entityManager.createNativeQuery(nSetBitsIndexQuery)
+                                + DatasetJpaConfig.FRAGMENT_TABLE_NAME
+                                + " (id, sub_data_set_string);";
+                this.entityManager.createNativeQuery(idSubDataSetStringIndexQuery)
                                 .executeUpdate();
-                // create index on n_bits
-                final String nBitsIndexQuery = "CREATE INDEX idx_n_bits"
-                                + " ON "
-                                + DatasetJpaConfig.BITS_TABLE_NAME
-                                + " (n_bits);";
-                this.entityManager.createNativeQuery(nBitsIndexQuery)
+                System.out.println(
+                                "Creating indices for '" + DatasetJpaConfig.FRAGMENT_TABLE_NAME + "' table -> DONE.");
+
+                // analyze table after creating indices
+                System.out.println(
+                                "Analyzing '" + DatasetJpaConfig.FRAGMENT_TABLE_NAME + "' table after indexing.");
+                this.entityManager.createNativeQuery(analyzeQuery)
                                 .executeUpdate();
-                // create index on nucleus
-                final String nucleusIndexQuery = "CREATE INDEX idx_nucleus"
-                                + " ON "
-                                + DatasetJpaConfig.BITS_TABLE_NAME
-                                + " (nucleus);";
-                this.entityManager.createNativeQuery(nucleusIndexQuery)
-                                .executeUpdate();
-                final String bitArrayIndexQuery = "CREATE INDEX idx_bit_array"
-                                + " ON "
-                                + DatasetJpaConfig.BITS_TABLE_NAME
-                                + " USING GIN (bit_array);";
-                this.entityManager.createNativeQuery(bitArrayIndexQuery)
-                                .executeUpdate();
-                System.out.println("Creating indices for fragments and bits table... DONE.");
+                System.out.println(
+                                "Analyzing '" + DatasetJpaConfig.FRAGMENT_TABLE_NAME + "' table -> DONE.");
         }
 }

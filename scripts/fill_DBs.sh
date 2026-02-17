@@ -18,10 +18,10 @@ time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/insertByDBNa
 echo "-> filling datasets from nmrshiftdb done." && \
 
 # echo "-> filling datasets from coconut database..." && \
-# time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/insertByDBNameAndFileIndex?nucleus=13C&dbName=coconut&fileIndex=0&minShift=-5&maxShift=230'  && \
-# time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/insertByDBNameAndFileIndex?nucleus=13C&dbName=coconut&fileIndex=1&minShift=-5&maxShift=230'  && \
-# time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/insertByDBNameAndFileIndex?nucleus=13C&dbName=coconut&fileIndex=2&minShift=-5&maxShift=230'  && \
-# time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/insertByDBNameAndFileIndex?nucleus=13C&dbName=coconut&fileIndex=3&minShift=-5&maxShift=230'  && \
+time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/insertByDBNameAndFileIndex?nucleus=13C&dbName=coconut&fileIndex=0&minShift=-5&maxShift=230'  && \
+time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/insertByDBNameAndFileIndex?nucleus=13C&dbName=coconut&fileIndex=1&minShift=-5&maxShift=230'  && \
+time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/insertByDBNameAndFileIndex?nucleus=13C&dbName=coconut&fileIndex=2&minShift=-5&maxShift=230'  && \
+time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/insertByDBNameAndFileIndex?nucleus=13C&dbName=coconut&fileIndex=3&minShift=-5&maxShift=230'  && \
 # echo "-> filling datasets from coconut database done." && \
 
 echo "-> datasets filled." && \

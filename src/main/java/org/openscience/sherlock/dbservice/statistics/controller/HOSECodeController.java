@@ -26,7 +26,6 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RestController
@@ -84,7 +83,7 @@ public class HOSECodeController {
 
         System.out.println(" --> building new HOSE code collection ...");
         final AtomicInteger counter = new AtomicInteger(0);
-        final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts = new ConcurrentHashMap<>();
+        final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Double, Long>>> hoseCodeShifts = new ConcurrentHashMap<>();
         dataSetFlux.doOnNext(
                 dataSet -> {
                     final List<DataSet> dataSetList = new ArrayList<>();
@@ -106,6 +105,9 @@ public class HOSECodeController {
                     }
                 })
                 .doAfterTerminate(() -> {
+                    System.out.println(" --> building HOSE codes done for all datasets");
+                    this.utilities.insertHOSECodeShiftsToDatabase(hoseCodeShifts,
+                            this.hoseCodeServiceImplementation);
                     System.out.println(" --> new HOSE code collection built");
                     if (buildStatistics) {
                         this.buildStatistics();

@@ -16,7 +16,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Component
 public class Utilities {
@@ -70,7 +69,7 @@ public class Utilities {
         }
 
         public void buildAndInsertHOSECodes(final List<DataSet> dataSetList, final int maxSphere,
-                        final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentLinkedQueue<Double>>> hoseCodeShifts,
+                        final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Double, Long>>> hoseCodeShifts,
                         final HOSECodeServiceImplementation hoseCodeServiceImplementation) {
                 // final List<Boolean> containsStereo = new ArrayList<>();
                 // for (final DataSet dataSet : dataSetList) {
@@ -138,52 +137,79 @@ public class Utilities {
                 // + hoseCodeShiftStatistics.size());
                 // System.out.println(" --> updating 3D HOSE codes in database...");
 
-                insertOrUpdateHOSECodeRecord(hoseCodeShiftStatistics,
-                                hoseCodeServiceImplementation);
+                this.updateHoseCodeEntry(hoseCodeShifts, hoseCodeShiftStatistics);
                 // System.out.println(" --> updating 3D HOSE codes in database done");
         }
 
-        public void insertOrUpdateHOSECodeRecord(
-                        final Map<String, Map<String, Double[]>> hoseCodeShiftStatisticsTemp,
-                        final HOSECodeServiceImplementation hoseCodeServiceImplementation) {
+        public void updateHoseCodeEntry(
+                        final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Double, Long>>> hoseCodeShifts,
+                        final Map<String, Map<String, Double[]>> hoseCodeShiftStatisticsTemp) {
                 for (final Map.Entry<String, Map<String, Double[]>> entryPerHOSECode : hoseCodeShiftStatisticsTemp
                                 .entrySet()) {
                         final String hoseCode = entryPerHOSECode.getKey();
-                        if (!hoseCodeServiceImplementation.existsById(hoseCode).block()) {
-                                final HOSECodeRecord hoseCodeRecord = new HOSECodeRecord(hoseCode, new HashMap<>(),
-                                                new HashMap<>());
-                                insertIntoHoseCodeRecord(entryPerHOSECode, hoseCodeRecord);
-                                hoseCodeServiceImplementation.insert(hoseCodeRecord).block();
-                        } else {
-                                final HOSECodeRecord hoseCodeRecord = hoseCodeServiceImplementation.findById(hoseCode)
-                                                .block();
-                                insertIntoHoseCodeRecord(entryPerHOSECode, hoseCodeRecord);
-                                hoseCodeServiceImplementation.save(hoseCodeRecord).block();
+
+                        hoseCodeShifts.putIfAbsent(hoseCode,
+                                        new ConcurrentHashMap<>());
+                        String solvent;
+                        Double roundedShift;
+                        for (final Map.Entry<String, Double[]> entryPerSolvent : entryPerHOSECode
+                                        .getValue().entrySet()) {
+                                solvent = entryPerSolvent.getKey();
+                                hoseCodeShifts.get(hoseCode)
+                                                .putIfAbsent(solvent,
+                                                                new ConcurrentHashMap<>());
+                                for (final Double shift : entryPerSolvent.getValue()) {
+                                        roundedShift = Statistics.roundDouble(shift, 1);
+                                        hoseCodeShifts.get(hoseCode)
+                                                        .get(solvent)
+                                                        .putIfAbsent(roundedShift, 0L);
+                                        hoseCodeShifts.get(hoseCode)
+                                                        .get(solvent)
+                                                        .put(roundedShift, hoseCodeShifts.get(hoseCode)
+                                                                        .get(solvent)
+                                                                        .get(roundedShift)
+                                                                        + 1);
+                                }
                         }
                 }
         }
 
-        public void insertIntoHoseCodeRecord(final Map.Entry<String, Map<String, Double[]>> entryPerHOSECode,
-                        final HOSECodeRecord hoseCodeRecord) {
-                String solvent, shiftString;
-                for (final Map.Entry<String, Double[]> entryPerSolvent : entryPerHOSECode.getValue()
+        public void insertHOSECodeShiftsToDatabase(
+                        final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Double, Long>>> hoseCodeShifts,
+                        final HOSECodeServiceImplementation hoseCodeServiceImplementation) {
+                for (final Map.Entry<String, ConcurrentHashMap<String, ConcurrentHashMap<Double, Long>>> entryPerHOSECode : hoseCodeShifts
                                 .entrySet()) {
+                        final HOSECodeRecord hoseCodeRecord = this.buildHoseCodeRecord(entryPerHOSECode);
+                        hoseCodeServiceImplementation.insert(hoseCodeRecord).block();
+                        // hoseCodeServiceImplementation.insert(hoseCodeRecord).subscribe();
+                }
+        }
+
+        public HOSECodeRecord buildHoseCodeRecord(
+                        final Map.Entry<String, ConcurrentHashMap<String, ConcurrentHashMap<Double, Long>>> entryPerHOSECode) {
+                String solvent;
+                String shiftString;
+                final String hoseCode = entryPerHOSECode.getKey();
+                final HOSECodeRecord hoseCodeRecord = new HOSECodeRecord(hoseCode, new HashMap<>(),
+                                new HashMap<>());
+                for (final Map.Entry<String, ConcurrentHashMap<Double, Long>> entryPerSolvent : entryPerHOSECode
+                                .getValue().entrySet()) {
                         solvent = entryPerSolvent.getKey();
                         hoseCodeRecord.getValues()
                                         .putIfAbsent(solvent, new HashMap<>());
-                        for (final Double shift : entryPerSolvent.getValue()) {
-                                shiftString = String.valueOf(Statistics.roundDouble(shift, 1))
+                        for (final Map.Entry<Double, Long> entryPerShift : entryPerSolvent
+                                        .getValue().entrySet()) {
+                                shiftString = String.valueOf(Statistics.roundDouble(entryPerShift.getKey(), 1))
                                                 .replaceAll("\\.", "_");
                                 hoseCodeRecord.getValues()
                                                 .get(solvent)
                                                 .putIfAbsent(shiftString, 0L);
                                 hoseCodeRecord.getValues()
                                                 .get(solvent)
-                                                .put(shiftString, hoseCodeRecord.getValues()
-                                                                .get(solvent)
-                                                                .get(shiftString)
-                                                                + 1);
+                                                .put(shiftString, entryPerShift.getValue());
                         }
                 }
+
+                return hoseCodeRecord;
         }
 }

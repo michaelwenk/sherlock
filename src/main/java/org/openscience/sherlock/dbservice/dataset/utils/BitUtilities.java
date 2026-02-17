@@ -6,17 +6,6 @@ import java.math.BigInteger;
 
 public class BitUtilities {
 
-    public static String[] buildSingleBitBigIntegerStrings(final int bitLength) {
-        final String[] strings = new String[bitLength];
-        for (int i = 0; i < bitLength; i++) {
-            strings[i] = "B'"
-                    + buildBitStringFromBigInteger(buildBits(i, bitLength), bitLength)
-                    + "'";
-        }
-
-        return strings;
-    }
-
     public static BigInteger buildDefaultBits(final int bitLength, final boolean setBits) {
         return new BigInteger((setBits
                 ? "1"
@@ -30,22 +19,14 @@ public class BitUtilities {
         return bigInteger;
     }
 
-    public static BigInteger buildBits(final BitSetFingerprint bitSetFingerprint, final int bitLength) {
+    public static BigInteger buildBits(final BitSetFingerprint bitSetFingerprint,
+            final int bitLength) {
         BigInteger bigInteger = buildDefaultBits(bitLength, false);
         for (final int setBit : bitSetFingerprint.getSetbits()) {
             bigInteger = bigInteger.setBit(setBit);
         }
 
         return bigInteger;
-    }
-
-    public static BigInteger flipBits(final BigInteger bigInteger, final int bitLength) {
-        BigInteger flippedBigInteger = new BigInteger(buildBitStringFromBigInteger(bigInteger, bitLength), 2);
-        for (int i = 0; i < bitLength; i++) {
-            flippedBigInteger = flippedBigInteger.flipBit(i);
-        }
-
-        return flippedBigInteger;
     }
 
     public static String buildBitStringFromBigInteger(final BigInteger bigInteger, final int bitLength) {
