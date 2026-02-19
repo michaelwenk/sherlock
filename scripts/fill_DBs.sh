@@ -24,8 +24,12 @@ time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/insertByDBNa
 time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/insertByDBNameAndFileIndex?nucleus=13C&dbName=coconut&fileIndex=3&minShift=-5&maxShift=230'  && \
 # echo "-> filling datasets from coconut database done." && \
 
+echo "-> updating indices in datasets collection..." && \
+time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/updateIndexes' && \
+echo "-> updated indices in datasets collection." && \
+
 echo "-> datasets filled." && \
 
 echo "-> building statistics and fragments..." && \
 curl -s -o /dev/null -X POST -i 'http://localhost:8080/database/fillDatabases?nucleus=13C&maxSphere=6'
-echo "-> statistics and fragments build process invoked."
+echo "-> statistics and fragments build process invoked. This may take a while...\nPlease check the logs for progress information."

@@ -13,6 +13,9 @@ import com.mongodb.reactivestreams.client.MongoClients;
 @EnableReactiveMongoRepositories(basePackages = "org.openscience.sherlock.dbservice.dataset.db.service.mongo", reactiveMongoTemplateRef = "datasetMongoTemplate")
 public class DatasetMongoConfig {
 
+    public static final String DATASET_INDEX_NAME_NUCLEI = "dataSet.spectrum.nuclei_1";
+    public static final String DATASET_INDEX_NAME_MF = "dataSet.meta.mf_1";
+
     @Value("${mongodb.dataset.uri}")
     private String mongoUri;
 

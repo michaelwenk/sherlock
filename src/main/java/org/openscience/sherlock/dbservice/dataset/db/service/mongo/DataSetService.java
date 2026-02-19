@@ -68,4 +68,6 @@ public interface DataSetService {
         Mono<Void> deleteAll();
 
         Mono<Void> deleteById(String id);
+
+        Mono<Void> updateIndexes();
 }

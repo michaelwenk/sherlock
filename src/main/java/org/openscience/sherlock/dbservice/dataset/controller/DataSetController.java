@@ -45,6 +45,7 @@ import reactor.core.publisher.Mono;
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import org.springframework.web.bind.annotation.RequestBody;
 
 @RestController
 @RequestMapping(value = "/dataset")
@@ -264,5 +265,10 @@ public class DataSetController {
                 this.multiplicitySectionsSettingsServiceImplementation.insert(
                                 multiplicitySectionsSettingsRecord)
                                 .block();
+        }
+
+        @PostMapping("/updateIndexes")
+        public void updateIndexes() {
+                this.dataSetServiceImplementation.updateIndexes().block();
         }
 }

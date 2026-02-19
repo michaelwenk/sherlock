@@ -24,10 +24,13 @@
 
 package org.openscience.sherlock.dbservice.dataset.db.service.mongo;
 
+import org.openscience.sherlock.dbservice.dataset.config.DatasetMongoConfig;
 import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.Sort.Direction;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.index.Index;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -130,5 +133,36 @@ public class DataSetServiceImplementation
     @Override
     public Mono<Void> deleteById(final String id) {
         return this.dataSetRepository.deleteById(id);
+    }
+
+    @Override
+    public Mono<Void> updateIndexes() {
+        System.out.println("-> updating indices for dataset collection...");
+
+        System.out.println("-> dropping nuclei index in dataset collection...");
+        this.reactiveMongoTemplate.indexOps("datasets").dropIndex(DatasetMongoConfig.DATASET_INDEX_NAME_NUCLEI).block();
+        System.out.println("-> dropped nuclei index in dataset collection...");
+
+        System.out.println("-> dropping molecular formula index in dataset collection...");
+        this.reactiveMongoTemplate.indexOps("datasets").dropIndex(DatasetMongoConfig.DATASET_INDEX_NAME_MF).block();
+        System.out.println("-> dropped molecular formula index in dataset collection...");
+
+        System.out.println("-> creating index for nuclei array...");
+        final String nucleiIndexString = this.reactiveMongoTemplate.indexOps("datasets")
+                .createIndex(new Index().on("dataSet.spectrum.nuclei", Direction.ASC)
+                        .named(DatasetMongoConfig.DATASET_INDEX_NAME_NUCLEI))
+                .block();
+        System.out.println("-> created nuclei index: " + nucleiIndexString);
+
+        System.out.println("-> creating index for molecular formula...");
+        final String mfIndexString = this.reactiveMongoTemplate.indexOps("datasets")
+                .createIndex(new Index().on("dataSet.meta.mf", Direction.ASC)
+                        .named(DatasetMongoConfig.DATASET_INDEX_NAME_MF))
+                .block();
+        System.out.println("-> created molecular formula index: " + mfIndexString);
+
+        System.out.println("-> updated indices for dataset collection.");
+
+        return Mono.empty();
     }
 }
