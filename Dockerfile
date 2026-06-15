@@ -1,13 +1,18 @@
-FROM alpine:3.22.2
+FROM eclipse-temurin:25-jdk-alpine-3.23
 
-COPY target/sherlock-0.0.1-SNAPSHOT.jar /
+# COPY target/sherlock-0.0.1-SNAPSHOT.jar /
+COPY pom.xml /
+COPY src src
+COPY scripts scripts
+COPY lib lib
 COPY data/lsd data/lsd
 # COPY data/nmrshiftdb data/nmrshiftdb
 # COPY data/coconut data/coconut
 
 RUN apk update && apk upgrade && \
-    apk add --no-cache openjdk21 make g++ python3
+    apk add --no-cache maven make g++ python3
+RUN sh scripts/install_predictorc_jar.sh && sh scripts/install_casekit.sh && mvn clean package -DskipTests
 RUN cd data/lsd/PyLSD/LSD && make clean && sh install.sh
 
-ENTRYPOINT ["java", "-Xmx8192m", "-jar", "sherlock-0.0.1-SNAPSHOT.jar" ]
+ENTRYPOINT ["java", "-Xmx8192m", "-jar", "target/sherlock-0.0.1-SNAPSHOT.jar" ]
 EXPOSE 8080
