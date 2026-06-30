@@ -49,13 +49,14 @@ public class Transfer {
     // basic
     private String queryType;
     private Spectrum querySpectrum;
-    private String requestID;
+    private String requestId;
     private List<DataSet> dataSetList;
-    // for dereplication
-    private DereplicationOptions dereplicationOptions;
-
     private Correlations correlations;
     private String mf;
+    private String taskName;
+    // for dereplication
+    private DereplicationOptions dereplicationOptions;
+    // for elucidation
     private List<String> pyLSDInputFileContentList;
     private Boolean pyLSDRunWasSuccessful;
     private ElucidationOptions elucidationOptions;
@@ -65,8 +66,6 @@ public class Transfer {
     private Grouping grouping;
     // error message
     private String errorMessage;
-    // results
-    private ResultRecord resultRecord;
     // for fragment detection
     private List<List<Integer>> hybridizationList;
     private double shiftTolerance;

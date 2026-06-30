@@ -30,31 +30,28 @@ public class Prediction {
         @Autowired
         private HOSECodeController hoseCodeController;
 
-        public ResponseEntity<Transfer> parseAndPredictFromSmilesFile(final Correlations correlations,
+        public List<DataSet> parseAndPredictFromSmilesFile(final Correlations correlations,
                         final ElucidationOptions elucidationOptions,
                         final Detections detections,
                         final String pathToSmilesFile) {
-                final Transfer responseTransfer = new Transfer();
                 try {
                         final List<String> smilesList = Parser.smilesFileToList(pathToSmilesFile);
                         try {
                                 final List<DataSet> dataSetList = predictAndFilter(correlations, smilesList,
                                                 elucidationOptions,
                                                 detections);
-                                responseTransfer.setDataSetList(dataSetList);
+                                return dataSetList;
                         } catch (final Exception e) {
                                 System.out.println("--> prediction error: "
                                                 + e.getMessage());
-                                responseTransfer.setErrorMessage(e.getMessage());
-                                return new ResponseEntity<>(responseTransfer, HttpStatus.INTERNAL_SERVER_ERROR);
+                                return null;
                         }
                 } catch (final FileNotFoundException e) {
                         System.out.println("--> could not parse SMILES file: "
                                         + pathToSmilesFile + " -> " + e.getMessage());
-                        responseTransfer.setDataSetList(new ArrayList<>());
                 }
 
-                return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
+                return null;
         }
 
         public List<DataSet> predictAndFilter(final Correlations correlations,

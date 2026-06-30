@@ -49,6 +49,7 @@ public class ResultRecord {
 
     @Id
     private String id;
+    private String requestId;
     private String name;
     private String date;
     private List<DataSet> dataSetList;

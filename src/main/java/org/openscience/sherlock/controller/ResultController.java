@@ -1,4 +1,4 @@
-package org.openscience.sherlock.dbservice.result.controller;
+package org.openscience.sherlock.controller;
 
 import casekit.nmr.elucidation.model.Detections;
 import casekit.nmr.elucidation.model.Grouping;
@@ -54,6 +54,13 @@ public class ResultController {
                 .next();
     }
 
+    @GetMapping(value = "/getByRequestId", produces = "application/json")
+    public Mono<ResultRecord> getByRequestId(@RequestParam final String requestId) {
+        return this.buildResultRecordFlux(new Query(Criteria.where("filename")
+                .is(requestId)))
+                .next();
+    }
+
     @GetMapping(value = "/getAll", produces = "application/json")
     public Flux<ResultRecord> getAll() {
         return this.buildResultRecordFlux(new Query());
@@ -68,6 +75,10 @@ public class ResultController {
                     resultRecord.setCorrelations(new Correlations());
                     resultRecord.setDetections(new Detections());
                     resultRecord.setGrouping(new Grouping());
+                    resultRecord.setDetected(null);
+                    resultRecord.setDetectionOptions(null);
+                    resultRecord.setElucidationOptions(null);
+                    resultRecord.setQuerySpectrum(null);
 
                     return resultRecord;
                 });
@@ -75,8 +86,10 @@ public class ResultController {
 
     @PostMapping(value = "/insert", consumes = "application/json", produces = "application/json")
     public Mono<ObjectId> insert(@RequestBody final ResultRecord resultRecord) {
-        return this.reactiveGridFsTemplate.store(this.resultRecordToDataBufferFlux(resultRecord), UUID.randomUUID()
-                .toString());
+        return this.reactiveGridFsTemplate.store(this.resultRecordToDataBufferFlux(resultRecord),
+                resultRecord.getRequestId() != null ? resultRecord.getRequestId()
+                        : UUID.randomUUID()
+                                .toString());
     }
 
     @DeleteMapping(value = "/deleteById")

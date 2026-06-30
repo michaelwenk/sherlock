@@ -29,11 +29,11 @@ import casekit.nmr.filterandrank.FilterAndRank;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 
-import org.openscience.sherlock.model.exchange.Transfer;
+import org.openscience.sherlock.model.exchange.RequestData;
+import org.openscience.sherlock.model.exchange.RequestResult;
 import org.openscience.sherlock.utils.Utilities;
 import org.openscience.sherlock.dbservice.dataset.controller.DataSetController;
 import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -47,16 +47,25 @@ import java.util.stream.Collectors;
 @RequestMapping(value = "/dereplication")
 public class DereplicationController {
 
-        @Autowired
-        private DataSetController dataSetController;
+        private final DataSetController dataSetController;
+
+        public DereplicationController(final DataSetController dataSetController) {
+                this.dataSetController = dataSetController;
+        }
 
         private final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
 
         @PostMapping(value = "/dereplicate", consumes = "application/json", produces = "application/json")
-        public ResponseEntity<Transfer> dereplicate(@RequestBody final Transfer requestTransfer) {
-                final Transfer responseTransfer = new Transfer();
+        public ResponseEntity<RequestResult> dereplicate(@RequestBody final RequestData requestData) {
 
-                final Spectrum querySpectrum = requestTransfer.getQuerySpectrum();
+                final RequestResult requestResult = Utilities.prepareDefaultRequestResult(requestData);
+                if (requestResult.getErrorMessage() != null) {
+                        return new ResponseEntity<>(requestResult, HttpStatus.BAD_REQUEST);
+                }
+
+                final String mf = Utilities
+                                .getMolecularFormulaFromCorrelations(requestData.getCorrelations());
+                final Spectrum querySpectrum = requestResult.getResultRecord().getQuerySpectrum().toSpectrum();
 
                 // accept a 1D query spectrum only
                 if (querySpectrum.getNuclei().length == 1) {
@@ -64,9 +73,9 @@ public class DereplicationController {
                                 final List<DataSetRecord> dataSetRecordList = Utilities.getDataSetRecordFlux(
                                                 dataSetController,
                                                 querySpectrum,
-                                                requestTransfer.getDereplicationOptions()
+                                                requestResult.getDereplicationOptions()
                                                                 .isUseMF()
-                                                                                ? requestTransfer.getMf()
+                                                                                ? mf
                                                                                 : null)
                                                 .collectList()
                                                 .block();
@@ -87,17 +96,17 @@ public class DereplicationController {
                                                                         .get(querySpectrum.getNuclei()[0])[2]);
 
                                         dataSetList = FilterAndRank.filterAndRank(dataSetList, querySpectrum,
-                                                        requestTransfer.getDereplicationOptions()
+                                                        requestResult.getDereplicationOptions()
                                                                         .getShiftTolerance(),
-                                                        requestTransfer.getDereplicationOptions()
+                                                        requestResult.getDereplicationOptions()
                                                                         .getMaximumAverageDeviation(),
-                                                        requestTransfer.getDereplicationOptions()
+                                                        requestResult.getDereplicationOptions()
                                                                         .isCheckMultiplicity(),
-                                                        requestTransfer.getDereplicationOptions()
+                                                        requestResult.getDereplicationOptions()
                                                                         .isCheckEquivalencesCount(),
                                                         // equivalences are not checked then also allow lower
                                                         // equivalence count
-                                                        !requestTransfer.getDereplicationOptions()
+                                                        !requestResult.getDereplicationOptions()
                                                                         .isCheckEquivalencesCount(),
                                                         this.multiplicitySectionsBuilder, false);
                                         // unique the dereplication result
@@ -119,17 +128,19 @@ public class DereplicationController {
                                         }
                                         Utilities.addMolFileToDataSets(uniqueDataSetList);
 
-                                        responseTransfer.setDataSetList(uniqueDataSetList);
+                                        requestResult.getResultRecord().setDataSetList(uniqueDataSetList);
+                                        requestResult.getResultRecord().setDataSetListSize(uniqueDataSetList.size());
                                 }
                         } catch (final Exception e) {
-                                responseTransfer.setErrorMessage(e.getMessage());
-                                return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
+                                requestResult.setErrorMessage(e.getMessage());
+                                return new ResponseEntity<>(requestResult, HttpStatus.NOT_FOUND);
                         }
 
-                        return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
+                        return new ResponseEntity<>(requestResult, HttpStatus.OK);
                 }
 
-                responseTransfer.setDataSetList(new ArrayList<>());
-                return new ResponseEntity<>(responseTransfer, HttpStatus.OK);
+                requestResult.getResultRecord().setDataSetList(new ArrayList<>());
+                requestResult.getResultRecord().setDataSetListSize(0);
+                return new ResponseEntity<>(requestResult, HttpStatus.OK);
         }
 }
