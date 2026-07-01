@@ -32,8 +32,8 @@ public class ElucidationController {
 
         // EXECUTE PYLSD
         try {
-            final String requestId = IdGenerator.generateId();
-            return pyLSD.runPyLSD(requestId,
+            final String requestId = IdGenerator.generateId() + "_temp";
+            final ResponseEntity<RequestResult> response = pyLSD.runPyLSD(requestId,
                     requestResult.getResultRecord().getName(),
                     requestResult.getResultRecord().getCorrelations(),
                     requestResult.getResultRecord().getQuerySpectrum(),
@@ -42,6 +42,22 @@ public class ElucidationController {
                     requestResult.getResultRecord().getDetections(),
                     requestResult.getResultRecord().getGrouping(),
                     requestResult.getResultRecord().getElucidationOptions());
+
+            if (response.getStatusCode() != HttpStatus.OK) {
+                requestResult.setErrorMessage("PyLSD execution failed with status: " + response.getStatusCode());
+                return new ResponseEntity<>(requestResult, response.getStatusCode());
+            }
+
+            final RequestResult responseBody = response.getBody();
+            if (responseBody == null) {
+                requestResult.setErrorMessage("PyLSD execution returned null response body.");
+                return new ResponseEntity<>(requestResult, HttpStatus.INTERNAL_SERVER_ERROR);
+            }
+
+            requestResult.setRequestId(requestId);
+            requestResult.setResultRecord(responseBody.getResultRecord());
+
+            return new ResponseEntity<>(requestResult, HttpStatus.OK);
         } catch (final Exception e) {
             System.err.println("An error occurred: ");
             e.printStackTrace();
@@ -63,6 +79,8 @@ public class ElucidationController {
 
         // NEW INTERNAL ID CREATION
         final String requestId = IdGenerator.generateId();
+        requestResult.setRequestId(requestId);
+
         System.out.println("Scheduling PyLSD job with request ID: "
                 + requestId
                 + " and request data: \n"

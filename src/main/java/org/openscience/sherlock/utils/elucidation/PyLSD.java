@@ -104,7 +104,7 @@ public class PyLSD {
                 final Transfer requestTransfer = createQueryTransfer(requestId, taskName, correlations, querySpectrum,
                                 detected, detectionOptions, detections, grouping, elucidationOptions);
 
-                return executePyLSD(null, requestTransfer);
+                return executePyLSD(null, requestTransfer, false);
         }
 
         public void schedulePyLSD(final String requestId,
@@ -126,7 +126,7 @@ public class PyLSD {
                                                                 elucidationOptions);
 
                                                 final ResponseEntity<RequestResult> responseEntity = executePyLSD(
-                                                                this, requestTransfer);
+                                                                this, requestTransfer, true);
                                                 RequestResult responseBody = responseEntity.getBody();
                                                 if (responseBody == null) {
                                                         responseBody = new RequestResult();
@@ -194,7 +194,8 @@ public class PyLSD {
                 return new ResponseEntity<>(responseTransfer, HttpStatus.NOT_FOUND);
         }
 
-        private ResponseEntity<RequestResult> executePyLSD(final Job job, final Transfer requestTransfer) {
+        private ResponseEntity<RequestResult> executePyLSD(final Job job, final Transfer requestTransfer,
+                        final boolean storeResult) {
 
                 // build PyLSD input file
                 requestTransfer.getElucidationOptions()
@@ -322,7 +323,7 @@ public class PyLSD {
                                 + dataSetList.size());
 
                 final ResponseEntity<ResultRecord> resultRecordResponseEntity = rankAndStore(dataSetList,
-                                requestTransfer);
+                                requestTransfer, storeResult);
                 if (resultRecordResponseEntity.getStatusCode().isError()) {
                         requestResult.setErrorMessage(resultRecordResponseEntity.getBody() != null
                                         ? "Elucidation was successful but storing of results failed: "
@@ -339,13 +340,14 @@ public class PyLSD {
         }
 
         private ResponseEntity<ResultRecord> rankAndStore(final List<DataSet> dataSetList,
-                        final Transfer requestTransfer) {
+                        final Transfer requestTransfer, final boolean storeResult) {
                 final ResultRecord resultRecord = new ResultRecord();
                 try {
-                        Utilities.addMolFileToDataSets(dataSetList);
-                        // store results in DB if not empty and replace resultRecord in responseTransfer
+                        // add MOL files, store results in DB if not empty and update resultRecord
                         if (!dataSetList.isEmpty()) {
-                                FilterAndRank.rank(dataSetList);
+                                Utilities.addMolFileToDataSets(dataSetList);
+
+                                rank(dataSetList);
 
                                 resultRecord.setDate(LocalDateTime.now().atZone(ZoneId.systemDefault())
                                                 .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
@@ -371,22 +373,25 @@ public class PyLSD {
                                 resultRecord.setGrouping(requestTransfer.getGrouping());
                                 resultRecord.setElucidationOptions(requestTransfer.getElucidationOptions());
 
-                                try {
-                                        final ObjectId resultStorageEntity = resultController.insert(resultRecord)
-                                                        .block();
-                                        if (resultStorageEntity == null) {
+                                if (storeResult) {
+                                        try {
+                                                final ObjectId resultStorageEntity = resultController
+                                                                .insert(resultRecord)
+                                                                .block();
+                                                if (resultStorageEntity == null) {
+                                                        System.out.println(
+                                                                        "--> storing of result record failed -> resultStorageEntity is null");
+                                                        return new ResponseEntity<>(resultRecord,
+                                                                        HttpStatus.INTERNAL_SERVER_ERROR);
+                                                }
                                                 System.out.println(
-                                                                "--> storing of result record failed -> resultStorageEntity is null");
-                                                return new ResponseEntity<>(resultRecord,
-                                                                HttpStatus.INTERNAL_SERVER_ERROR);
+                                                                "--> storing of result record was successful -> resultStorageEntity: "
+                                                                                + resultStorageEntity.toString());
+                                                resultRecord.setId(resultStorageEntity.toString());
+                                        } catch (final Exception e) {
+                                                e.printStackTrace();
+                                                return new ResponseEntity<>(resultRecord, HttpStatus.NOT_FOUND);
                                         }
-                                        System.out.println(
-                                                        "--> storing of result record was successful -> resultStorageEntity: "
-                                                                        + resultStorageEntity.toString());
-                                        resultRecord.setId(resultStorageEntity.toString());
-                                } catch (final Exception e) {
-                                        e.printStackTrace();
-                                        return new ResponseEntity<>(resultRecord, HttpStatus.NOT_FOUND);
                                 }
                         } else {
                                 resultRecord.setDataSetList(new ArrayList<>());
@@ -399,6 +404,10 @@ public class PyLSD {
                 }
 
                 return new ResponseEntity<>(resultRecord, HttpStatus.OK);
+        }
+
+        private void rank(final List<DataSet> dataSetList) {
+                FilterAndRank.rank(dataSetList);
         }
 
         public Transfer createPyLSDInputFiles(final Transfer requestTransfer) {
