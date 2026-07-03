@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -13,6 +12,8 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.openscience.sherlock.utils.IdGenerator;
 
 public class JobScheduler implements AutoCloseable {
     private final ExecutorService workerPool;
@@ -255,7 +256,7 @@ public class JobScheduler implements AutoCloseable {
 
     private static String resolveJobId(final Job job) {
         if (job.getId() == null || job.getId().isBlank()) {
-            final String generatedId = UUID.randomUUID().toString();
+            final String generatedId = IdGenerator.generateId();
             job.setId(generatedId);
             return generatedId;
         }

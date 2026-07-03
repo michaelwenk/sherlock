@@ -42,6 +42,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -213,7 +214,7 @@ public class PyLSD {
 
                 String pyLSDInputFileContent, pathToPyLSDInputFile, requestIdTemp;
                 ProcessBuilder processBuilder;
-                Process process;
+                Process process = null;
                 final List<DataSet> dataSetList = new ArrayList<>();
                 boolean pyLSDRunWasSuccessful;
                 List<DataSet> dataSetListTemp;
@@ -287,19 +288,36 @@ public class PyLSD {
                                                 }
                                         } else {
                                                 System.out.println(
-                                                                "--> reached time limit -> run was NOT successful -> killing PyLSD run if it is still running");
-                                                process.destroyForcibly();
-                                                process.waitFor(5, TimeUnit.SECONDS);
+                                                                "--> " + requestResult.getRequestId()
+                                                                                + ": reached time limit "
+                                                                                + requestTransfer
+                                                                                                .getElucidationOptions()
+                                                                                                .getTimeLimitTotal()
+                                                                                + " -> run was NOT successful -> killing PyLSD run if it is still running");
+                                                stopProcessTree(job, process);
                                                 if (job != null) {
                                                         job.clearProcess();
                                                 }
                                                 requestResult.setErrorMessage(
-                                                                "Time limit reached -> elucidation request was canceled!!!");
+                                                                requestResult.getRequestId()
+                                                                                + ": Time limit reached ("
+                                                                                + requestTransfer
+                                                                                                .getElucidationOptions()
+                                                                                                .getTimeLimitTotal()
+                                                                                + ") -> elucidation request was canceled!!!");
                                                 stop = true;
                                         }
+                                } catch (final InterruptedException e) {
+                                        Thread.currentThread().interrupt();
+                                        stopProcessTree(job, process);
+                                        requestResult.setErrorMessage("PyLSD execution was interrupted and canceled");
+                                        if (job != null) {
+                                                job.clearProcess();
+                                        }
+                                        stop = true;
                                 } catch (final Exception e) {
                                         e.printStackTrace();
-                                        // requestResult.setPyLSDRunWasSuccessful(false);
+                                        stopProcessTree(job, process);
                                         requestResult.setErrorMessage(e.getMessage());
                                         if (job != null) {
                                                 job.clearProcess();
@@ -337,6 +355,36 @@ public class PyLSD {
                 requestResult.setResultRecord(resultRecordResponseEntity.getBody());
 
                 return new ResponseEntity<>(requestResult, HttpStatus.OK);
+        }
+
+        private static void stopProcessTree(final Job job, final Process process) {
+                if (job != null) {
+                        job.destroyProcess();
+                        return;
+                }
+
+                if (process == null) {
+                        return;
+                }
+
+                final ProcessHandle root = process.toHandle();
+                root.descendants()
+                                .sorted(Comparator.comparingLong(ProcessHandle::pid).reversed())
+                                .forEach(handle -> {
+                                        if (handle.isAlive()) {
+                                                handle.destroyForcibly();
+                                        }
+                                });
+
+                if (root.isAlive()) {
+                        root.destroyForcibly();
+                }
+
+                try {
+                        process.waitFor(5, TimeUnit.SECONDS);
+                } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
+                }
         }
 
         private ResponseEntity<ResultRecord> rankAndStore(final List<DataSet> dataSetList,
@@ -427,9 +475,6 @@ public class PyLSD {
                 responseTransfer.setGrouping(requestTransfer.getGrouping());
                 responseTransfer.setElucidationOptions(requestTransfer.getElucidationOptions());
                 responseTransfer.setMf(requestTransfer.getMf());
-
-                System.out.println("requestTransfer: " + requestTransfer + "\n"
-                                + "responseTransfer: " + responseTransfer + "\n");
 
                 if (responseTransfer.getDetected() == null
                                 || !responseTransfer.getDetected()

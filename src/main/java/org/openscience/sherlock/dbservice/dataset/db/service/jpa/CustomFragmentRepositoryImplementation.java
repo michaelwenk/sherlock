@@ -10,7 +10,6 @@ import jakarta.persistence.PersistenceContext;
 import jakarta.transaction.Transactional;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 @Service
@@ -32,14 +31,13 @@ public class CustomFragmentRepositoryImplementation
 
                 System.out.println("Query result IDs: " + resultIDs.size());
 
-                final List<String> subDataSetStringList = Collections.synchronizedList(new ArrayList<>());
-                resultIDs.parallelStream()
-                                .forEach(id -> {
-                                        final String subDataSetString = (String) this.entityManager
-                                                        .createNativeQuery(QueryUtilities.buildFindByIdQuery(id))
-                                                        .getSingleResult();
-                                        subDataSetStringList.add(subDataSetString);
-                                });
+                final List<String> subDataSetStringList = new ArrayList<>();
+                for (final Integer id : resultIDs) {
+                        final String subDataSetString = (String) this.entityManager
+                                        .createNativeQuery(QueryUtilities.buildFindByIdQuery(id))
+                                        .getSingleResult();
+                        subDataSetStringList.add(subDataSetString);
+                }
 
                 System.out.println("Retrieved subDataSetStringList size: " + subDataSetStringList.size());
 
