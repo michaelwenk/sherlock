@@ -13,21 +13,23 @@ public class Job implements Runnable {
     private String id;
     private String name;
     private String errorMessage;
+    private String requestData;
     private volatile Long processId;
     private volatile Process process;
 
     public Job(final String id, final String name) {
-        this.id = id;
-        this.name = name;
-        this.errorMessage = null;
-        this.processId = null;
-        this.process = null;
+        this(id, name, null, null);
     }
 
     public Job(final String id, final String name, final String errorMessage) {
+        this(id, name, errorMessage, null);
+    }
+
+    public Job(final String id, final String name, final String errorMessage, final String requestData) {
         this.id = id;
         this.name = name;
         this.errorMessage = errorMessage;
+        this.requestData = requestData;
         this.processId = null;
         this.process = null;
     }
@@ -45,7 +47,7 @@ public class Job implements Runnable {
 
         final ProcessHandle root = currentProcess.toHandle();
         final List<ProcessHandle> descendants = root.descendants()
-                .sorted(Comparator.comparingLong(ProcessHandle::pid).reversed())
+                .sorted(Comparator.comparingLong((ProcessHandle handle) -> handle.pid()).reversed())
                 .toList();
 
         for (ProcessHandle descendant : descendants) {

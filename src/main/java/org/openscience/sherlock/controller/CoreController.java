@@ -28,13 +28,20 @@ import org.openscience.sherlock.model.QueryTypes;
 import org.openscience.sherlock.model.exchange.RequestData;
 import org.openscience.sherlock.model.exchange.RequestResult;
 import org.openscience.sherlock.utils.Utilities;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@Tag(name = "Core Controller", description = "Core functionalities of the Sherlock backend services.")
 @RestController
 @RequestMapping(value = "/")
 public class CoreController {
+
+        @Value("${sherlock.version}")
+        private String sherlockVersion;
 
         private final DereplicationController dereplicationController;
         private final ElucidationController elucidationController;
@@ -54,25 +61,16 @@ public class CoreController {
         }
 
         @GetMapping(value = "/", produces = "application/json")
-        public String root() {
+        public ResponseEntity<String> root() {
 
-                return "Welcome to the Sherlock backend services!"
+                return new ResponseEntity<>("Welcome to the Sherlock backend services!"
                                 + "\n\n"
-                                + "status: "
-                                + "OK"
+                                + "Version: "
+                                + sherlockVersion
                                 + "\n"
-                                + "version: "
-                                + "1.1.2"
-                                + "\n"
-                                // + "API documentation: "
-                                // + "postman_link"
-                                // + "\n"
-                                // + "documentation: "
-                                // + "https://docs.nmrxiv.org/sherlock"
-                                // + "\n"
-                                + "github: "
+                                + "GitHub: "
                                 + "https://github.com/michaelwenk/sherlock"
-                                + "\n";
+                                + "\n", HttpStatus.OK);
         }
 
         @PostMapping(value = "/query", consumes = "application/json", produces = "application/json")
@@ -96,21 +94,10 @@ public class CoreController {
                                         return this.detectionController.detect(requestData);
                                 case QueryTypes.RETRIEVE:
                                         return this.retrievalController.getByRequestId(requestData);
+                                case QueryTypes.STATUS:
+                                        return this.jobController.getJobSnapshot(requestData);
                                 case QueryTypes.CANCEL:
-                                        final RequestResult requestResult_cancel = Utilities
-                                                        .prepareDefaultRequestResult(requestData);
-                                        final ResponseEntity<Boolean> cancelationResponseEntity = this.jobController
-                                                        .cancel(requestData.getRequestId());
-                                        if (cancelationResponseEntity.getBody() != null
-                                                        && cancelationResponseEntity.getBody() == true) {
-                                                requestResult_cancel.setIsCancelled(true);
-                                        } else {
-                                                requestResult_cancel.setIsCancelled(false);
-                                                requestResult_cancel.setErrorMessage(
-                                                                "Failed to cancel job with ID: "
-                                                                                + requestData.getRequestId());
-                                        }
-                                        return new ResponseEntity<>(requestResult_cancel, HttpStatus.OK);
+                                        return this.jobController.cancelJob(requestData);
                                 default:
                                         final RequestResult requestResult = Utilities
                                                         .prepareDefaultRequestResult(requestData);

@@ -17,6 +17,8 @@ import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.io.MDLV3000Reader;
 import org.openscience.sherlock.controller.ResultController;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.openscience.sherlock.dbservice.result.model.ResultRecord;
 import org.openscience.sherlock.model.DetectionOptions;
 import org.openscience.sherlock.model.ElucidationOptions;
@@ -26,8 +28,9 @@ import org.openscience.sherlock.utils.Utilities;
 import org.openscience.sherlock.utils.detection.Detection;
 import org.openscience.sherlock.utils.elucidation.job.GlobalJobScheduler;
 import org.openscience.sherlock.utils.elucidation.job.Job;
-import org.openscience.sherlock.utils.elucidation.job.JobScheduler.JobSnapshot;
-import org.openscience.sherlock.utils.elucidation.job.JobScheduler.JobState;
+import org.openscience.sherlock.utils.elucidation.job.JobCancelledException;
+import org.openscience.sherlock.utils.elucidation.job.JobSnapshot;
+import org.openscience.sherlock.utils.elucidation.job.JobState;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
@@ -65,8 +68,12 @@ public class PyLSD {
         private final Detection detection;
         private final Prediction prediction;
         private final ResultController resultController;
+        private final ObjectMapper objectMapper = new ObjectMapper();
 
-        public PyLSD(final Detection detection, final Prediction prediction, final ResultController resultController) {
+        public PyLSD(
+                        final Detection detection,
+                        final Prediction prediction,
+                        final ResultController resultController) {
                 this.detection = detection;
                 this.prediction = prediction;
                 this.resultController = resultController;
@@ -113,31 +120,24 @@ public class PyLSD {
                         final boolean detected, final DetectionOptions detectionOptions, final Detections detections,
                         final Grouping grouping, final ElucidationOptions elucidationOptions) {
 
+                final Transfer requestTransfer = createQueryTransfer(requestId, taskName, correlations, querySpectrum,
+                                detected, detectionOptions, detections, grouping, elucidationOptions);
+                final String serializedRequestData = serializeRequestData(requestTransfer);
+
                 GlobalJobScheduler.get()
                                 .scheduleJob(new Job(requestId,
                                                 "PyLSD" + "_" + (taskName != null
                                                                 && !taskName.isEmpty()
                                                                                 ? taskName
-                                                                                : requestId)) {
+                                                                                : requestId),
+                                                null,
+                                                serializedRequestData) {
                                         @Override
                                         public void run() {
-                                                final Transfer requestTransfer = createQueryTransfer(requestId,
-                                                                taskName, correlations, querySpectrum, detected,
-                                                                detectionOptions, detections, grouping,
-                                                                elucidationOptions);
-
                                                 final ResponseEntity<RequestResult> responseEntity = executePyLSD(
                                                                 this, requestTransfer, true);
-                                                RequestResult responseBody = responseEntity.getBody();
-                                                if (responseBody == null) {
-                                                        responseBody = new RequestResult();
-                                                        responseBody.setRequestId(requestId);
-                                                        responseBody.setErrorMessage("PyLSD job returned no body");
-                                                }
-                                                if (responseBody.getRequestId() == null
-                                                                || responseBody.getRequestId().isBlank()) {
-                                                        responseBody.setRequestId(requestId);
-                                                }
+                                                System.out.println("-> responseEntity: " + responseEntity);
+                                                final RequestResult responseBody = responseEntity.getBody();
 
                                                 asyncResults.put(requestId, responseBody);
 
@@ -154,6 +154,14 @@ public class PyLSD {
                                         }
                                 });
 
+        }
+
+        private String serializeRequestData(final Transfer requestTransfer) {
+                try {
+                        return objectMapper.writeValueAsString(requestTransfer);
+                } catch (final JsonProcessingException e) {
+                        return requestTransfer.toString();
+                }
         }
 
         public ResponseEntity<RequestResult> getAsyncResult(final String requestId) {
@@ -274,7 +282,13 @@ public class PyLSD {
                                                                 requestTransfer.getDetections(),
                                                                 pathToSmilesFile);
                                                 if (dataSetListTemp == null) {
-                                                        return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+                                                        System.out.println("--> parse and prediction failed");
+                                                        requestResult.setErrorMessage(
+                                                                        "PyLSD run was successful but parsing and prediction failed for requestId: "
+                                                                                        + requestTransfer.getRequestId()
+                                                                                        + " or process got cancelled.");
+                                                        return new ResponseEntity<>(requestResult,
+                                                                        HttpStatus.INTERNAL_SERVER_ERROR);
                                                 }
                                                 System.out.println("\n\n--> parse and prediction was successful");
                                                 for (final DataSet dataSet : dataSetListTemp) {
@@ -298,23 +312,34 @@ public class PyLSD {
                                                 if (job != null) {
                                                         job.clearProcess();
                                                 }
-                                                requestResult.setErrorMessage(
-                                                                requestResult.getRequestId()
-                                                                                + ": Time limit reached ("
-                                                                                + requestTransfer
-                                                                                                .getElucidationOptions()
-                                                                                                .getTimeLimitTotal()
-                                                                                + ") -> elucidation request was canceled!!!");
+                                                final String cancellationMessage = requestResult.getRequestId()
+                                                                + ": Time limit reached ("
+                                                                + requestTransfer.getElucidationOptions()
+                                                                                .getTimeLimitTotal()
+                                                                + ") -> elucidation request was cancelled!!!";
+                                                requestResult.setErrorMessage(cancellationMessage);
+                                                if (job != null) {
+                                                        job.setErrorMessage(cancellationMessage);
+                                                        throw new JobCancelledException(cancellationMessage);
+                                                }
                                                 stop = true;
                                         }
                                 } catch (final InterruptedException e) {
                                         Thread.currentThread().interrupt();
                                         stopProcessTree(job, process);
-                                        requestResult.setErrorMessage("PyLSD execution was interrupted and canceled");
+                                        final String cancellationMessage = "PyLSD execution was interrupted and cancelled";
+                                        requestResult.setErrorMessage(cancellationMessage);
+                                        if (job != null) {
+                                                job.setErrorMessage(cancellationMessage);
+                                                job.clearProcess();
+                                                throw new JobCancelledException(cancellationMessage);
+                                        }
+                                        stop = true;
+                                } catch (final JobCancelledException e) {
                                         if (job != null) {
                                                 job.clearProcess();
                                         }
-                                        stop = true;
+                                        throw e;
                                 } catch (final Exception e) {
                                         e.printStackTrace();
                                         stopProcessTree(job, process);
@@ -330,8 +355,6 @@ public class PyLSD {
                                         return new ResponseEntity<>(requestResult, HttpStatus.INTERNAL_SERVER_ERROR);
                                 }
                         } else {
-                                // System.out.println("--> input file creation failed at "
-                                // + pathToPyLSDInputFile);
                                 requestResult.setErrorMessage("PyLSD input file creation failed at "
                                                 + pathToPyLSDInputFile);
                                 return new ResponseEntity<>(requestResult, HttpStatus.INTERNAL_SERVER_ERROR);
@@ -369,7 +392,7 @@ public class PyLSD {
 
                 final ProcessHandle root = process.toHandle();
                 root.descendants()
-                                .sorted(Comparator.comparingLong(ProcessHandle::pid).reversed())
+                                .sorted(Comparator.comparingLong((ProcessHandle handle) -> handle.pid()).reversed())
                                 .forEach(handle -> {
                                         if (handle.isAlive()) {
                                                 handle.destroyForcibly();

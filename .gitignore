@@ -33,6 +33,7 @@
 ### misc ###
 **/target
 **/HELP.md
+.env
 
 # entire data folder, except lsd.py and defaults.py as modified files in Variant folder
 data/

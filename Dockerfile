@@ -1,7 +1,6 @@
 FROM eclipse-temurin:25-jdk-alpine-3.23
 
-# COPY target/sherlock-0.0.1-SNAPSHOT.jar /
-COPY pom.xml /
+COPY pom.xml pom.xml
 COPY src src
 COPY scripts scripts
 COPY lib lib
@@ -14,5 +13,5 @@ RUN apk update && apk upgrade && \
 RUN sh scripts/install_predictorc_jar.sh && sh scripts/install_casekit.sh && mvn clean package -DskipTests
 RUN cd data/lsd/PyLSD/LSD && make clean && sh install.sh
 
-ENTRYPOINT ["java", "-Xmx8192m", "-jar", "target/sherlock-0.0.1-SNAPSHOT.jar" ]
+ENTRYPOINT ["java", "-jar", "target/sherlock-0.0.1-SNAPSHOT.jar" ]
 EXPOSE 8080

@@ -1,6 +1,6 @@
 package org.openscience.sherlock.utils.elucidation.job;
 
-import org.openscience.sherlock.utils.elucidation.job.JobScheduler.JobState;
+import org.openscience.sherlock.dbservice.job.repository.JobRecordRepository;
 
 public final class GlobalJobScheduler {
     private static final int DEFAULT_POOL_SIZE = 4;
@@ -9,6 +9,7 @@ public final class GlobalJobScheduler {
     private static final Object LOCK = new Object();
     private static volatile int configuredPoolSize = DEFAULT_POOL_SIZE;
     private static volatile int configuredQueueSize = DEFAULT_QUEUE_SIZE;
+    private static volatile JobRecordRepository configuredJobRepository;
     private static volatile JobScheduler instance;
     private static volatile boolean shutdownHookRegistered;
 
@@ -16,6 +17,13 @@ public final class GlobalJobScheduler {
     }
 
     public static void configure(final int poolSize, final int queueSize) {
+        configure(poolSize, queueSize, null);
+    }
+
+    public static void configure(
+            final int poolSize,
+            final int queueSize,
+            final JobRecordRepository jobRepository) {
         if (poolSize <= 0) {
             throw new IllegalArgumentException("poolSize must be greater than 0");
         }
@@ -29,6 +37,7 @@ public final class GlobalJobScheduler {
             }
             configuredPoolSize = poolSize;
             configuredQueueSize = queueSize;
+            configuredJobRepository = jobRepository;
         }
     }
 
@@ -38,7 +47,10 @@ public final class GlobalJobScheduler {
             synchronized (LOCK) {
                 localInstance = instance;
                 if (localInstance == null) {
-                    localInstance = new JobScheduler(configuredPoolSize, configuredQueueSize);
+                    localInstance = new JobScheduler(
+                            configuredPoolSize,
+                            configuredQueueSize,
+                            configuredJobRepository);
                     instance = localInstance;
                     registerShutdownHookIfNeeded();
                 }
@@ -65,6 +77,10 @@ public final class GlobalJobScheduler {
             }
             if (state == JobState.ERROR) {
                 return false; // job failed before cancellation completed
+            }
+
+            if (state == JobState.UNKNOWN) {
+                return false; // job not found, treat as not cancelled
             }
 
             Thread.sleep(pollIntervalMillis);

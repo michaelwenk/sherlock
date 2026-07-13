@@ -2,6 +2,7 @@ package org.openscience.sherlock.model.exchange;
 
 import org.openscience.sherlock.dbservice.result.model.ResultRecord;
 import org.openscience.sherlock.model.DereplicationOptions;
+import org.openscience.sherlock.utils.elucidation.job.JobSnapshot;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -24,6 +25,8 @@ public class RequestResult {
     private DereplicationOptions dereplicationOptions;
     // result/retrieval
     private ResultRecord resultRecord;
-    // cancelation
+    // job state as snapshot
+    private JobSnapshot jobState;
+    // job cancelation
     private Boolean isCancelled;
 }

@@ -10,6 +10,8 @@ services:
     depends_on:
       - sherlock-db-mongo
       - sherlock-db-postgres
+    environment:
+      - VERSION=${VERSION}
 
   sherlock-db-mongo:
     container_name: sherlock-db-mongo

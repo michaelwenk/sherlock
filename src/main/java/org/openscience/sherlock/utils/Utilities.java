@@ -13,7 +13,8 @@ import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
 import org.openscience.sherlock.dbservice.result.model.ResultRecord;
 import org.openscience.sherlock.model.exchange.RequestData;
 import org.openscience.sherlock.model.exchange.RequestResult;
-import org.springframework.http.ResponseEntity;
+import org.openscience.sherlock.utils.elucidation.job.JobSnapshot;
+import org.openscience.sherlock.utils.elucidation.job.JobState;
 
 import reactor.core.publisher.Flux;
 import java.io.ByteArrayOutputStream;
@@ -75,7 +76,9 @@ public class Utilities {
         final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(correlations.getValues(), "13C");
 
         requestResult.setQueryType(requestData.getQueryType());
-        // requestResult.setRequestId(IdGenerator.generateId());
+
+        requestResult.setRequestId(requestData.getRequestId());
+        requestResult.setJobState(new JobSnapshot(requestData.getRequestId(), JobState.UNKNOWN, null, null));
 
         requestResult.setDereplicationOptions(requestData.getDereplicationOptions());
         requestResult.setResultRecord(new ResultRecord());
