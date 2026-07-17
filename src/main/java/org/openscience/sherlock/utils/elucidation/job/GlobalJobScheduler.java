@@ -17,7 +17,8 @@ public final class GlobalJobScheduler {
     }
 
     public static void configure(final int poolSize, final int queueSize) {
-        configure(poolSize, queueSize, null);
+        throw new IllegalStateException(
+                "JobScheduler must be configured with JobRecordRepository (database-only mode).");
     }
 
     public static void configure(
@@ -34,6 +35,10 @@ public final class GlobalJobScheduler {
         synchronized (LOCK) {
             if (instance != null) {
                 throw new IllegalStateException("GlobalJobScheduler is already initialized");
+            }
+            if (jobRepository == null) {
+                throw new IllegalArgumentException(
+                        "JobRecordRepository must not be null. JobScheduler is database-backed only.");
             }
             configuredPoolSize = poolSize;
             configuredQueueSize = queueSize;

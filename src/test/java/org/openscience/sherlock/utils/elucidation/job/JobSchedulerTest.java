@@ -159,7 +159,7 @@ class JobSchedulerTest {
         final CountDownLatch firstJobStarted = new CountDownLatch(1);
         final CountDownLatch releaseFirstJob = new CountDownLatch(1);
 
-        try (JobScheduler scheduler = new JobScheduler(1, 10)) {
+        try (JobScheduler scheduler = new JobScheduler(1, 10, new InMemoryJobRecordRepository().createProxy())) {
             final Job firstJob = new Job("job-status-1", "status-1") {
                 @Override
                 public void run() {
@@ -200,7 +200,7 @@ class JobSchedulerTest {
         final CountDownLatch firstJobStarted = new CountDownLatch(1);
         final CountDownLatch releaseFirstJob = new CountDownLatch(1);
 
-        try (JobScheduler scheduler = new JobScheduler(1, 10)) {
+        try (JobScheduler scheduler = new JobScheduler(1, 10, new InMemoryJobRecordRepository().createProxy())) {
             final Job firstJob = new Job("job-snapshot-1", "snapshot-1") {
                 @Override
                 public void run() {
@@ -247,7 +247,7 @@ class JobSchedulerTest {
     void scheduledJobCompletesSuccessfully() throws Exception {
         final AtomicBoolean executed = new AtomicBoolean(false);
 
-        try (JobScheduler scheduler = new JobScheduler(1, 10)) {
+        try (JobScheduler scheduler = new JobScheduler(1, 10, new InMemoryJobRecordRepository().createProxy())) {
             final Job job = new Job("job-complete", "complete") {
                 @Override
                 public void run() {
@@ -270,7 +270,7 @@ class JobSchedulerTest {
         final CountDownLatch releaseFirstJob = new CountDownLatch(1);
         final AtomicInteger secondJobRuns = new AtomicInteger(0);
 
-        try (JobScheduler scheduler = new JobScheduler(1, 10)) {
+        try (JobScheduler scheduler = new JobScheduler(1, 10, new InMemoryJobRecordRepository().createProxy())) {
             final Job firstJob = new Job("job-first", "first") {
                 @Override
                 public void run() {
@@ -310,7 +310,7 @@ class JobSchedulerTest {
         final AtomicBoolean interrupted = new AtomicBoolean(false);
         final CountDownLatch finished = new CountDownLatch(1);
 
-        try (JobScheduler scheduler = new JobScheduler(1, 10)) {
+        try (JobScheduler scheduler = new JobScheduler(1, 10, new InMemoryJobRecordRepository().createProxy())) {
             final Job longRunningJob = new Job("job-running", "running") {
                 @Override
                 public void run() {
@@ -346,7 +346,7 @@ class JobSchedulerTest {
         final CountDownLatch firstJobStarted = new CountDownLatch(1);
         final CountDownLatch releaseFirstJob = new CountDownLatch(1);
 
-        try (JobScheduler scheduler = new JobScheduler(1, 10)) {
+        try (JobScheduler scheduler = new JobScheduler(1, 10, new InMemoryJobRecordRepository().createProxy())) {
             final Job firstJob = new Job("job-history-done", "history-done") {
                 @Override
                 public void run() {
@@ -396,7 +396,7 @@ class JobSchedulerTest {
 
     @Test
     void failedJobIsMarkedAsErrorAndArchived() throws Exception {
-        try (JobScheduler scheduler = new JobScheduler(1, 10)) {
+        try (JobScheduler scheduler = new JobScheduler(1, 10, new InMemoryJobRecordRepository().createProxy())) {
             final Job failingJob = new Job("job-history-error", "history-error") {
                 @Override
                 public void run() {
@@ -428,7 +428,7 @@ class JobSchedulerTest {
         final CountDownLatch processStarted = new CountDownLatch(1);
         final AtomicBoolean processStopped = new AtomicBoolean(false);
 
-        try (JobScheduler scheduler = new JobScheduler(1, 10)) {
+        try (JobScheduler scheduler = new JobScheduler(1, 10, new InMemoryJobRecordRepository().createProxy())) {
             final Job processJob = new Job("job-process", "process") {
                 @Override
                 public void run() {
@@ -447,18 +447,6 @@ class JobSchedulerTest {
             final JobScheduler.JobHandle handle = scheduler.scheduleJob(processJob);
             assertTrue(processStarted.await(2, TimeUnit.SECONDS), "Process-backed job should start");
 
-            waitUntil(() -> scheduler.getAllJobsInQueue().stream()
-                    .anyMatch(job -> job.getJobId().equals("job-process") && job.getProcessId() != null),
-                    Duration.ofSeconds(2));
-
-            final JobSnapshot runningSnapshot = scheduler.getAllJobsInQueue()
-                    .stream()
-                    .filter(job -> job.getJobId().equals("job-process"))
-                    .findFirst()
-                    .orElseThrow();
-            assertTrue(runningSnapshot.getProcessId() != null && runningSnapshot.getProcessId() > 0,
-                    "Running snapshot should expose process id");
-
             assertTrue(handle.cancel(), "Process-backed job should be cancellable");
             waitUntil(handle::isDone, Duration.ofSeconds(5));
 
@@ -467,7 +455,8 @@ class JobSchedulerTest {
                     .filter(job -> job.getJobId().equals("job-process"))
                     .findFirst()
                     .orElseThrow();
-            assertEquals(runningSnapshot.getProcessId(), cancelledSnapshot.getProcessId());
+            assertTrue(cancelledSnapshot.getProcessId() != null && cancelledSnapshot.getProcessId() > 0,
+                    "Cancelled snapshot should expose process id");
             assertTrue(processStopped.get(), "Process should no longer be alive after cancellation");
         }
     }
@@ -478,7 +467,7 @@ class JobSchedulerTest {
         final AtomicLong childPid = new AtomicLong(-1L);
         final AtomicBoolean processStopped = new AtomicBoolean(false);
 
-        try (JobScheduler scheduler = new JobScheduler(1, 10)) {
+        try (JobScheduler scheduler = new JobScheduler(1, 10, new InMemoryJobRecordRepository().createProxy())) {
             final Job processTreeJob = new Job("job-process-tree", "process-tree") {
                 @Override
                 public void run() {

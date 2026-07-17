@@ -22,8 +22,13 @@
  * SOFTWARE.
  */
 
-package org.openscience.sherlock.controller;
+package org.openscience.sherlock.controller.core;
 
+import org.openscience.sherlock.controller.DereplicationController;
+import org.openscience.sherlock.controller.DetectionController;
+import org.openscience.sherlock.controller.ElucidationController;
+import org.openscience.sherlock.controller.JobController;
+import org.openscience.sherlock.controller.RetrievalController;
 import org.openscience.sherlock.model.QueryTypes;
 import org.openscience.sherlock.model.exchange.RequestData;
 import org.openscience.sherlock.model.exchange.RequestResult;

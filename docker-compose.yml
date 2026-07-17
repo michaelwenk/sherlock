@@ -6,12 +6,17 @@ services:
       dockerfile: Dockerfile
     image: michaelwenk/sherlock
     ports:
-      - "8080:8080"
+      - "${PORT:-8080}:8080"
     depends_on:
       - sherlock-db-mongo
       - sherlock-db-postgres
     environment:
       - VERSION=${VERSION}
+      - CONTEXT_PATH=${CONTEXT_PATH}
+      # - PORT=${PORT}
+      # - HOSTNAME=${HOSTNAME}
+      - SPRING_SECURITY_USER_NAME=${SPRING_SECURITY_USER_NAME}
+      - SPRING_SECURITY_USER_PASSWORD=${SPRING_SECURITY_USER_PASSWORD}
 
   sherlock-db-mongo:
     container_name: sherlock-db-mongo

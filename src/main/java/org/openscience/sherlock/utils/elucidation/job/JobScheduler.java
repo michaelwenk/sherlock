@@ -3,8 +3,10 @@ package org.openscience.sherlock.utils.elucidation.job;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
@@ -23,13 +25,8 @@ public class JobScheduler implements AutoCloseable {
     private final ExecutorService dispatcher;
     private final BlockingQueue<String> queue;
     private final Map<String, JobControl> activeJobs;
-    private final Map<String, JobSnapshot> terminalJobs;
     private final JobRecordRepository jobRecordRepository;
     private final AtomicBoolean acceptingJobs;
-
-    public JobScheduler(final int poolSize, final int queueSize) {
-        this(poolSize, queueSize, null);
-    }
 
     public JobScheduler(
             final int poolSize,
@@ -39,8 +36,8 @@ public class JobScheduler implements AutoCloseable {
         this.dispatcher = Executors.newSingleThreadExecutor();
         this.queue = new LinkedBlockingQueue<>(queueSize);
         this.activeJobs = new ConcurrentHashMap<>();
-        this.terminalJobs = new ConcurrentHashMap<>();
-        this.jobRecordRepository = jobRecordRepository;
+        this.jobRecordRepository = Objects.requireNonNull(jobRecordRepository,
+                "JobRecordRepository must not be null. JobScheduler is database-backed only.");
         this.acceptingJobs = new AtomicBoolean(true);
 
         reconcileInFlightJobsFromPreviousRuns();
@@ -55,7 +52,6 @@ public class JobScheduler implements AutoCloseable {
         final String jobId = resolveJobId(job);
         final JobControl control = new JobControl(job);
         activeJobs.put(jobId, control);
-        terminalJobs.remove(jobId);
         persistJobState(jobId, job.getName(), JobState.QUEUED, null, null, job.getRequestData());
 
         final boolean queued = queue.offer(jobId);
@@ -71,10 +67,6 @@ public class JobScheduler implements AutoCloseable {
     public boolean cancelJob(final String jobId) {
         final JobControl control = activeJobs.get(jobId);
         if (control == null) {
-            if (jobRecordRepository == null) {
-                final JobSnapshot snapshot = terminalJobs.get(jobId);
-                return snapshot != null && snapshot.getState() == JobState.CANCELLED;
-            }
             final JobSnapshot persisted = findPersistedSnapshot(jobId);
             return persisted != null && persisted.getState() == JobState.CANCELLED;
         }
@@ -102,7 +94,7 @@ public class JobScheduler implements AutoCloseable {
 
         control.state.set(JobState.CANCELLED);
         persistJobState(jobId, control.job.getName(), JobState.CANCELLED, errorMessage, control.job.getProcessId(),
-            control.job.getRequestData());
+                control.job.getRequestData());
 
         return true;
     }
@@ -113,11 +105,6 @@ public class JobScheduler implements AutoCloseable {
             return control.state.get() == JobState.CANCELLED;
         }
 
-        if (jobRecordRepository == null) {
-            final JobSnapshot snapshot = terminalJobs.get(jobId);
-            return snapshot != null && snapshot.getState() == JobState.CANCELLED;
-        }
-
         final JobSnapshot snapshot = findPersistedSnapshot(jobId);
         return snapshot != null && snapshot.getState() == JobState.CANCELLED;
     }
@@ -126,15 +113,6 @@ public class JobScheduler implements AutoCloseable {
         final JobControl control = activeJobs.get(jobId);
         if (control != null) {
             final JobState state = control.state.get();
-            return state == JobState.DONE || state == JobState.CANCELLED || state == JobState.ERROR;
-        }
-
-        if (jobRecordRepository == null) {
-            final JobSnapshot snapshot = terminalJobs.get(jobId);
-            if (snapshot == null) {
-                return false;
-            }
-            final JobState state = snapshot.getState();
             return state == JobState.DONE || state == JobState.CANCELLED || state == JobState.ERROR;
         }
 
@@ -150,10 +128,6 @@ public class JobScheduler implements AutoCloseable {
     public JobState getJobStatus(final String jobId) {
         final JobControl control = activeJobs.get(jobId);
         if (control == null) {
-            if (jobRecordRepository == null) {
-                final JobSnapshot snapshot = terminalJobs.get(jobId);
-                return snapshot == null ? JobState.UNKNOWN : snapshot.getState();
-            }
             final JobSnapshot snapshot = findPersistedSnapshot(jobId);
             return snapshot == null ? JobState.UNKNOWN : snapshot.getState();
         }
@@ -168,10 +142,6 @@ public class JobScheduler implements AutoCloseable {
                     resolveJobState(control),
                     control.job.getErrorMessage(),
                     control.job.getProcessId());
-        }
-
-        if (jobRecordRepository == null) {
-            return terminalJobs.get(jobId);
         }
 
         return findPersistedSnapshot(jobId);
@@ -198,65 +168,55 @@ public class JobScheduler implements AutoCloseable {
     }
 
     public List<JobSnapshot> getJobsByState(final JobState state) {
-        if (jobRecordRepository == null) {
-            final List<JobSnapshot> snapshot = new ArrayList<>();
-            for (Map.Entry<String, JobControl> entry : activeJobs.entrySet()) {
-                final String jobId = entry.getKey();
-                final JobState jobState = resolveJobState(entry.getValue());
-                if (jobState == state) {
-                    snapshot.add(new JobSnapshot(
-                            jobId,
-                            jobState,
-                            entry.getValue().job.getErrorMessage(),
-                            entry.getValue().job.getProcessId()));
-                }
-            }
-            for (Map.Entry<String, JobSnapshot> entry : terminalJobs.entrySet()) {
-                if (entry.getValue().getState() == state) {
-                    snapshot.add(entry.getValue());
-                }
-            }
-            return Collections.unmodifiableList(snapshot);
-        }
+        final Map<String, JobSnapshot> snapshotById = new LinkedHashMap<>();
 
-        final List<JobSnapshot> snapshot = new ArrayList<>();
-        for (JobRecord jobRecord : jobRecordRepository.findAllByState(state)) {
-            snapshot.add(toSnapshot(jobRecord));
-        }
-        return Collections.unmodifiableList(snapshot);
-    }
-
-    public List<JobSnapshot> getAllJobsInQueue() {
-        if (jobRecordRepository == null) {
-            final List<JobSnapshot> snapshot = new ArrayList<>();
+        if (state == JobState.QUEUED || state == JobState.RUNNING) {
             for (Map.Entry<String, JobControl> entry : activeJobs.entrySet()) {
                 final String jobId = entry.getKey();
                 final JobControl control = entry.getValue();
+                final JobState jobState = resolveJobState(control);
+                if (jobState == state) {
+                    snapshotById.put(jobId, new JobSnapshot(
+                            jobId,
+                            jobState,
+                            control.job.getErrorMessage(),
+                            control.job.getProcessId()));
+                }
+            }
+        }
 
-                snapshot.add(new JobSnapshot(
+        for (JobRecord jobRecord : jobRecordRepository.findAllByState(state)) {
+            snapshotById.put(jobRecord.getJobId(), toSnapshot(jobRecord));
+        }
+
+        return Collections.unmodifiableList(new ArrayList<>(snapshotById.values()));
+    }
+
+    public List<JobSnapshot> getAllJobsInQueue() {
+        final Map<String, JobSnapshot> snapshotById = new LinkedHashMap<>();
+
+        for (Map.Entry<String, JobControl> entry : activeJobs.entrySet()) {
+            final String jobId = entry.getKey();
+            final JobControl control = entry.getValue();
+            final JobState state = resolveJobState(control);
+            if (state == JobState.QUEUED || state == JobState.RUNNING) {
+                snapshotById.put(jobId, new JobSnapshot(
                         jobId,
-                        resolveJobState(control),
+                        state,
                         control.job.getErrorMessage(),
                         control.job.getProcessId()));
             }
-
-            return Collections.unmodifiableList(snapshot);
         }
 
-        final List<JobSnapshot> snapshot = new ArrayList<>();
         for (JobRecord jobRecord : jobRecordRepository.findAllByStateIn(
                 EnumSet.of(JobState.QUEUED, JobState.RUNNING))) {
-            snapshot.add(toSnapshot(jobRecord));
+            snapshotById.put(jobRecord.getJobId(), toSnapshot(jobRecord));
         }
 
-        return Collections.unmodifiableList(snapshot);
+        return Collections.unmodifiableList(new ArrayList<>(snapshotById.values()));
     }
 
     public List<JobSnapshot> getAllTerminalJobs() {
-        if (jobRecordRepository == null) {
-            return Collections.unmodifiableList(new ArrayList<>(terminalJobs.values()));
-        }
-
         final List<JobSnapshot> snapshot = new ArrayList<>();
         for (JobRecord jobRecord : jobRecordRepository.findAllByStateIn(
                 EnumSet.of(JobState.CANCELLED, JobState.DONE, JobState.ERROR))) {
@@ -277,7 +237,6 @@ public class JobScheduler implements AutoCloseable {
         workerPool.shutdownNow();
         queue.clear();
         activeJobs.clear();
-        terminalJobs.clear();
     }
 
     @Override
@@ -340,14 +299,6 @@ public class JobScheduler implements AutoCloseable {
         final JobState finalState = resolveJobState(control);
         persistJobState(jobId, control.job.getName(), finalState, control.job.getErrorMessage(),
                 control.job.getProcessId(), control.job.getRequestData());
-        if (jobRecordRepository == null
-            && (finalState == JobState.CANCELLED || finalState == JobState.DONE || finalState == JobState.ERROR)) {
-            terminalJobs.put(jobId, new JobSnapshot(
-                jobId,
-                finalState,
-                control.job.getErrorMessage(),
-                control.job.getProcessId()));
-        }
         control.job.clearProcess();
         activeJobs.remove(jobId);
     }
@@ -366,10 +317,6 @@ public class JobScheduler implements AutoCloseable {
     }
 
     private void reconcileInFlightJobsFromPreviousRuns() {
-        if (jobRecordRepository == null) {
-            return;
-        }
-
         for (JobRecord jobRecord : jobRecordRepository.findAllByStateIn(
                 EnumSet.of(JobState.QUEUED, JobState.RUNNING))) {
             jobRecord.setState(JobState.ERROR);
@@ -385,29 +332,18 @@ public class JobScheduler implements AutoCloseable {
             final String errorMessage,
             final Long processId,
             final String requestData) {
-        if (jobRecordRepository == null) {
-            return;
-        }
-
         final JobRecord record = jobRecordRepository.findById(jobId).orElseGet(JobRecord::new);
         record.setJobId(jobId);
-        if (name != null && !name.isBlank()) {
-            record.setName(name);
-        }
+        final String persistedName = (name == null || name.isBlank()) ? jobId : name;
+        record.setName(persistedName);
         record.setState(state);
         record.setErrorMessage(errorMessage);
         record.setProcessId(processId);
-        if (requestData != null) {
-            record.setRequestData(requestData);
-        }
+        record.setRequestData(requestData == null ? "{}" : requestData);
         jobRecordRepository.save(record);
     }
 
     private JobSnapshot findPersistedSnapshot(final String jobId) {
-        if (jobRecordRepository == null) {
-            return null;
-        }
-
         return jobRecordRepository.findById(jobId).map(JobScheduler::toSnapshot).orElse(null);
     }
 
@@ -420,9 +356,6 @@ public class JobScheduler implements AutoCloseable {
     }
 
     private void deletePersistedJob(final String jobId) {
-        if (jobRecordRepository == null) {
-            return;
-        }
         jobRecordRepository.deleteById(jobId);
     }
 

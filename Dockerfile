@@ -14,4 +14,4 @@ RUN sh scripts/install_predictorc_jar.sh && sh scripts/install_casekit.sh && mvn
 RUN cd data/lsd/PyLSD/LSD && make clean && sh install.sh
 
 ENTRYPOINT ["java", "-jar", "target/sherlock-0.0.1-SNAPSHOT.jar" ]
-EXPOSE 8080
+EXPOSE ${PORT:-8080}
