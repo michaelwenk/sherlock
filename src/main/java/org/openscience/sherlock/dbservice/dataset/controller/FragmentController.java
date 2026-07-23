@@ -2,6 +2,7 @@ package org.openscience.sherlock.dbservice.dataset.controller;
 
 import java.util.ArrayList;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
+import org.openscience.sherlock.configuration.OpenApiConfiguration;
 import org.openscience.sherlock.dbservice.dataset.db.model.MultiplicitySectionsSettingsRecord;
 import org.openscience.sherlock.dbservice.dataset.db.service.jpa.CustomFragmentRepositoryImplementation;
 import org.openscience.sherlock.dbservice.dataset.db.service.mongo.DataSetServiceImplementation;
@@ -16,6 +17,12 @@ import casekit.nmr.model.DataSet;
 import casekit.nmr.similarity.Similarity;
 import reactor.core.publisher.Flux;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@Tag(name = "Fragments", description = "Endpoints for fragment lookup and fragment collection rebuilds.")
+@SecurityRequirement(name = OpenApiConfiguration.BASIC_AUTH_SCHEME)
 @RestController
 @RequestMapping(value = "/fragment")
 public class FragmentController {
@@ -27,6 +34,7 @@ public class FragmentController {
         @Autowired
         private MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation;
 
+        @Operation(summary = "Find fragments by spectrum and formula", description = "Generates fragment candidates for the submitted spectrum using multiplicity settings, fingerprint set bits, and optional molecular formula filters.")
         @PostMapping(value = "/getBySpectrumAndMfAndSetBits", produces = "application/stream+json")
         public Flux<DataSet> getBySpectrumAndMfAndSetBits(@RequestBody final Transfer fragmentsDetectionTransfer) {
                 final MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord = this.multiplicitySectionsSettingsServiceImplementation
@@ -71,6 +79,7 @@ public class FragmentController {
                 return Flux.fromIterable(new ArrayList<>());
         }
 
+        @Operation(summary = "Rebuild fragment collection", description = "Rebuilds the fragment collection for the selected nucleus from the stored dataset records.")
         @PostMapping(value = "/replaceAll")
         public void replaceAll(@RequestParam final String nucleus) {
                 final Flux<DataSet> dataSetFlux = this.dataSetServiceImplementation

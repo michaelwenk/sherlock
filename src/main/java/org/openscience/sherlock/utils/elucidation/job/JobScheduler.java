@@ -52,7 +52,8 @@ public class JobScheduler implements AutoCloseable {
         final String jobId = resolveJobId(job);
         final JobControl control = new JobControl(job);
         activeJobs.put(jobId, control);
-        persistJobState(jobId, job.getName(), JobState.QUEUED, null, null, job.getRequestData());
+        persistJobState(jobId, job.getName(), JobState.QUEUED, null, null, job.getRequestData(),
+                job.getRequestPasswordHash());
 
         final boolean queued = queue.offer(jobId);
         if (!queued) {
@@ -76,7 +77,7 @@ public class JobScheduler implements AutoCloseable {
         if (control.state.compareAndSet(JobState.QUEUED, JobState.CANCELLED)) {
             queue.remove(jobId);
             persistJobState(jobId, control.job.getName(), JobState.CANCELLED, errorMessage, control.job.getProcessId(),
-                    control.job.getRequestData());
+                    control.job.getRequestData(), control.job.getRequestPasswordHash());
             archiveAndRemove(jobId, control);
             return true;
         }
@@ -94,7 +95,7 @@ public class JobScheduler implements AutoCloseable {
 
         control.state.set(JobState.CANCELLED);
         persistJobState(jobId, control.job.getName(), JobState.CANCELLED, errorMessage, control.job.getProcessId(),
-                control.job.getRequestData());
+                control.job.getRequestData(), control.job.getRequestPasswordHash());
 
         return true;
     }
@@ -269,7 +270,7 @@ public class JobScheduler implements AutoCloseable {
             }
 
             persistJobState(jobId, control.job.getName(), JobState.RUNNING, control.job.getErrorMessage(),
-                    control.job.getProcessId(), control.job.getRequestData());
+                    control.job.getProcessId(), control.job.getRequestData(), control.job.getRequestPasswordHash());
 
             if (control.state.get() != JobState.CANCELLED) {
                 control.job.run();
@@ -283,11 +284,11 @@ public class JobScheduler implements AutoCloseable {
             if (throwable instanceof JobCancelledException || control.state.get() == JobState.CANCELLED) {
                 control.state.set(JobState.CANCELLED);
                 persistJobState(jobId, control.job.getName(), JobState.CANCELLED, control.job.getErrorMessage(),
-                        control.job.getProcessId(), control.job.getRequestData());
+                        control.job.getProcessId(), control.job.getRequestData(), control.job.getRequestPasswordHash());
             } else {
                 control.state.set(JobState.ERROR);
                 persistJobState(jobId, control.job.getName(), JobState.ERROR, control.job.getErrorMessage(),
-                        control.job.getProcessId(), control.job.getRequestData());
+                        control.job.getProcessId(), control.job.getRequestData(), control.job.getRequestPasswordHash());
             }
         } finally {
             control.state.compareAndSet(JobState.RUNNING, JobState.DONE);
@@ -298,7 +299,7 @@ public class JobScheduler implements AutoCloseable {
     private void archiveAndRemove(final String jobId, final JobControl control) {
         final JobState finalState = resolveJobState(control);
         persistJobState(jobId, control.job.getName(), finalState, control.job.getErrorMessage(),
-                control.job.getProcessId(), control.job.getRequestData());
+                control.job.getProcessId(), control.job.getRequestData(), control.job.getRequestPasswordHash());
         control.job.clearProcess();
         activeJobs.remove(jobId);
     }
@@ -331,7 +332,8 @@ public class JobScheduler implements AutoCloseable {
             final JobState state,
             final String errorMessage,
             final Long processId,
-            final String requestData) {
+            final String requestData,
+            final String requestPasswordHash) {
         final JobRecord record = jobRecordRepository.findById(jobId).orElseGet(JobRecord::new);
         record.setJobId(jobId);
         final String persistedName = (name == null || name.isBlank()) ? jobId : name;
@@ -340,6 +342,7 @@ public class JobScheduler implements AutoCloseable {
         record.setErrorMessage(errorMessage);
         record.setProcessId(processId);
         record.setRequestData(requestData == null ? "{}" : requestData);
+        record.setRequestPasswordHash(requestPasswordHash);
         jobRecordRepository.save(record);
     }
 

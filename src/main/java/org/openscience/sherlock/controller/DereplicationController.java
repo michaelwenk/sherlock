@@ -29,6 +29,7 @@ import casekit.nmr.filterandrank.FilterAndRank;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 
+import org.openscience.sherlock.configuration.OpenApiConfiguration;
 import org.openscience.sherlock.model.exchange.RequestData;
 import org.openscience.sherlock.model.exchange.RequestResult;
 import org.openscience.sherlock.utils.Utilities;
@@ -43,6 +44,12 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@Tag(name = "Dereplication", description = "Endpoints for ranking candidate datasets against query spectra.")
+@SecurityRequirement(name = OpenApiConfiguration.BASIC_AUTH_SCHEME)
 @RestController
 @RequestMapping(value = "/dereplication")
 public class DereplicationController {
@@ -55,6 +62,7 @@ public class DereplicationController {
 
         private final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
 
+        @Operation(summary = "Run dereplication", description = "Matches the submitted query spectrum against candidate datasets and returns ranked dereplication results.")
         @PostMapping(value = "/dereplicate", consumes = "application/json", produces = "application/json")
         public ResponseEntity<RequestResult> dereplicate(@RequestBody final RequestData requestData) {
 

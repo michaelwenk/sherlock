@@ -12,6 +12,7 @@ import org.openscience.cdk.smiles.SmilesGenerator;
 import org.openscience.cdk.smiles.SmilesParser;
 import org.openscience.nmrshiftdb.util.AtomUtils;
 import org.openscience.nmrshiftdb.util.ExtendedHOSECodeGenerator;
+import org.openscience.sherlock.configuration.OpenApiConfiguration;
 import org.openscience.sherlock.model.exchange.Transfer;
 import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
 import org.openscience.sherlock.dbservice.statistics.service.HOSECodeServiceImplementation;
@@ -28,6 +29,12 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@Tag(name = "HOSE Code Statistics", description = "Endpoints for querying, rebuilding, and using HOSE code predictions.")
+@SecurityRequirement(name = OpenApiConfiguration.BASIC_AUTH_SCHEME)
 @RestController
 @RequestMapping(value = "/statistics/hosecode")
 public class HOSECodeController {
@@ -49,30 +56,35 @@ public class HOSECodeController {
         return "";
     }
 
+    @Operation(summary = "Get a HOSE code record by ID", description = "Returns the HOSE code record identified by the provided encoded record ID.")
     @GetMapping(value = "/getByID")
     public Optional<HOSECodeRecord> getByID(@RequestParam final String id) {
         return this.hoseCodeServiceImplementation.findById(this.decode(id)).blockOptional();
     }
 
+    @Operation(summary = "Count HOSE code records", description = "Returns the total number of stored HOSE code records.")
     @GetMapping(value = "/count")
     public long getCount() {
         return this.hoseCodeServiceImplementation.count().block();
     }
 
+    @Operation(summary = "List HOSE code records", description = "Returns all stored HOSE code records.")
     @GetMapping(value = "/getAll")
     public List<HOSECodeRecord> getAll() {
         return this.hoseCodeServiceImplementation.findAll().collectList().block();
     }
 
+    @Operation(summary = "Delete HOSE code records", description = "Deletes every stored HOSE code record.")
     @DeleteMapping(value = "/deleteAll")
     public void deleteAll() {
         this.hoseCodeServiceImplementation.deleteAll().block();
     }
 
+    @Operation(summary = "Rebuild HOSE code records", description = "Rebuilds the HOSE code collection for the selected nuclei and maximum sphere size. In addition, the HOSE code statistics are rebuilt.")
     @PostMapping(value = "/replaceAll")
     public void replaceAll(@RequestParam final String[] nuclei, @RequestParam final int maxSphere) {
         this.replaceAll(utilities.getByDataSetSpectrumNuclei(
-                nuclei).map(DataSetRecord::getDataSet), maxSphere, false);
+                nuclei).map(DataSetRecord::getDataSet), maxSphere, true);
     }
 
     public void replaceAll(final Flux<DataSet> dataSetFlux, final int maxSphere, final boolean buildStatistics) {
@@ -116,6 +128,7 @@ public class HOSECodeController {
 
     }
 
+    @Operation(summary = "Build HOSE code statistics", description = "Calculates summary statistics for every stored HOSE code entry and persists them back to the collection.")
     @PostMapping(value = "/buildStatistics")
     public void buildStatistics() {
         System.out.println(" -> building HOSE code statistics ...");
@@ -168,6 +181,7 @@ public class HOSECodeController {
 
     }
 
+    @Operation(summary = "Predict and filter candidate datasets", description = "Predicts spectra for the submitted SMILES structures and filters the generated datasets against the query spectrum.")
     @PostMapping(value = "/predictAndFilter")
     public Flux<DataSet> predictAndFilter(@RequestBody final Transfer transfer) {
         final String nucleus = transfer.getQuerySpectrum()
@@ -193,6 +207,7 @@ public class HOSECodeController {
         return Flux.fromIterable(dataSetList);
     }
 
+    @Operation(summary = "Predict a spectrum", description = "Predicts a dataset spectrum for the submitted SMILES structure, nucleus, and maximum HOSE sphere size.")
     @GetMapping(value = "/predict")
     public DataSet predict(@RequestParam final String smiles, @RequestParam final String nucleus,
             @RequestParam final int maxSphere) {

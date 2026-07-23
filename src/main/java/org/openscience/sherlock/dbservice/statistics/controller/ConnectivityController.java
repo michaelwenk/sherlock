@@ -4,6 +4,7 @@ import casekit.nmr.analysis.ConnectivityStatistics;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.utils.Utils;
 
+import org.openscience.sherlock.configuration.OpenApiConfiguration;
 import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
 import org.openscience.sherlock.dbservice.statistics.service.ConnectivityServiceImplementation;
 import org.openscience.sherlock.dbservice.statistics.service.model.ConnectivityRecord;
@@ -18,6 +19,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@Tag(name = "Connectivity Statistics", description = "Endpoints for querying and rebuilding connectivity statistics.")
+@SecurityRequirement(name = OpenApiConfiguration.BASIC_AUTH_SCHEME)
 @RestController
 @RequestMapping(value = "/statistics/connectivity")
 public class ConnectivityController {
@@ -27,16 +34,19 @@ public class ConnectivityController {
         @Autowired
         private Utilities utilities;
 
+        @Operation(summary = "Count connectivity statistics", description = "Returns the number of stored connectivity statistic records.")
         @GetMapping(value = "/count", produces = "application/json")
         public Mono<Long> getCount() {
                 return this.connectivityServiceImplementation.count();
         }
 
+        @Operation(summary = "List connectivity statistics", description = "Streams all stored connectivity statistic records.")
         @GetMapping(value = "/getAll", produces = "application/stream+json")
         public Flux<ConnectivityRecord> getAll() {
                 return this.connectivityServiceImplementation.findAll();
         }
 
+        @Operation(summary = "Find connectivity counts", description = "Streams connectivity statistics filtered by nucleus, hybridization, multiplicity, and shift range.")
         @GetMapping(value = "/getConnectivityCounts", produces = "application/stream+json")
         public Flux<ConnectivityRecord> findByNucleusAndHybridizationAndMultiplicityAndShift(
                         @RequestParam final String nucleus, @RequestParam final String hybridization,
@@ -50,11 +60,13 @@ public class ConnectivityController {
                                 maxShift);
         }
 
+        @Operation(summary = "Delete connectivity statistics", description = "Deletes every stored connectivity statistic record.")
         @PostMapping(value = "/deleteAll")
         public Mono<Void> deleteAll() {
                 return this.connectivityServiceImplementation.deleteAll();
         }
 
+        @Operation(summary = "Rebuild connectivity statistics", description = "Recomputes connectivity statistics for the selected nuclei from the stored datasets.")
         @PostMapping(value = "/replaceAll")
         public void replaceAll(@RequestParam final String[] nuclei) {
                 this.replaceAll(utilities.getByDataSetSpectrumNuclei(nuclei).map(DataSetRecord::getDataSet));
@@ -126,6 +138,7 @@ public class ConnectivityController {
                 }).subscribe();
         }
 
+        @Operation(summary = "Detect occurrence counts", description = "Aggregates connectivity occurrence counts for the given nucleus, hybridizations, multiplicity, shift range, and molecular formula.")
         @GetMapping(value = "/detectOccurrenceCounts", produces = "application/json")
         public Map<String, Integer[]> detectOccurrenceCounts(@RequestParam final String nucleus,
                         @RequestParam final int[] hybridizations,

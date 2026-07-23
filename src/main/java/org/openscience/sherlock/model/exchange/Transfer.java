@@ -35,8 +35,6 @@ import lombok.*;
 import org.openscience.sherlock.model.DereplicationOptions;
 import org.openscience.sherlock.model.DetectionOptions;
 import org.openscience.sherlock.model.ElucidationOptions;
-import org.openscience.sherlock.dbservice.result.model.ResultRecord;
-
 import java.util.List;
 
 @AllArgsConstructor
@@ -47,9 +45,9 @@ import java.util.List;
 @JsonIgnoreProperties(ignoreUnknown = true)
 public class Transfer {
     // basic
-    private String queryType;
     private Spectrum querySpectrum;
     private String requestId;
+    private String requestPasswordHash;
     private List<DataSet> dataSetList;
     private Correlations correlations;
     private String mf;

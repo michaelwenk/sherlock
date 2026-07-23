@@ -14,22 +14,29 @@ public class Job implements Runnable {
     private String name;
     private String errorMessage;
     private String requestData;
+    private String requestPasswordHash;
     private volatile Long processId;
     private volatile Process process;
 
     public Job(final String id, final String name) {
-        this(id, name, null, null);
+        this(id, name, null, null, null);
     }
 
     public Job(final String id, final String name, final String errorMessage) {
-        this(id, name, errorMessage, null);
+        this(id, name, errorMessage, null, null);
     }
 
     public Job(final String id, final String name, final String errorMessage, final String requestData) {
+        this(id, name, errorMessage, requestData, null);
+    }
+
+    public Job(final String id, final String name, final String errorMessage, final String requestData,
+            final String requestPasswordHash) {
         this.id = id;
         this.name = name;
         this.errorMessage = errorMessage;
         this.requestData = requestData;
+        this.requestPasswordHash = requestPasswordHash;
         this.processId = null;
         this.process = null;
     }

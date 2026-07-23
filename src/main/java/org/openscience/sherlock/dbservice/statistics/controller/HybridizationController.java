@@ -7,6 +7,7 @@ import casekit.nmr.utils.Utils;
 
 import org.openscience.cdk.interfaces.IAtom;
 import org.openscience.cdk.interfaces.IAtomContainer;
+import org.openscience.sherlock.configuration.OpenApiConfiguration;
 import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
 import org.openscience.sherlock.dbservice.statistics.service.HybridizationServiceImplementation;
 import org.openscience.sherlock.dbservice.statistics.service.model.HybridizationRecord;
@@ -21,6 +22,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedDeque;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@Tag(name = "Hybridization Statistics", description = "Endpoints for querying and rebuilding hybridization statistics.")
+@SecurityRequirement(name = OpenApiConfiguration.BASIC_AUTH_SCHEME)
 @RestController
 @RequestMapping(value = "/statistics/hybridization")
 public class HybridizationController {
@@ -30,16 +37,19 @@ public class HybridizationController {
     @Autowired
     private Utilities utilities;
 
+    @Operation(summary = "Count hybridization statistics", description = "Returns the number of stored hybridization statistic records.")
     @GetMapping(value = "/count", produces = "application/json")
     public Mono<Long> getCount() {
         return this.hybridizationServiceImplementation.count();
     }
 
+    @Operation(summary = "List hybridization statistics", description = "Streams all stored hybridization statistic records.")
     @GetMapping(value = "/getAll", produces = "application/stream+json")
     public Flux<HybridizationRecord> getAll() {
         return this.hybridizationServiceImplementation.findAll();
     }
 
+    @Operation(summary = "Detect valid hybridizations", description = "Determines which hybridization states satisfy the requested occurrence threshold for the given spectrum constraints and molecular formula.")
     @GetMapping(value = "/detectHybridizations", produces = "application/json")
     public List<Integer> detectHybridizations(@RequestParam final String nucleus,
             @RequestParam final String multiplicity, @RequestParam final int minShift,
@@ -76,6 +86,7 @@ public class HybridizationController {
         return validHydridizations;
     }
 
+    @Operation(summary = "Rebuild hybridization statistics", description = "Recomputes hybridization statistics for the selected nuclei from the stored datasets.")
     @PostMapping(value = "/replaceAll")
     public void replaceAll(@RequestParam final String[] nuclei) {
         this.replaceAll(utilities.getByDataSetSpectrumNuclei(nuclei)

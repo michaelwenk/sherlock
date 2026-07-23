@@ -1,8 +1,10 @@
 package org.openscience.sherlock.controller;
 
+import org.openscience.sherlock.configuration.OpenApiConfiguration;
 import org.openscience.sherlock.model.exchange.RequestData;
 import org.openscience.sherlock.model.exchange.RequestResult;
 import org.openscience.sherlock.utils.IdGenerator;
+import org.openscience.sherlock.utils.RequestPasswordUtils;
 import org.openscience.sherlock.utils.Utilities;
 import org.openscience.sherlock.utils.elucidation.PyLSD;
 import org.springframework.http.HttpStatus;
@@ -12,6 +14,12 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+
+@Tag(name = "Elucidation", description = "Endpoints for running synchronous and asynchronous PyLSD elucidation jobs.")
+@SecurityRequirement(name = OpenApiConfiguration.BASIC_AUTH_SCHEME)
 @RestController
 @RequestMapping(value = "/elucidation")
 public class ElucidationController {
@@ -22,6 +30,7 @@ public class ElucidationController {
         this.pyLSD = pyLSD;
     }
 
+    @Operation(summary = "Run synchronous elucidation", description = "Executes the PyLSD elucidation workflow immediately and returns the completed result in the response.")
     @PostMapping(value = "/elucidate")
     public ResponseEntity<RequestResult> elucidate(@RequestBody final RequestData requestData) {
         // INPUT DATA CHECK
@@ -69,6 +78,7 @@ public class ElucidationController {
         }
     }
 
+    @Operation(summary = "Schedule asynchronous elucidation", description = "Queues a PyLSD elucidation job, returns the generated request ID, and lets the client poll job and result endpoints later.")
     @PostMapping(value = "/elucidateAsync")
     public ResponseEntity<RequestResult> elucidateAsync(@RequestBody final RequestData requestData) {
         // INPUT DATA CHECK
@@ -79,16 +89,13 @@ public class ElucidationController {
 
         // NEW INTERNAL ID CREATION
         final String requestId = IdGenerator.generateId();
+        final String requestPassword = RequestPasswordUtils.generatePassword();
         requestResult.setRequestId(requestId);
-
-        System.out.println("Scheduling PyLSD job with request ID: "
-                + requestId
-                + " and request data: \n"
-                + requestData
-                + "\n");
+        requestResult.setRequestPassword(requestPassword);
 
         pyLSD.schedulePyLSD(
                 requestId,
+                RequestPasswordUtils.hashPassword(requestPassword),
                 requestResult.getResultRecord().getName(),
                 requestResult.getResultRecord().getCorrelations(),
                 requestResult.getResultRecord().getQuerySpectrum(),

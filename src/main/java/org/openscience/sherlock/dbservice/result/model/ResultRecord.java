@@ -29,6 +29,8 @@ import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.SpectrumCompact;
 import casekit.nmr.model.nmrium.Correlations;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.*;
 
 import org.openscience.sherlock.model.DetectionOptions;
@@ -50,6 +52,9 @@ public class ResultRecord {
     @Id
     private String id;
     private String requestId;
+    @JsonIgnore
+    @Schema(hidden = true)
+    private String requestPasswordHash;
     private String name;
     private String date;
     private List<DataSet> dataSetList;

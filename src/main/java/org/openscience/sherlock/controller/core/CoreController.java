@@ -29,16 +29,22 @@ import org.openscience.sherlock.controller.DetectionController;
 import org.openscience.sherlock.controller.ElucidationController;
 import org.openscience.sherlock.controller.JobController;
 import org.openscience.sherlock.controller.RetrievalController;
-import org.openscience.sherlock.model.QueryTypes;
 import org.openscience.sherlock.model.exchange.RequestData;
 import org.openscience.sherlock.model.exchange.RequestResult;
-import org.openscience.sherlock.utils.Utilities;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "Core Controller", description = "Core functionalities of the Sherlock backend services.")
 @RestController
@@ -65,6 +71,11 @@ public class CoreController {
                 this.jobController = jobController;
         }
 
+        @Operation(summary = "Get service information", description = "Returns a short welcome message with the running Sherlock version and repository reference.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Service information returned successfully"),
+                        @ApiResponse(responseCode = "401", description = "Authentication is required")
+        })
         @GetMapping(value = "/", produces = "application/json")
         public ResponseEntity<String> root() {
 
@@ -78,46 +89,73 @@ public class CoreController {
                                 + "\n", HttpStatus.OK);
         }
 
-        @PostMapping(value = "/query", consumes = "application/json", produces = "application/json")
-        public ResponseEntity<RequestResult> query(@RequestBody final RequestData requestData) {
+        @Operation(summary = "Start a dereplication query", description = "Delegates the request payload to the dereplication workflow.")
+        @PostMapping(value = "/dereplicate", consumes = "application/json", produces = "application/json")
+        public ResponseEntity<RequestResult> dereplicate(@RequestBody final RequestData requestData) {
+                return this.dereplicationController.dereplicate(requestData);
+        }
 
-                // System.out.println("Received request with query type: "
-                // + requestData.getQueryType()
-                // + " and data: \n"
-                // + requestData.toString()
-                // + "\n");
+        @Operation(summary = "Start an elucidation query", description = "Delegates the request payload to the synchronous elucidation workflow. The response will contain the completed result and the result is not stored into the database.")
+        @PostMapping(value = "/elucidate", consumes = "application/json", produces = "application/json")
+        public ResponseEntity<RequestResult> elucidate(@RequestBody final RequestData requestData) {
+                return this.elucidationController.elucidate(requestData);
+        }
 
-                try {
-                        switch (requestData.getQueryType().toUpperCase()) {
-                                case QueryTypes.DEREPLICATION:
-                                        return this.dereplicationController.dereplicate(requestData);
-                                case QueryTypes.ELUCIDATION:
-                                        return this.elucidationController.elucidate(requestData);
-                                case QueryTypes.ELUCIDATION_ASYNC:
-                                        return this.elucidationController.elucidateAsync(requestData);
-                                case QueryTypes.DETECTION:
-                                        return this.detectionController.detect(requestData);
-                                case QueryTypes.RETRIEVE:
-                                        return this.retrievalController.getByRequestId(requestData);
-                                case QueryTypes.STATUS:
-                                        return this.jobController.getJobSnapshot(requestData);
-                                case QueryTypes.CANCEL:
-                                        return this.jobController.cancelJob(requestData);
-                                default:
-                                        final RequestResult requestResult = Utilities
-                                                        .prepareDefaultRequestResult(requestData);
-                                        requestResult.setErrorMessage(
-                                                        "Invalid query type: " + requestData.getQueryType());
-                                        return new ResponseEntity<>(requestResult, HttpStatus.BAD_REQUEST);
-                        }
-                } catch (final Exception e) {
-                        System.err.println("An error occurred: ");
-                        e.printStackTrace();
+        @Operation(summary = "Start an asynchronous elucidation query", description = "Delegates the request payload to the asynchronous elucidation workflow. The response will contain the request ID and request password for later retrieval, status, or cancellation. The result will be stored into the database.")
+        @PostMapping(value = "/elucidateAsync", consumes = "application/json", produces = "application/json")
+        public ResponseEntity<RequestResult> elucidateAsync(@RequestBody final RequestData requestData) {
+                return this.elucidationController.elucidateAsync(requestData);
+        }
 
-                        final RequestResult requestResult = Utilities.prepareDefaultRequestResult(requestData);
-                        requestResult.setErrorMessage(e.getMessage());
-                        return new ResponseEntity<>(requestResult, HttpStatus.INTERNAL_SERVER_ERROR);
-                }
+        @Operation(summary = "Start a detection query", description = "Delegates the request payload to the detection workflow.")
+        @PostMapping(value = "/detect", consumes = "application/json", produces = "application/json")
+        public ResponseEntity<RequestResult> detect(@RequestBody final RequestData requestData) {
+                return this.detectionController.detect(requestData);
+        }
+
+        @Operation(summary = "Retrieve a result by request ID", description = "Returns the stored Sherlock result payload associated with the provided request ID when the matching request password is supplied.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Result returned successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class))),
+                        @ApiResponse(responseCode = "403", description = "Invalid request password", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class))),
+                        @ApiResponse(responseCode = "404", description = "No result found for the provided request ID", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class)))
+        })
+        @GetMapping(value = "/result", produces = "application/json")
+        public ResponseEntity<RequestResult> retrieve(
+                        @Parameter(description = "Request ID returned when the asynchronous job was created.", required = true) @RequestParam String requestId,
+                        @Parameter(description = "Password that was returned when the asynchronous job was created.", required = true) @RequestParam String requestPassword) {
+                return this.retrievalController.getByRequestId(requestId, requestPassword);
+        }
+
+        @Operation(summary = "Get job status by request ID", description = "Returns the current job snapshot for the provided asynchronous Sherlock request ID when the matching request password is supplied.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Job status returned successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class))),
+                        @ApiResponse(responseCode = "403", description = "Invalid request password", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class))),
+                        @ApiResponse(responseCode = "404", description = "No job found for the provided request ID", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class)))
+        })
+        @GetMapping("/status")
+        public ResponseEntity<RequestResult> getStatus(
+                        @Parameter(description = "Request ID returned when the asynchronous job was created.", required = true) @RequestParam String requestId,
+                        @Parameter(description = "Password that was returned when the asynchronous job was created.", required = true) @RequestParam String requestPassword) {
+                final RequestData requestData = new RequestData();
+                requestData.setRequestId(requestId);
+                requestData.setRequestPassword(requestPassword);
+                return this.jobController.getJobSnapshot(requestData);
+        }
+
+        @Operation(summary = "Cancel a job by request ID", description = "Cancels the asynchronous Sherlock job associated with the provided request ID when the matching request password is supplied and returns the cancellation result.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Cancellation request processed", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class))),
+                        @ApiResponse(responseCode = "403", description = "Invalid request password", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class))),
+                        @ApiResponse(responseCode = "404", description = "No job found for the provided request ID", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class)))
+        })
+        @GetMapping("/cancel")
+        public ResponseEntity<RequestResult> cancel(
+                        @Parameter(description = "Request ID returned when the asynchronous job was created.", required = true) @RequestParam String requestId,
+                        @Parameter(description = "Password that was returned when the asynchronous job was created.", required = true) @RequestParam String requestPassword) {
+                final RequestData requestData = new RequestData();
+                requestData.setRequestId(requestId);
+                requestData.setRequestPassword(requestPassword);
+                return this.jobController.cancelJob(requestData);
         }
 
 }

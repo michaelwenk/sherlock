@@ -75,8 +75,6 @@ public class Utilities {
         final Correlations correlations = requestData.getCorrelations();
         final Spectrum querySpectrum = Utils.correlationListToSpectrum1D(correlations.getValues(), "13C");
 
-        requestResult.setQueryType(requestData.getQueryType());
-
         requestResult.setRequestId(requestData.getRequestId());
         requestResult.setJobState(new JobSnapshot(requestData.getRequestId(), JobState.UNKNOWN, null, null));
 

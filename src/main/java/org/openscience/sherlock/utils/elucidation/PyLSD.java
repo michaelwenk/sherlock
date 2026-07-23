@@ -81,7 +81,8 @@ public class PyLSD {
 
         private final Map<String, RequestResult> asyncResults = new ConcurrentHashMap<>();
 
-        private Transfer createQueryTransfer(final String requestId, final String taskName,
+        private Transfer createQueryTransfer(final String requestId, final String requestPasswordHash,
+                        final String taskName,
                         final Correlations correlations,
                         final SpectrumCompact querySpectrum, final boolean detected,
                         final DetectionOptions detectionOptions, final Detections detections,
@@ -89,6 +90,7 @@ public class PyLSD {
 
                 final Transfer requestTransfer = new Transfer();
                 requestTransfer.setRequestId(requestId);
+                requestTransfer.setRequestPasswordHash(requestPasswordHash);
                 requestTransfer.setTaskName(taskName);
                 requestTransfer.setCorrelations(correlations);
                 requestTransfer.setQuerySpectrum(querySpectrum.toSpectrum());
@@ -109,18 +111,21 @@ public class PyLSD {
                         final boolean detected, final DetectionOptions detectionOptions, final Detections detections,
                         final Grouping grouping, final ElucidationOptions elucidationOptions) {
 
-                final Transfer requestTransfer = createQueryTransfer(requestId, taskName, correlations, querySpectrum,
+                final Transfer requestTransfer = createQueryTransfer(requestId, null, taskName, correlations,
+                                querySpectrum,
                                 detected, detectionOptions, detections, grouping, elucidationOptions);
 
                 return executePyLSD(null, requestTransfer, false);
         }
 
         public void schedulePyLSD(final String requestId,
+                        final String requestPasswordHash,
                         final String taskName, final Correlations correlations, final SpectrumCompact querySpectrum,
                         final boolean detected, final DetectionOptions detectionOptions, final Detections detections,
                         final Grouping grouping, final ElucidationOptions elucidationOptions) {
 
-                final Transfer requestTransfer = createQueryTransfer(requestId, taskName, correlations, querySpectrum,
+                final Transfer requestTransfer = createQueryTransfer(requestId, requestPasswordHash, taskName,
+                                correlations, querySpectrum,
                                 detected, detectionOptions, detections, grouping, elucidationOptions);
                 final String serializedRequestData = serializeRequestData(requestTransfer);
 
@@ -131,12 +136,12 @@ public class PyLSD {
                                                                                 ? taskName
                                                                                 : requestId),
                                                 null,
-                                                serializedRequestData) {
+                                                serializedRequestData,
+                                                requestPasswordHash) {
                                         @Override
                                         public void run() {
                                                 final ResponseEntity<RequestResult> responseEntity = executePyLSD(
                                                                 this, requestTransfer, true);
-                                                System.out.println("-> responseEntity: " + responseEntity);
                                                 final RequestResult responseBody = responseEntity.getBody();
 
                                                 asyncResults.put(requestId, responseBody);
@@ -413,16 +418,28 @@ public class PyLSD {
         private ResponseEntity<ResultRecord> rankAndStore(final List<DataSet> dataSetList,
                         final Transfer requestTransfer, final boolean storeResult) {
                 final ResultRecord resultRecord = new ResultRecord();
+                resultRecord.setRequestId(requestTransfer.getRequestId());
+                resultRecord.setRequestPasswordHash(requestTransfer.getRequestPasswordHash());
+                resultRecord.setName(requestTransfer.getTaskName());
+                resultRecord.setCorrelations(requestTransfer.getCorrelations());
+                resultRecord.setQuerySpectrum(new SpectrumCompact(requestTransfer.getQuerySpectrum()));
+                resultRecord.setDetectionOptions(requestTransfer.getDetectionOptions());
+                resultRecord.setDetections(requestTransfer.getDetections());
+                resultRecord.setDetected(requestTransfer.getDetected());
+                resultRecord.setGrouping(requestTransfer.getGrouping());
+                resultRecord.setElucidationOptions(requestTransfer.getElucidationOptions());
+
                 try {
+                        resultRecord.setDate(LocalDateTime.now().atZone(ZoneId.systemDefault())
+                                        .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+                                        .toString());
+
                         // add MOL files, store results in DB if not empty and update resultRecord
                         if (!dataSetList.isEmpty()) {
                                 Utilities.addMolFileToDataSets(dataSetList);
 
                                 rank(dataSetList);
 
-                                resultRecord.setDate(LocalDateTime.now().atZone(ZoneId.systemDefault())
-                                                .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
-                                                .toString());
                                 final List<DataSet> cutDataSetList = new ArrayList<>();
                                 for (int i = 0; i < 100; i++) {
                                         if (i >= dataSetList.size()) {
@@ -433,42 +450,31 @@ public class PyLSD {
                                 resultRecord.setDataSetList(cutDataSetList);
                                 resultRecord.setDataSetListSize(cutDataSetList.size());
                                 resultRecord.setPreviewDataSet(cutDataSetList.get(0));
-
-                                resultRecord.setRequestId(requestTransfer.getRequestId());
-                                resultRecord.setName(requestTransfer.getTaskName());
-                                resultRecord.setCorrelations(requestTransfer.getCorrelations());
-                                resultRecord.setQuerySpectrum(new SpectrumCompact(requestTransfer.getQuerySpectrum()));
-                                resultRecord.setDetectionOptions(requestTransfer.getDetectionOptions());
-                                resultRecord.setDetections(requestTransfer.getDetections());
-                                resultRecord.setDetected(requestTransfer.getDetected());
-                                resultRecord.setGrouping(requestTransfer.getGrouping());
-                                resultRecord.setElucidationOptions(requestTransfer.getElucidationOptions());
-
-                                if (storeResult) {
-                                        try {
-                                                final ObjectId resultStorageEntity = resultController
-                                                                .insert(resultRecord)
-                                                                .block();
-                                                if (resultStorageEntity == null) {
-                                                        System.out.println(
-                                                                        "--> storing of result record failed -> resultStorageEntity is null");
-                                                        return new ResponseEntity<>(resultRecord,
-                                                                        HttpStatus.INTERNAL_SERVER_ERROR);
-                                                }
-                                                System.out.println(
-                                                                "--> storing of result record was successful -> resultStorageEntity: "
-                                                                                + resultStorageEntity.toString());
-                                                resultRecord.setId(resultStorageEntity.toString());
-                                        } catch (final Exception e) {
-                                                e.printStackTrace();
-                                                return new ResponseEntity<>(resultRecord, HttpStatus.NOT_FOUND);
-                                        }
-                                }
                         } else {
                                 resultRecord.setDataSetList(new ArrayList<>());
                                 resultRecord.setDataSetListSize(0);
                                 resultRecord.setPreviewDataSet(null);
-                                resultRecord.setId(null);
+                        }
+
+                        if (storeResult) {
+                                try {
+                                        final ObjectId resultStorageEntity = resultController
+                                                        .insert(resultRecord)
+                                                        .block();
+                                        if (resultStorageEntity == null) {
+                                                System.out.println(
+                                                                "--> storing of result record failed -> resultStorageEntity is null");
+                                                return new ResponseEntity<>(resultRecord,
+                                                                HttpStatus.INTERNAL_SERVER_ERROR);
+                                        }
+                                        System.out.println(
+                                                        "--> storing of result record was successful -> resultStorageEntity: "
+                                                                        + resultStorageEntity.toString());
+                                        resultRecord.setId(resultStorageEntity.toString());
+                                } catch (final Exception e) {
+                                        e.printStackTrace();
+                                        return new ResponseEntity<>(resultRecord, HttpStatus.NOT_FOUND);
+                                }
                         }
                 } catch (final CDKException e) {
                         e.printStackTrace();

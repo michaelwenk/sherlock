@@ -5,7 +5,7 @@ import java.util.concurrent.ThreadLocalRandom;
 public final class IdGenerator {
 
     private static final String BASE62 = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    private static final int LENGTH = 8;
+    private static final int LENGTH = 16;
 
     private IdGenerator() {
     }

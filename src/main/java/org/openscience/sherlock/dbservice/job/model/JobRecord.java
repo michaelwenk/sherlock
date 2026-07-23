@@ -43,6 +43,9 @@ public class JobRecord {
     @Column(name = "request_data", nullable = false, columnDefinition = "TEXT")
     private String requestData;
 
+    @Column(name = "request_password_hash")
+    private String requestPasswordHash;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private OffsetDateTime createdAt;
 

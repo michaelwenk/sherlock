@@ -5,10 +5,14 @@ import casekit.nmr.elucidation.model.Grouping;
 import casekit.nmr.model.nmrium.Correlations;
 import com.google.gson.Gson;
 import org.bson.types.ObjectId;
+import org.openscience.sherlock.configuration.OpenApiConfiguration;
 import org.openscience.sherlock.dbservice.result.model.ResultRecord;
+import org.openscience.sherlock.utils.RequestPasswordUtils;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.gridfs.ReactiveGridFsOperations;
@@ -16,6 +20,11 @@ import org.springframework.data.mongodb.gridfs.ReactiveGridFsTemplate;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -27,6 +36,8 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.UUID;
 
+@Tag(name = "Results", description = "Endpoints for storing and retrieving Sherlock result records from GridFS.")
+@SecurityRequirement(name = OpenApiConfiguration.BASIC_AUTH_SCHEME)
 @RestController
 @RequestMapping(value = "/result")
 public class ResultController {
@@ -41,12 +52,14 @@ public class ResultController {
         this.reactiveGridFsOperations = reactiveGridFsOperations;
     }
 
+    @Operation(summary = "Count results", description = "Returns the number of stored result records.")
     @GetMapping(value = "/count")
     public Mono<Long> count() {
         return this.buildResultRecordFlux(new Query())
                 .count();
     }
 
+    @Operation(summary = "Get a result by database ID", description = "Returns the stored result record associated with the given GridFS document ID.")
     @GetMapping(value = "/getById", produces = "application/json")
     public Mono<ResultRecord> getById(@RequestParam final String id) {
         return this.buildResultRecordFlux(new Query(Criteria.where("_id")
@@ -54,18 +67,36 @@ public class ResultController {
                 .next();
     }
 
+    @Operation(summary = "Get a result by request ID", description = "Returns the stored result record whose filename matches the given Sherlock request ID.")
     @GetMapping(value = "/getByRequestId", produces = "application/json")
-    public Mono<ResultRecord> getByRequestId(@RequestParam final String requestId) {
+    public Mono<ResponseEntity<ResultRecord>> getByRequestId(
+            @Parameter(description = "Request ID returned when the asynchronous job was created.", example = "2d9c2d6f-6d4f-4d9f-94b9-13c9a4db9fd2", required = true) @RequestParam final String requestId,
+            @Parameter(description = "Password that was returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = true) @RequestParam final String requestPassword) {
+        if (requestPassword == null || requestPassword.isBlank()) {
+            return Mono.just(new ResponseEntity<>(HttpStatus.BAD_REQUEST));
+        }
+
+        return this.findByRequestId(requestId)
+                .map(resultRecord -> RequestPasswordUtils.matches(requestPassword,
+                        resultRecord.getRequestPasswordHash())
+                                ? new ResponseEntity<>(resultRecord, HttpStatus.OK)
+                                : new ResponseEntity<ResultRecord>(HttpStatus.FORBIDDEN))
+                .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));
+    }
+
+    public Mono<ResultRecord> findByRequestId(final String requestId) {
         return this.buildResultRecordFlux(new Query(Criteria.where("filename")
                 .is(requestId)))
                 .next();
     }
 
+    @Operation(summary = "List all results", description = "Streams every stored result record including the full payload data.")
     @GetMapping(value = "/getAll", produces = "application/json")
     public Flux<ResultRecord> getAll() {
         return this.buildResultRecordFlux(new Query());
     }
 
+    @Operation(summary = "List result metadata", description = "Streams stored result records after stripping large payload fields to reduce transfer size.")
     @GetMapping(value = "/getAllMeta")
     public Flux<ResultRecord> getAllMeta() {
         return this.buildResultRecordFlux(new Query())
@@ -84,6 +115,7 @@ public class ResultController {
                 });
     }
 
+    @Operation(summary = "Insert a result", description = "Stores a result record in GridFS and returns the created object ID.")
     @PostMapping(value = "/insert", consumes = "application/json", produces = "application/json")
     public Mono<ObjectId> insert(@RequestBody final ResultRecord resultRecord) {
         return this.reactiveGridFsTemplate.store(this.resultRecordToDataBufferFlux(resultRecord),
@@ -92,12 +124,14 @@ public class ResultController {
                                 .toString());
     }
 
+    @Operation(summary = "Delete a result by database ID", description = "Deletes the stored result record associated with the given GridFS document ID.")
     @DeleteMapping(value = "/deleteById")
     public Mono<Void> deleteById(@RequestParam final String id) {
         return this.reactiveGridFsTemplate.delete(new Query(Criteria.where("_id")
                 .is(id)));
     }
 
+    @Operation(summary = "Delete all results", description = "Removes every stored result record from GridFS.")
     @DeleteMapping(value = "/deleteAll")
     public Mono<Void> deleteAll() {
         return this.reactiveGridFsTemplate.delete(new Query());
@@ -141,6 +175,6 @@ public class ResultController {
                                         return resultRecord;
                                     });
                         }))
-                .flatMap(Mono::flux);
+                .flatMap(resultRecordMono -> resultRecordMono.flux());
     }
 }
