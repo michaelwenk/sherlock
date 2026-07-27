@@ -6,12 +6,11 @@ import casekit.nmr.utils.Statistics;
 import org.openscience.cdk.interfaces.IBond;
 import org.openscience.sherlock.dbservice.dataset.controller.DataSetController;
 import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
-import org.openscience.sherlock.dbservice.statistics.service.HOSECodeServiceImplementation;
 import org.openscience.sherlock.dbservice.statistics.service.model.HOSECodeRecord;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -20,8 +19,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class Utilities {
 
-        @Autowired
-        private DataSetController dataSetController;
+        private final DataSetController dataSetController;
+
+        public Utilities(final DataSetController dataSetController) {
+                this.dataSetController = dataSetController;
+        }
 
         public long getDataSetCount() {
                 return dataSetController.getCount().block();
@@ -68,9 +70,8 @@ public class Utilities {
                 }
         }
 
-        public void buildAndInsertHOSECodes(final List<DataSet> dataSetList, final int maxSphere,
-                        final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Double, Long>>> hoseCodeShifts,
-                        final HOSECodeServiceImplementation hoseCodeServiceImplementation) {
+        public void buildHOSECodes(final List<DataSet> dataSetList, final int maxSphere,
+                        final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Double, Long>>> hoseCodeShifts) {
                 // final List<Boolean> containsStereo = new ArrayList<>();
                 // for (final DataSet dataSet : dataSetList) {
                 // containsStereo.add(this.containsStereoConfiguration(dataSet));
@@ -174,15 +175,32 @@ public class Utilities {
                 }
         }
 
-        public void insertHOSECodeShiftsToDatabase(
-                        final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Double, Long>>> hoseCodeShifts,
-                        final HOSECodeServiceImplementation hoseCodeServiceImplementation) {
+        public List<HOSECodeRecord> buildHOSECodeRecords(
+                        final List<DataSet> dataSetList,
+                        final int maxSphere) {
+                final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Double, Long>>> hoseCodeShifts = new ConcurrentHashMap<>();
+                for (final DataSet dataSet : dataSetList) {
+                        final List<DataSet> singleDataSetList = new ArrayList<>();
+                        singleDataSetList.add(dataSet);
+                        try {
+                                this.buildHOSECodes(singleDataSetList, maxSphere, hoseCodeShifts);
+                        } catch (final Exception e) {
+                                e.printStackTrace();
+                        }
+                }
+
+                return this.buildHOSECodeRecords(hoseCodeShifts);
+        }
+
+        public List<HOSECodeRecord> buildHOSECodeRecords(
+                        final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Double, Long>>> hoseCodeShifts) {
+                final List<HOSECodeRecord> hoseCodeRecords = new ArrayList<>();
                 for (final Map.Entry<String, ConcurrentHashMap<String, ConcurrentHashMap<Double, Long>>> entryPerHOSECode : hoseCodeShifts
                                 .entrySet()) {
-                        final HOSECodeRecord hoseCodeRecord = this.buildHoseCodeRecord(entryPerHOSECode);
-                        hoseCodeServiceImplementation.insert(hoseCodeRecord).block();
-                        // hoseCodeServiceImplementation.insert(hoseCodeRecord).subscribe();
+                        hoseCodeRecords.add(this.buildHoseCodeRecord(entryPerHOSECode));
                 }
+
+                return hoseCodeRecords;
         }
 
         public HOSECodeRecord buildHoseCodeRecord(

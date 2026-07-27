@@ -24,10 +24,18 @@
 
 package org.openscience.sherlock.dbservice.statistics.service;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.openscience.sherlock.dbservice.statistics.service.model.HOSECodeRecord;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.mongodb.core.BulkOperations;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.ReactiveBulkOperations;
 import org.springframework.data.mongodb.core.ReactiveMongoTemplate;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Service;
 
 import reactor.core.publisher.Flux;
@@ -37,12 +45,15 @@ import reactor.core.publisher.Mono;
 public class HOSECodeServiceImplementation
         implements HOSECodeService {
 
-    @Autowired
-    @Qualifier("statisticsMongoTemplate")
-    private ReactiveMongoTemplate reactiveMongoTemplate;
+    private final ReactiveMongoTemplate reactiveMongoTemplate;
+    private final HOSECodeRepository hoseCodeRepository;
 
-    @Autowired
-    private HOSECodeRepository hoseCodeRepository;
+    public HOSECodeServiceImplementation(
+            @Qualifier("statisticsMongoTemplate") final ReactiveMongoTemplate reactiveMongoTemplate,
+            final HOSECodeRepository hoseCodeRepository) {
+        this.reactiveMongoTemplate = reactiveMongoTemplate;
+        this.hoseCodeRepository = hoseCodeRepository;
+    }
 
     @Override
     public Mono<Long> count() {
@@ -74,6 +85,36 @@ public class HOSECodeServiceImplementation
     @Override
     public Flux<HOSECodeRecord> insertMany(final Flux<HOSECodeRecord> hoseCodeRecordFlux) {
         return this.hoseCodeRepository.insert(hoseCodeRecordFlux);
+    }
+
+    @Override
+    public Mono<Void> upsertValuesBulk(final List<HOSECodeRecord> hoseCodeRecords) {
+        return Mono.defer(() -> {
+            if (hoseCodeRecords.isEmpty()) {
+                return Mono.<Void>empty();
+            }
+
+            final ReactiveBulkOperations bulkOperations = this.reactiveMongoTemplate
+                    .bulkOps(BulkOperations.BulkMode.UNORDERED, HOSECodeRecord.class);
+
+            for (final HOSECodeRecord hoseCodeRecord : hoseCodeRecords) {
+                final Query query = Query.query(Criteria.where("_id").is(hoseCodeRecord.getId()));
+                final Update update = new Update()
+                        .setOnInsert("_id", hoseCodeRecord.getId())
+                        .setOnInsert("statistics", new HashMap<String, Double[]>());
+
+                for (final Map.Entry<String, Map<String, Long>> solventEntry : hoseCodeRecord.getValues().entrySet()) {
+                    for (final Map.Entry<String, Long> shiftEntry : solventEntry.getValue().entrySet()) {
+                        update.inc("values." + solventEntry.getKey() + "." + shiftEntry.getKey(),
+                                shiftEntry.getValue());
+                    }
+                }
+
+                bulkOperations.upsert(query, update);
+            }
+
+            return bulkOperations.execute().then();
+        });
     }
 
     @Override

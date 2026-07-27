@@ -13,38 +13,61 @@ import org.openscience.cdk.smiles.SmilesParser;
 import org.openscience.nmrshiftdb.util.AtomUtils;
 import org.openscience.nmrshiftdb.util.ExtendedHOSECodeGenerator;
 import org.openscience.sherlock.configuration.OpenApiConfiguration;
+import org.openscience.sherlock.dbservice.statistics.controller.model.HOSEReplaceAllJobStatus;
 import org.openscience.sherlock.model.exchange.Transfer;
-import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
+import org.openscience.sherlock.dbservice.statistics.service.HOSEReplaceAllJobService;
 import org.openscience.sherlock.dbservice.statistics.service.HOSECodeServiceImplementation;
 import org.openscience.sherlock.dbservice.statistics.service.model.HOSECodeRecord;
 import org.openscience.sherlock.dbservice.statistics.utils.Utilities;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.Disposable;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.IntConsumer;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
-@Tag(name = "HOSE Code Statistics", description = "Endpoints for querying, rebuilding, and using HOSE code predictions.")
+@Tag(name = "HOSE Code Statistics", description = "Endpoints for querying, rebuilding, and using HOSE code predictions, including chunked bulk rebuilds of the HOSE code collection.")
 @SecurityRequirement(name = OpenApiConfiguration.BASIC_AUTH_SCHEME)
 @RestController
 @RequestMapping(value = "/statistics/hosecode")
 public class HOSECodeController {
 
-    @Autowired
-    private HOSECodeServiceImplementation hoseCodeServiceImplementation;
-    @Autowired
-    private Utilities utilities;
+    private static final Logger LOGGER = LoggerFactory.getLogger(HOSECodeController.class);
+
+    @Value("${sherlock.statistics.hosecode.replace-all-batch-size:250}")
+    private int replaceAllBatchSize;
+
+    private final HOSECodeServiceImplementation hoseCodeServiceImplementation;
+    private final HOSEReplaceAllJobService hoseReplaceAllJobService;
+    private final Utilities utilities;
 
     private final ExtendedHOSECodeGenerator extendedHOSECodeGenerator = new ExtendedHOSECodeGenerator();
+
+    public HOSECodeController(final HOSECodeServiceImplementation hoseCodeServiceImplementation,
+            final HOSEReplaceAllJobService hoseReplaceAllJobService,
+            final Utilities utilities) {
+        this.hoseCodeServiceImplementation = hoseCodeServiceImplementation;
+        this.hoseReplaceAllJobService = hoseReplaceAllJobService;
+        this.utilities = utilities;
+    }
 
     private String decode(final String value) {
         try {
@@ -80,61 +103,148 @@ public class HOSECodeController {
         this.hoseCodeServiceImplementation.deleteAll().block();
     }
 
-    @Operation(summary = "Rebuild HOSE code records", description = "Rebuilds the HOSE code collection for the selected nuclei and maximum sphere size. In addition, the HOSE code statistics are rebuilt.")
+    @Operation(summary = "Start HOSE code rebuild", description = "Starts a background rebuild of the HOSE code collection for the selected nuclei and maximum sphere size. The endpoint returns immediately with HTTP 202 and the current rebuild status.")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "202", description = "Rebuild job accepted and started asynchronously"),
+            @ApiResponse(responseCode = "409", description = "A rebuild job is already running")
+    })
     @PostMapping(value = "/replaceAll")
-    public void replaceAll(@RequestParam final String[] nuclei, @RequestParam final int maxSphere) {
-        this.replaceAll(utilities.getByDataSetSpectrumNuclei(
-                nuclei).map(DataSetRecord::getDataSet), maxSphere, true);
+    public ResponseEntity<HOSEReplaceAllJobStatus> replaceAll(
+            @Parameter(description = "Nuclei to include, e.g. 13C or 1H", example = "13C") @RequestParam final String[] nuclei,
+            @Parameter(description = "Maximum HOSE sphere size", example = "5") @RequestParam final int maxSphere) {
+        try {
+            LOGGER.info("Received HOSE replaceAll request with nuclei={} and maxSphere={}", Arrays.toString(nuclei),
+                    maxSphere);
+            final HOSEReplaceAllJobStatus startedJob = this.hoseReplaceAllJobService.startJob(
+                    nuclei,
+                    maxSphere,
+                    this.replaceAllBatchSize);
+            final Flux<DataSet> dataSetFlux = this.utilities.getByDataSetSpectrumNuclei(nuclei)
+                    .map(dataSetRecord -> dataSetRecord.getDataSet());
+
+                final String jobId = this.hoseReplaceAllJobService.getActiveJobIdOrThrow();
+            final Disposable subscription = this.replaceAll(dataSetFlux, maxSphere, true,
+                    batchSize -> this.hoseReplaceAllJobService.onBatchProcessed(jobId, batchSize))
+                    .doOnSubscribe(unused -> this.hoseReplaceAllJobService.markRunning(jobId))
+                    .doOnSuccess(unused -> this.hoseReplaceAllJobService.markCompleted(jobId))
+                    .doOnError(error -> {
+                        LOGGER.error("replaceAll background job {} failed", jobId, error);
+                        this.hoseReplaceAllJobService.markFailed(jobId, error);
+                    })
+                    .doOnCancel(() -> {
+                        LOGGER.warn("replaceAll background job {} cancelled", jobId);
+                        this.hoseReplaceAllJobService.markCancelled(jobId);
+                    })
+                    .subscribe();
+            this.hoseReplaceAllJobService.attachSubscription(jobId, subscription);
+
+                final HOSEReplaceAllJobStatus response = this.hoseReplaceAllJobService
+                    .getCurrentJobStatus()
+                    .orElse(startedJob);
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
+        } catch (final Exception error) {
+            if (error instanceof ResponseStatusException responseStatusException) {
+                throw responseStatusException;
+            }
+            LOGGER.error("Failed before creating replaceAll pipeline for nuclei={} and maxSphere={}",
+                    Arrays.toString(nuclei), maxSphere, error);
+            throw new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed before HOSE code rebuild pipeline creation: "
+                            + error.getClass().getSimpleName() + " - " + error.getMessage(),
+                    error);
+        }
     }
 
-    public void replaceAll(final Flux<DataSet> dataSetFlux, final int maxSphere, final boolean buildStatistics) {
-        System.out.println(" -> replacing HOSE code collection ...");
-        System.out.println(" -> deleting previous HOSE code collection ...");
-        this.deleteAll();
-        System.out.println(" -> previous HOSE code collection deleted");
+    @Operation(summary = "Get HOSE rebuild status", description = "Returns the current HOSE replaceAll status. If no active job exists, returns the latest finished status.")
+    @GetMapping(value = "/replaceAll/status")
+    public HOSEReplaceAllJobStatus getReplaceAllStatus() {
+        return this.hoseReplaceAllJobService.getCurrentJobStatus()
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
+                        "No HOSE replaceAll status available yet"));
+    }
 
-        System.out.println(" --> building new HOSE code collection ...");
-        final AtomicInteger counter = new AtomicInteger(0);
-        final ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<Double, Long>>> hoseCodeShifts = new ConcurrentHashMap<>();
-        dataSetFlux.doOnNext(
-                dataSet -> {
-                    final List<DataSet> dataSetList = new ArrayList<>();
-                    dataSetList.add(dataSet);
-                    try {
-                        this.utilities.buildAndInsertHOSECodes(dataSetList, maxSphere,
-                                hoseCodeShifts, this.hoseCodeServiceImplementation);
-                        // System.out.println(" --> building HOSE codes successful");
-                    } catch (final Exception e) {
-                        e.printStackTrace();
-                        // System.out.println(" --> building HOSE codes failed -> skipping dataset");
-                    }
+    @Operation(summary = "Cancel active HOSE rebuild", description = "Cancels the active HOSE replaceAll job.")
+    @PostMapping(value = "/replaceAll/cancel")
+    public HOSEReplaceAllJobStatus cancelReplaceAll() {
+        return this.hoseReplaceAllJobService.cancelActiveJob();
+    }
 
-                    if (counter.incrementAndGet()
-                            % 10000 == 0) {
-                        System.out.println(" --> reached: "
-                                + counter.get()
-                                + " datasets");
-                    }
-                })
-                .doAfterTerminate(() -> {
-                    System.out.println(" --> building HOSE codes done for all datasets");
-                    this.utilities.insertHOSECodeShiftsToDatabase(hoseCodeShifts,
-                            this.hoseCodeServiceImplementation);
-                    System.out.println(" --> new HOSE code collection built");
-                    if (buildStatistics) {
-                        this.buildStatistics();
-                    }
-                }).subscribe();
+    public Mono<Void> replaceAll(final Flux<DataSet> dataSetFlux, final int maxSphere, final boolean buildStatistics) {
+        return this.replaceAll(dataSetFlux, maxSphere, buildStatistics, batchSize -> {
+        });
+    }
+
+    public Mono<Void> replaceAll(final Flux<DataSet> dataSetFlux, final int maxSphere, final boolean buildStatistics,
+            final IntConsumer onBatchProcessed) {
+        try {
+            return Mono.defer(() -> {
+                if (this.replaceAllBatchSize <= 0) {
+                    throw new IllegalStateException(
+                            "sherlock.statistics.hosecode.replace-all-batch-size must be greater than 0, but was "
+                                    + this.replaceAllBatchSize);
+                }
+
+                LOGGER.info("Replacing HOSE code collection");
+                LOGGER.info("Deleting previous HOSE code collection");
+                LOGGER.info("Building new HOSE code collection with batch size {}", this.replaceAllBatchSize);
+
+                final AtomicInteger counter = new AtomicInteger(0);
+                final AtomicInteger batchCounter = new AtomicInteger(0);
+                return this.hoseCodeServiceImplementation.deleteAll()
+                        .doOnSuccess(unused -> LOGGER.info("Previous HOSE code collection deleted"))
+                        .thenMany(dataSetFlux.buffer(this.replaceAllBatchSize))
+                        .concatMap(dataSetBatch -> {
+                            final int currentBatch = batchCounter.incrementAndGet();
+                            return Mono
+                                    .fromCallable(() -> this.utilities.buildHOSECodeRecords(dataSetBatch, maxSphere))
+                                    .flatMap(this.hoseCodeServiceImplementation::upsertValuesBulk)
+                                    .doOnSuccess(unused -> {
+                                        onBatchProcessed.accept(dataSetBatch.size());
+                                        final int previousCount = counter.getAndAdd(dataSetBatch.size());
+                                        final int currentCount = previousCount + dataSetBatch.size();
+                                        if (previousCount / 10000 < currentCount / 10000) {
+                                            LOGGER.info("Reached {} datasets", currentCount);
+                                        }
+                                    })
+                                    .doOnError(error -> LOGGER.error(
+                                            "Failed while processing HOSE batch {} (size={})",
+                                            currentBatch,
+                                            dataSetBatch.size(),
+                                            error));
+                        })
+                        .then()
+                        .doOnSuccess(unused -> LOGGER.info("Building HOSE codes done for all datasets"))
+                        .doOnSuccess(unused -> LOGGER.info("New HOSE code collection built"))
+                        .then(buildStatistics ? this.buildStatistics() : Mono.empty());
+            })
+                    .doOnCancel(() -> LOGGER.warn("HOSE replaceAll pipeline was cancelled before completion"))
+                    .doOnError(error -> LOGGER.error("Failed to rebuild HOSE code collection", error))
+                    .onErrorMap(error -> new ResponseStatusException(
+                            HttpStatus.INTERNAL_SERVER_ERROR,
+                            "Failed to rebuild HOSE code collection. See server logs for the root cause.",
+                            error));
+        } catch (final Exception error) {
+            LOGGER.error("Failed before HOSE replaceAll reactive pipeline started", error);
+            return Mono.error(new ResponseStatusException(
+                    HttpStatus.INTERNAL_SERVER_ERROR,
+                    "Failed before HOSE code rebuild started. See server logs for the root cause.",
+                    error));
+        }
 
     }
 
-    @Operation(summary = "Build HOSE code statistics", description = "Calculates summary statistics for every stored HOSE code entry and persists them back to the collection.")
+    @Operation(summary = "Build HOSE code statistics", description = "Calculates summary statistics for every stored HOSE code entry in the current collection contents and persists the derived metrics back to each HOSE code record.")
     @PostMapping(value = "/buildStatistics")
-    public void buildStatistics() {
-        System.out.println(" -> building HOSE code statistics ...");
+    public Mono<Void> buildStatistics() {
+        LOGGER.info("Building HOSE code statistics");
         final AtomicInteger count = new AtomicInteger(0);
-        this.hoseCodeServiceImplementation.findAll()
-                .doOnNext(hoseCodeRecord -> {
+        return this.hoseCodeServiceImplementation.findAll()
+                .concatMap(hoseCodeRecord -> {
+                    if (hoseCodeRecord.getValues() == null || hoseCodeRecord.getValues().isEmpty()) {
+                        return this.hoseCodeServiceImplementation.save(hoseCodeRecord);
+                    }
+
                     final Map<String, Double[]> statistics = new HashMap<>();
                     List<Double> values;
                     double shift;
@@ -165,19 +275,17 @@ public class HOSECodeController {
                         }
                     }
                     hoseCodeRecord.setStatistics(statistics);
-                    this.hoseCodeServiceImplementation.save(hoseCodeRecord)
-                            .subscribe();
-
                     if (count.incrementAndGet()
                             % 100000 == 0) {
-                        System.out.println(" -> reached: "
-                                + count.get());
+                        LOGGER.info("Reached {} HOSE records while building statistics", count.get());
                     }
+                    return this.hoseCodeServiceImplementation.save(hoseCodeRecord);
                 })
-                .doAfterTerminate(() -> {
-                    System.out.println(" -> build HOSE code statistics done");
+                .doOnComplete(() -> {
+                    LOGGER.info("Build HOSE code statistics done");
                 })
-                .subscribe();
+                .doOnError(error -> LOGGER.error("Failed while building HOSE code statistics", error))
+                .then();
 
     }
 

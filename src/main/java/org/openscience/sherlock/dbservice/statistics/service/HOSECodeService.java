@@ -24,6 +24,8 @@
 
 package org.openscience.sherlock.dbservice.statistics.service;
 
+import java.util.List;
+
 import org.openscience.sherlock.dbservice.statistics.service.model.HOSECodeRecord;
 
 import reactor.core.publisher.Flux;
@@ -44,6 +46,8 @@ public interface HOSECodeService {
     Mono<HOSECodeRecord> insert(final HOSECodeRecord hoseCodeRecord);
 
     Flux<HOSECodeRecord> insertMany(final Flux<HOSECodeRecord> hoseCodeRecordFlux);
+
+    Mono<Void> upsertValuesBulk(final List<HOSECodeRecord> hoseCodeRecords);
 
     Mono<HOSECodeRecord> save(final HOSECodeRecord hoseCodeRecord);
 
