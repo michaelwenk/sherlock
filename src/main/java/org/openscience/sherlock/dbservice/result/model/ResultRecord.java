@@ -50,6 +50,8 @@ import java.util.List;
 public class ResultRecord {
 
     @Id
+    @JsonIgnore
+    @Schema(hidden = true)
     private String id;
     private String requestId;
     @JsonIgnore
