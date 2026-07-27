@@ -292,17 +292,18 @@ public class PyLSD {
                                                                         "PyLSD run was successful but parsing and prediction failed for requestId: "
                                                                                         + requestTransfer.getRequestId()
                                                                                         + " or process got cancelled.");
-                                                        return new ResponseEntity<>(requestResult,
-                                                                        HttpStatus.INTERNAL_SERVER_ERROR);
-                                                }
-                                                System.out.println("\n\n--> parse and prediction was successful");
-                                                for (final DataSet dataSet : dataSetListTemp) {
-                                                        if (dataSetList.stream()
-                                                                        .noneMatch(ds -> ds.getMeta()
-                                                                                        .get("smiles")
-                                                                                        .equals(dataSet.getMeta()
-                                                                                                        .get("smiles")))) {
-                                                                dataSetList.add(dataSet);
+                                                        stop = true;
+                                                } else {
+                                                        System.out.println(
+                                                                        "\n\n--> parse and prediction was successful");
+                                                        for (final DataSet dataSet : dataSetListTemp) {
+                                                                if (dataSetList.stream()
+                                                                                .noneMatch(ds -> ds.getMeta()
+                                                                                                .get("smiles")
+                                                                                                .equals(dataSet.getMeta()
+                                                                                                                .get("smiles")))) {
+                                                                        dataSetList.add(dataSet);
+                                                                }
                                                         }
                                                 }
                                         } else {
