@@ -96,14 +96,19 @@ public class CoreController {
                 return this.dereplicationController.dereplicate(requestData);
         }
 
-        @Operation(summary = "Start an elucidation query", description = "Delegates the request payload to the synchronous elucidation workflow. The response will contain the completed result and the result is not stored into the database.")
-        @PostMapping(value = "/elucidate", consumes = "application/json", produces = "application/json")
-        public ResponseEntity<RequestResult> elucidate(@RequestBody final RequestData requestData) {
-                return this.elucidationController.elucidate(requestData);
-        }
+        // @Operation(summary = "Start an elucidation query", description = "Delegates
+        // the request payload to the synchronous elucidation workflow. The response
+        // will contain the completed result and the result is not stored into the
+        // database.")
+        // @PostMapping(value = "/elucidate", consumes = "application/json", produces =
+        // "application/json")
+        // public ResponseEntity<RequestResult> elucidate(@RequestBody final RequestData
+        // requestData) {
+        // return this.elucidationController.elucidate(requestData);
+        // }
 
         @Operation(summary = "Start an asynchronous elucidation query", description = "Delegates the request payload to the asynchronous elucidation workflow. The response will contain the request ID and request password for later retrieval, status, or cancellation. The result will be stored into the database.")
-        @PostMapping(value = "/elucidateAsync", consumes = "application/json", produces = "application/json")
+        @PostMapping(value = "/elucidate", consumes = "application/json", produces = "application/json")
         public ResponseEntity<RequestResult> elucidateAsync(@RequestBody final RequestData requestData) {
                 return this.elucidationController.elucidateAsync(requestData);
         }
