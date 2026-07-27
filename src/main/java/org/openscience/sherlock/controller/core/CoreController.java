@@ -31,6 +31,7 @@ import org.openscience.sherlock.controller.JobController;
 import org.openscience.sherlock.controller.RetrievalController;
 import org.openscience.sherlock.model.exchange.RequestData;
 import org.openscience.sherlock.model.exchange.RequestResult;
+import org.openscience.sherlock.utils.elucidation.job.JobSnapshot;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -128,34 +129,28 @@ public class CoreController {
 
         @Operation(summary = "Get job status by request ID", description = "Returns the current job snapshot for the provided asynchronous Sherlock request ID when the matching request password is supplied.")
         @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Job status returned successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class))),
-                        @ApiResponse(responseCode = "403", description = "Invalid request password", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class))),
-                        @ApiResponse(responseCode = "404", description = "No job found for the provided request ID", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class)))
+                        @ApiResponse(responseCode = "200", description = "Job status returned successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = JobSnapshot.class))),
+                        @ApiResponse(responseCode = "403", description = "Invalid request password", content = @Content(mediaType = "application/json", schema = @Schema(implementation = JobSnapshot.class))),
+                        @ApiResponse(responseCode = "404", description = "No job found for the provided request ID", content = @Content(mediaType = "application/json", schema = @Schema(implementation = JobSnapshot.class)))
         })
         @GetMapping("/status")
-        public ResponseEntity<RequestResult> getStatus(
+        public ResponseEntity<JobSnapshot> getStatus(
                         @Parameter(description = "Request ID returned when the asynchronous job was created.", required = true) @RequestParam String requestId,
                         @Parameter(description = "Password that was returned when the asynchronous job was created.", required = true) @RequestParam String requestPassword) {
-                final RequestData requestData = new RequestData();
-                requestData.setRequestId(requestId);
-                requestData.setRequestPassword(requestPassword);
-                return this.jobController.getJobSnapshot(requestData);
+                return this.jobController.getJobSnapshot(requestId, requestPassword);
         }
 
         @Operation(summary = "Cancel a job by request ID", description = "Cancels the asynchronous Sherlock job associated with the provided request ID when the matching request password is supplied and returns the cancellation result.")
         @ApiResponses(value = {
-                        @ApiResponse(responseCode = "200", description = "Cancellation request processed", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class))),
-                        @ApiResponse(responseCode = "403", description = "Invalid request password", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class))),
-                        @ApiResponse(responseCode = "404", description = "No job found for the provided request ID", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class)))
+                        @ApiResponse(responseCode = "200", description = "Cancellation request processed", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Boolean.class))),
+                        @ApiResponse(responseCode = "403", description = "Invalid request password", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Boolean.class))),
+                        @ApiResponse(responseCode = "404", description = "No job found for the provided request ID", content = @Content(mediaType = "application/json", schema = @Schema(implementation = Boolean.class)))
         })
         @GetMapping("/cancel")
-        public ResponseEntity<RequestResult> cancel(
+        public ResponseEntity<Boolean> cancel(
                         @Parameter(description = "Request ID returned when the asynchronous job was created.", required = true) @RequestParam String requestId,
                         @Parameter(description = "Password that was returned when the asynchronous job was created.", required = true) @RequestParam String requestPassword) {
-                final RequestData requestData = new RequestData();
-                requestData.setRequestId(requestId);
-                requestData.setRequestPassword(requestPassword);
-                return this.jobController.cancelJob(requestData);
+                return this.jobController.cancel(requestId, requestPassword);
         }
 
 }

@@ -7,10 +7,7 @@ import java.util.stream.Stream;
 import org.openscience.sherlock.configuration.OpenApiConfiguration;
 import org.openscience.sherlock.dbservice.job.model.JobRecord;
 import org.openscience.sherlock.dbservice.job.repository.JobRecordRepository;
-import org.openscience.sherlock.model.exchange.RequestData;
-import org.openscience.sherlock.model.exchange.RequestResult;
 import org.openscience.sherlock.utils.RequestPasswordUtils;
-import org.openscience.sherlock.utils.Utilities;
 import org.openscience.sherlock.utils.elucidation.job.GlobalJobScheduler;
 import org.openscience.sherlock.utils.elucidation.job.JobSnapshot;
 import org.openscience.sherlock.utils.elucidation.job.JobState;
@@ -41,14 +38,25 @@ public class JobController {
     @Operation(summary = "Cancel a job", description = "Requests cancellation of the job with the given ID and waits briefly for the scheduler to confirm the cancelled state.")
     @GetMapping(value = "/cancel")
     public ResponseEntity<Boolean> cancel(
-            @Parameter(description = "Request ID returned when the asynchronous job was created.", example = "2d9c2d6f-6d4f-4d9f-94b9-13c9a4db9fd2", required = true) @RequestParam("id") String id,
+            @Parameter(description = "Request ID returned when the asynchronous job was created.", example = "2d9c2d6f-6d4f-4d9f-94b9-13c9a4db9fd2", required = true) @RequestParam("requestId") String requestId,
             @Parameter(description = "Password that was returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = true) @RequestParam("requestPassword") String requestPassword) {
-        if (!this.isAuthorized(id, requestPassword)) {
+
+        if (requestId == null || requestId.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        if (requestPassword == null || requestPassword.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        if (!this.isAuthorized(requestId, requestPassword)) {
             return new ResponseEntity<>(false, HttpStatus.FORBIDDEN);
         }
+        final JobSnapshot jobSnapshot = GlobalJobScheduler.get().getJobSnapshot(requestId);
+        if (jobSnapshot == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        }
         try {
-            GlobalJobScheduler.get().cancelJob(id);
-            final boolean cancelled = GlobalJobScheduler.waitUntilCancelled(id, 2000, 500);
+            GlobalJobScheduler.get().cancelJob(requestId);
+            final boolean cancelled = GlobalJobScheduler.waitUntilCancelled(requestId, 2000, 500);
             return new ResponseEntity<>(cancelled, HttpStatus.OK);
         } catch (InterruptedException e) {
             e.printStackTrace();
@@ -59,12 +67,12 @@ public class JobController {
     @Operation(summary = "Get job status", description = "Returns the current state of the job identified by the given ID.")
     @GetMapping(value = "/getJobStatus")
     public ResponseEntity<JobState> getJobStatus(
-            @Parameter(description = "Request ID returned when the asynchronous job was created.", example = "2d9c2d6f-6d4f-4d9f-94b9-13c9a4db9fd2", required = true) @RequestParam("id") String id,
+            @Parameter(description = "Request ID returned when the asynchronous job was created.", example = "2d9c2d6f-6d4f-4d9f-94b9-13c9a4db9fd2", required = true) @RequestParam("requestId") String requestId,
             @Parameter(description = "Password that was returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = true) @RequestParam("requestPassword") String requestPassword) {
-        if (!this.isAuthorized(id, requestPassword)) {
+        if (!this.isAuthorized(requestId, requestPassword)) {
             return new ResponseEntity<>(JobState.UNKNOWN, HttpStatus.FORBIDDEN);
         }
-        final JobState status = GlobalJobScheduler.get().getJobStatus(id);
+        final JobState status = GlobalJobScheduler.get().getJobStatus(requestId);
 
         return new ResponseEntity<>(status, HttpStatus.OK);
     }
@@ -72,12 +80,12 @@ public class JobController {
     @Operation(summary = "Get a job snapshot", description = "Returns the scheduler snapshot for the given job ID, including status and any available metadata.")
     @GetMapping(value = "/getJob")
     public ResponseEntity<JobSnapshot> getJob(
-            @Parameter(description = "Request ID returned when the asynchronous job was created.", example = "2d9c2d6f-6d4f-4d9f-94b9-13c9a4db9fd2", required = true) @RequestParam("id") String id,
+            @Parameter(description = "Request ID returned when the asynchronous job was created.", example = "2d9c2d6f-6d4f-4d9f-94b9-13c9a4db9fd2", required = true) @RequestParam("requestId") String requestId,
             @Parameter(description = "Password that was returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = true) @RequestParam("requestPassword") String requestPassword) {
-        if (!this.isAuthorized(id, requestPassword)) {
+        if (!this.isAuthorized(requestId, requestPassword)) {
             return new ResponseEntity<>(HttpStatus.FORBIDDEN);
         }
-        final JobSnapshot job = GlobalJobScheduler.get().getJobSnapshot(id);
+        final JobSnapshot job = GlobalJobScheduler.get().getJobSnapshot(requestId);
         return new ResponseEntity<>(job, job == null ? HttpStatus.NOT_FOUND : HttpStatus.OK);
     }
 
@@ -128,71 +136,18 @@ public class JobController {
         return new ResponseEntity<>(jobs, HttpStatus.OK);
     }
 
-    public ResponseEntity<RequestResult> getJobSnapshot(final RequestData requestData) {
-        final RequestResult requestResult = Utilities
-                .prepareDefaultRequestResult(requestData);
-        requestResult.setRequestId(requestData.getRequestId());
-        if (requestData.getRequestPassword() == null || requestData.getRequestPassword().isBlank()) {
-            requestResult.setErrorMessage("Request password is missing for STATUS query type.");
-            return new ResponseEntity<>(requestResult, HttpStatus.BAD_REQUEST);
+    public ResponseEntity<JobSnapshot> getJobSnapshot(final String requestId, final String requestPassword) {
+        if (requestId == null || requestId.isBlank()) {
+            return ResponseEntity.badRequest().build();
         }
-        if (!this.isAuthorized(requestData.getRequestId(), requestData.getRequestPassword())) {
-            requestResult.setErrorMessage("Invalid request password for request ID: " + requestData.getRequestId());
-            return new ResponseEntity<>(requestResult, HttpStatus.FORBIDDEN);
+        if (requestPassword == null || requestPassword.isBlank()) {
+            return ResponseEntity.badRequest().build();
         }
-        final JobSnapshot jobSnapshot = GlobalJobScheduler.get().getJobSnapshot(requestData.getRequestId());
-        final ResponseEntity<JobSnapshot> jobSnapshotResponseEntity = new ResponseEntity<>(jobSnapshot,
-                jobSnapshot == null ? HttpStatus.NOT_FOUND : HttpStatus.OK);
-        if (jobSnapshotResponseEntity == null || jobSnapshotResponseEntity.getBody() == null) {
-            requestResult.setErrorMessage(
-                    "No job found with ID: "
-                            + requestData.getRequestId());
-            return new ResponseEntity<>(requestResult, HttpStatus.NOT_FOUND);
-        } else {
-            requestResult.setJobState(jobSnapshotResponseEntity.getBody());
-            return new ResponseEntity<>(requestResult, HttpStatus.OK);
+        if (!this.isAuthorized(requestId, requestPassword)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-    }
-
-    public ResponseEntity<RequestResult> cancelJob(final RequestData requestData) {
-        final RequestResult requestResult = Utilities
-                .prepareDefaultRequestResult(requestData);
-        if (requestData.getRequestPassword() == null || requestData.getRequestPassword().isBlank()) {
-            requestResult.setErrorMessage("Request password is missing for CANCEL query type.");
-            requestResult.setIsCancelled(false);
-            return new ResponseEntity<>(requestResult, HttpStatus.BAD_REQUEST);
-        }
-        if (!this.isAuthorized(requestData.getRequestId(), requestData.getRequestPassword())) {
-            requestResult.setErrorMessage("Invalid request password for request ID: " + requestData.getRequestId());
-            requestResult.setIsCancelled(false);
-            return new ResponseEntity<>(requestResult, HttpStatus.FORBIDDEN);
-        }
-        final JobSnapshot jobSnapshot = GlobalJobScheduler.get().getJobSnapshot(requestData.getRequestId());
-        final ResponseEntity<JobSnapshot> jobSnapshotResponseEntity = new ResponseEntity<>(jobSnapshot,
-                jobSnapshot == null ? HttpStatus.NOT_FOUND : HttpStatus.OK);
-        if (jobSnapshotResponseEntity == null || jobSnapshotResponseEntity.getBody() == null) {
-            requestResult.setErrorMessage(
-                    "No job found with ID: "
-                            + requestData.getRequestId());
-            requestResult.setIsCancelled(false);
-            return new ResponseEntity<>(requestResult, HttpStatus.NOT_FOUND);
-        }
-        final ResponseEntity<Boolean> cancelationResponseEntity = this.cancel(requestData.getRequestId(),
-                requestData.getRequestPassword());
-        if (cancelationResponseEntity.getBody() != null
-                && cancelationResponseEntity.getBody() == true) {
-            requestResult.setIsCancelled(true);
-            requestResult
-                    .setJobState(new JobSnapshot(requestData.getRequestId(), JobState.CANCELLED, null, null));
-        } else {
-            requestResult.setIsCancelled(false);
-            requestResult.setErrorMessage(
-                    "Failed to cancel job with ID: "
-                            + requestData.getRequestId());
-            requestResult
-                    .setJobState(new JobSnapshot(requestData.getRequestId(), JobState.UNKNOWN, null, null));
-        }
-        return new ResponseEntity<>(requestResult, HttpStatus.OK);
+        final JobSnapshot jobSnapshot = GlobalJobScheduler.get().getJobSnapshot(requestId);
+        return new ResponseEntity<>(jobSnapshot, jobSnapshot == null ? HttpStatus.NOT_FOUND : HttpStatus.OK);
     }
 
     private boolean isAuthorized(final String jobId, final String requestPassword) {
