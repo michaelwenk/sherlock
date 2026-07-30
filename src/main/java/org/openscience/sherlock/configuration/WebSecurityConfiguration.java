@@ -54,7 +54,6 @@ public class WebSecurityConfiguration {
                         .requestMatchers(PUBLIC_SERVICE_PATHS).permitAll() // Public core service endpoints
                         .requestMatchers("/error").permitAll() // Public endpoint for error handling
                         .requestMatchers(apiDoc).permitAll() // Public endpoint for API documentation
-                        .requestMatchers(apiDoc + "/**").permitAll() // Public endpoint for OpenAPI subpaths
                         .requestMatchers(swaggerUi).permitAll() // Public endpoint for Swagger UI
                         .requestMatchers("/swagger-ui/**").permitAll() // Public endpoint for Swagger UI assets
                         .anyRequest().authenticated() // All other endpoints require authentication
