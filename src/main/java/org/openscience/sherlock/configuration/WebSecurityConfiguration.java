@@ -53,7 +53,8 @@ public class WebSecurityConfiguration {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Allow browser preflight requests
                         .requestMatchers(PUBLIC_SERVICE_PATHS).permitAll() // Public core service endpoints
                         .requestMatchers("/error").permitAll() // Public endpoint for error handling
-                        .requestMatchers(apiDoc).permitAll() // Public endpoint for API documentation
+                        .requestMatchers(apiDoc, apiDoc + "/**").permitAll() // Public endpoint for API documentation
+                                                                             // (incl. swagger-config)
                         .requestMatchers(swaggerUi).permitAll() // Public endpoint for Swagger UI
                         .requestMatchers("/swagger-ui/**").permitAll() // Public endpoint for Swagger UI assets
                         .anyRequest().authenticated() // All other endpoints require authentication

@@ -640,8 +640,8 @@ public class PyLSD {
                                                 responseTransfer.getElucidationOptions(),
                                                 defaultBondDistances));
 
-                System.out.println("\n\n--> created PyLSD input file content list: "
-                                + responseTransfer.getPyLSDInputFileContentList()
+                System.out.println("\n\n--> created PyLSD input file content list -> size: "
+                                + responseTransfer.getPyLSDInputFileContentList().size()
                                 + "\n");
 
                 return responseTransfer;

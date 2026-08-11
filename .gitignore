@@ -35,7 +35,8 @@
 **/HELP.md
 .env
 
-# entire data folder, except lsd.py and defaults.py as modified files in Variant folder
-data/
-!data/lsd/PyLSD/Variant/lsd.py
-!data/lsd/PyLSD/Variant/defaults.py
+# entire data folder, except lsd.py and defaults.py as modified files from Variant folder
+data/*/**
+!data/lsd/PyLSD_Variant_mod
+!data/lsd/PyLSD_Variant_mod/defaults.py
+!data/lsd/PyLSD_Variant_mod/lsd.py

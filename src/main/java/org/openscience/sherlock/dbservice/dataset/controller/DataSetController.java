@@ -32,21 +32,21 @@ import casekit.nmr.similarity.Similarity;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.fingerprint.BitSetFingerprint;
 import org.openscience.sherlock.configuration.OpenApiConfiguration;
-import org.openscience.sherlock.dbservice.dataset.SherlockDbServiceDatasetApplication;
 import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
 import org.openscience.sherlock.dbservice.dataset.db.model.MultiplicitySectionsSettingsRecord;
 import org.openscience.sherlock.dbservice.dataset.db.service.mongo.DataSetServiceImplementation;
 import org.openscience.sherlock.dbservice.dataset.db.service.mongo.MultiplicitySectionsSettingsServiceImplementation;
 import org.openscience.sherlock.dbservice.dataset.utils.SpectralUtilities;
+import org.openscience.sherlock.utils.Utilities;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import org.springframework.web.bind.annotation.RequestBody;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
@@ -163,11 +163,18 @@ public class DataSetController {
                 return this.dataSetServiceImplementation.deleteAll();
         }
 
-        @Operation(summary = "Import datasets from a source database", description = "Loads datasets from the selected source file, applies spectral preprocessing, and inserts the generated dataset records.")
-        @PostMapping(value = "/insertByDBNameAndFileIndex")
-        public void insertByDBNameAndFileIndex(@RequestParam final String nucleus, @RequestParam final String dbName,
-                        @RequestParam final int fileIndex, @RequestParam final int minShift,
+        @Operation(summary = "Import datasets from a source database", description = "Loads SD files from the selected directory, applies spectral preprocessing, and inserts the generated dataset records.")
+        @PostMapping(value = "/insertByDirPathAndDbName")
+        public void insertByDirPathAndDbName(@RequestParam final String pathToDir, @RequestParam final String dbName,
+                        @RequestParam final String nucleus, @RequestParam final int minShift,
                         @RequestParam final int maxShift) {
+
+                final List<Path> sdfFiles = Utilities.collectFiles(pathToDir, "sdf");
+
+                if (sdfFiles.isEmpty()) {
+                        System.out.println("!!! No SDF files found in the specified directory: " + pathToDir);
+                        return;
+                }
 
                 // get multiplicity sections settings
                 final int[] multiplicitySectionsSettings = this.multiplicitySectionsSettingsServiceImplementation
@@ -176,73 +183,74 @@ public class DataSetController {
                                 .getMultiplicitySectionsSettings();
 
                 List<DataSet> dataSetList = new ArrayList<>();
-                try {
-                        if (dbName.equals("nmrshiftdb")) {
-                                System.out.println(" -> datasets creation for \""
-                                                + dbName
-                                                + "\" ...");
-                                dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(
-                                                SherlockDbServiceDatasetApplication.PATH_TO_NMRSHIFTDB,
-                                                new String[] { nucleus });
-                                dataSetList = SpectralUtilities.filterByShift(dataSetList, minShift, maxShift);
-                        } else if (dbName.equals("coconut")) {
-                                if (fileIndex >= SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT.length) {
-                                        System.out.println("!!! File index too large!!!");
-                                } else {
+                for (final Path sdfFile : sdfFiles) {
+                        System.out.println(" -> processing SDF file: " + sdfFile.toAbsolutePath().toString());
+
+                        try {
+                                if (dbName.equals("nmrshiftdb")) {
                                         System.out.println(" -> datasets creation for \""
-                                                        + dbName
-                                                        + "\" and file index \""
-                                                        + fileIndex
-                                                        + "\" -> \""
-                                                        + SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT[fileIndex]
-                                                        + "\" ...");
-                                        dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(
-                                                        SherlockDbServiceDatasetApplication.PATHS_TO_COCONUT[fileIndex],
+                                                        + dbName + "\"...");
+                                        dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(
+                                                        sdfFile.toAbsolutePath().toString(),
                                                         new String[] { nucleus });
-                                        dataSetList = SpectralUtilities.filterByShift(dataSetList, minShift, maxShift);
+                                } else if (dbName.equals("coconut")) {
+                                        System.out.println(" -> datasets creation for \""
+                                                        + dbName + "\"...");
+                                        dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(
+                                                        sdfFile.toAbsolutePath()
+                                                                        .toString(),
+                                                        new String[] { nucleus });
+
                                 }
+                                dataSetList = SpectralUtilities.filterByShift(dataSetList, minShift,
+                                                maxShift);
+
+                                System.out.println(" -> dataset size -> " + dataSetList.size());
+
+                                // set multiplicities based on protons count
+                                System.out.println(" -> setting multiplicities by protons count ...");
+                                SpectralUtilities.setMultiplicityByProtonsCount(dataSetList, nucleus);
+                                System.out.println(" -> setting multiplicities by protons count done.");
+
+                                System.out.println(" -> insert datasets ...");
+
+                                final AtomicInteger count = new AtomicInteger(0);
+                                final int dataSetListSize = dataSetList.size();
+                                for (final DataSet dataSet : dataSetList) {
+                                        final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
+                                        multiplicitySectionsBuilder.setMinLimit(
+                                                        multiplicitySectionsSettings[0]);
+                                        multiplicitySectionsBuilder.setMaxLimit(
+                                                        multiplicitySectionsSettings[1]);
+                                        multiplicitySectionsBuilder.setStepSize(
+                                                        multiplicitySectionsSettings[2]);
+                                        final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(
+                                                        dataSet.getSpectrum()
+                                                                        .toSpectrum(),
+                                                        0,
+                                                        multiplicitySectionsBuilder);
+
+                                        dataSet.addAttachment("fpSize", bitSetFingerprint.size());
+                                        dataSet.addAttachment("setBits",
+                                                        bitSetFingerprint.getSetbits());
+                                        this.dataSetServiceImplementation.insert(new DataSetRecord(null, dataSet))
+                                                        .doAfterTerminate(() -> {
+                                                                final int currentCount = count.incrementAndGet();
+                                                                if (currentCount % 10000 == 0) {
+                                                                        System.out.println(" --> inserted "
+                                                                                        + currentCount + " / "
+                                                                                        + dataSetListSize
+                                                                                        + " datasets");
+                                                                }
+                                                        })
+                                                        .block();
+                                }
+
+                                System.out.println(
+                                                " -> processing SDF file done: " + sdfFile.toAbsolutePath().toString());
+                        } catch (final IOException | CDKException e) {
+                                e.printStackTrace();
                         }
-                } catch (final IOException | CDKException e) {
-                        e.printStackTrace();
-                }
-                System.out.println(" -> dataset size -> " + dataSetList.size());
-
-                // set multiplicities based on protons count
-                System.out.println(" -> setting multiplicities by protons count ...");
-                SpectralUtilities.setMultiplicityByProtonsCount(dataSetList, nucleus);
-                System.out.println(" -> setting multiplicities by protons count done.");
-
-                System.out.println(" -> insert datasets ...");
-
-                final AtomicInteger count = new AtomicInteger(0);
-                final int dataSetListSize = dataSetList.size();
-                for (final DataSet dataSet : dataSetList) {
-                        final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
-                        multiplicitySectionsBuilder.setMinLimit(
-                                        multiplicitySectionsSettings[0]);
-                        multiplicitySectionsBuilder.setMaxLimit(
-                                        multiplicitySectionsSettings[1]);
-                        multiplicitySectionsBuilder.setStepSize(
-                                        multiplicitySectionsSettings[2]);
-                        final BitSetFingerprint bitSetFingerprint = Similarity.getBitSetFingerprint(
-                                        dataSet.getSpectrum()
-                                                        .toSpectrum(),
-                                        0,
-                                        multiplicitySectionsBuilder);
-
-                        dataSet.addAttachment("fpSize", bitSetFingerprint.size());
-                        dataSet.addAttachment("setBits",
-                                        bitSetFingerprint.getSetbits());
-                        this.dataSetServiceImplementation.insert(new DataSetRecord(null, dataSet))
-                                        .doAfterTerminate(() -> {
-                                                final int currentCount = count.incrementAndGet();
-                                                if (currentCount % 10000 == 0) {
-                                                        System.out.println(" --> inserted "
-                                                                        + currentCount + " / " + dataSetListSize
-                                                                        + " datasets");
-                                                }
-                                        })
-                                        .block();
                 }
 
                 System.out.println(" --> inserted dataset list complete");

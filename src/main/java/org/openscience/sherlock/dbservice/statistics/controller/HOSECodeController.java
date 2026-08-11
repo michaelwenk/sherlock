@@ -122,7 +122,7 @@ public class HOSECodeController {
             final Flux<DataSet> dataSetFlux = this.utilities.getByDataSetSpectrumNuclei(nuclei)
                     .map(dataSetRecord -> dataSetRecord.getDataSet());
 
-                final String jobId = this.hoseReplaceAllJobService.getActiveJobIdOrThrow();
+            final String jobId = this.hoseReplaceAllJobService.getActiveJobIdOrThrow();
             final Disposable subscription = this.replaceAll(dataSetFlux, maxSphere, true,
                     batchSize -> this.hoseReplaceAllJobService.onBatchProcessed(jobId, batchSize))
                     .doOnSubscribe(unused -> this.hoseReplaceAllJobService.markRunning(jobId))
@@ -138,7 +138,7 @@ public class HOSECodeController {
                     .subscribe();
             this.hoseReplaceAllJobService.attachSubscription(jobId, subscription);
 
-                final HOSEReplaceAllJobStatus response = this.hoseReplaceAllJobService
+            final HOSEReplaceAllJobStatus response = this.hoseReplaceAllJobService
                     .getCurrentJobStatus()
                     .orElse(startedJob);
             return ResponseEntity.status(HttpStatus.ACCEPTED).body(response);
@@ -162,12 +162,6 @@ public class HOSECodeController {
         return this.hoseReplaceAllJobService.getCurrentJobStatus()
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND,
                         "No HOSE replaceAll status available yet"));
-    }
-
-    @Operation(summary = "Cancel active HOSE rebuild", description = "Cancels the active HOSE replaceAll job.")
-    @PostMapping(value = "/replaceAll/cancel")
-    public HOSEReplaceAllJobStatus cancelReplaceAll() {
-        return this.hoseReplaceAllJobService.cancelActiveJob();
     }
 
     public Mono<Void> replaceAll(final Flux<DataSet> dataSetFlux, final int maxSphere, final boolean buildStatistics) {

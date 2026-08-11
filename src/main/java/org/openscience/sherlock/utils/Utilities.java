@@ -18,9 +18,15 @@ import org.openscience.sherlock.utils.elucidation.job.JobState;
 
 import reactor.core.publisher.Flux;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 public class Utilities {
 
@@ -167,5 +173,27 @@ public class Utilities {
                 .put("tolerance", tolerances);
 
         return null; // no error
+    }
+
+    public static List<Path> collectFiles(final String pathToDir, final String extension) {
+        final String ext = !extension.startsWith(".") ? "." + extension : extension;
+        try {
+            final List<Path> matchingFiles = Files.find(
+                    Paths.get(pathToDir),
+                    1,
+                    (path, attrs) -> attrs.isRegularFile() && // Check if it's a file
+                            path.getFileName().toString().toLowerCase().endsWith(ext.toLowerCase()))
+                    .collect(Collectors.toList());
+
+            System.out.println("Found " + matchingFiles.size() + " ." + ext + " files:");
+            matchingFiles.forEach(path -> System.out.println(path.toAbsolutePath()));
+
+            return matchingFiles;
+
+        } catch (IOException e) {
+            System.err.println("Error searching files: " + e.getMessage());
+        }
+
+        return Collections.emptyList();
     }
 }

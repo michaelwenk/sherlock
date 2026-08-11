@@ -1,3 +1,5 @@
+#!/bin/bash
+
 mvn install:install-file \
    -Dfile=lib/predictorc.jar \
    -DgroupId=org.openscience.nmrshiftdb \

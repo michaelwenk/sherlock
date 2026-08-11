@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.IntConsumer;
 import java.util.stream.Collectors;
 
 import org.openscience.cdk.exception.CDKException;
@@ -14,6 +15,8 @@ import org.openscience.sherlock.dbservice.dataset.config.DatasetJpaConfig;
 import org.openscience.sherlock.dbservice.dataset.db.model.MultiplicitySectionsSettingsRecord;
 import org.openscience.sherlock.dbservice.dataset.db.service.jpa.CustomFragmentRepositoryImplementation;
 import org.openscience.sherlock.dbservice.dataset.db.service.mongo.MultiplicitySectionsSettingsServiceImplementation;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
@@ -27,8 +30,13 @@ import casekit.nmr.model.Spectrum;
 import casekit.nmr.similarity.Similarity;
 import casekit.nmr.utils.Utils;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 public class FragmentControllerUtilities {
+
+        private static final Logger LOGGER = LoggerFactory.getLogger(FragmentControllerUtilities.class);
+        private static final int PROGRESS_REPORT_EVERY = 500;
 
         private static final Gson gson = new GsonBuilder().create();
 
@@ -123,85 +131,114 @@ public class FragmentControllerUtilities {
                 }
         }
 
-        public static void replaceAll(final Flux<DataSet> dataSetFlux, final String nucleus,
+        public static Mono<Void> replaceAll(final Flux<DataSet> dataSetFlux, final String nucleus,
                         final CustomFragmentRepositoryImplementation customFragmentRepositoryImplementation,
                         final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation) {
-                System.out.println("-> deleting fragments in DB...");
-                customFragmentRepositoryImplementation.dropTable(DatasetJpaConfig.FRAGMENT_TABLE_NAME);
-                System.out.println("-> deleted fragments in DB");
+                return replaceAll(dataSetFlux, nucleus, customFragmentRepositoryImplementation,
+                                multiplicitySectionsSettingsServiceImplementation, batchSize -> {
+                                });
+        }
 
-                final MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord = multiplicitySectionsSettingsServiceImplementation
-                                .findByNucleus(
-                                                nucleus)
-                                .blockFirst();
-                if (multiplicitySectionsSettingsRecord == null) {
-                        System.out.println("-> no multiplicity section settings found for nucleus: " + nucleus);
-                        return;
-                }
+        public static Mono<Void> replaceAll(final Flux<DataSet> dataSetFlux, final String nucleus,
+                        final CustomFragmentRepositoryImplementation customFragmentRepositoryImplementation,
+                        final MultiplicitySectionsSettingsServiceImplementation multiplicitySectionsSettingsServiceImplementation,
+                        final IntConsumer onBatchProcessed) {
+                return Mono.<Void>fromRunnable(() -> {
+                        LOGGER.info("Deleting fragments table");
+                        customFragmentRepositoryImplementation.dropTable(DatasetJpaConfig.FRAGMENT_TABLE_NAME);
+                        LOGGER.info("Deleted fragments table");
+                })
+                                .subscribeOn(Schedulers.boundedElastic())
+                                .then(multiplicitySectionsSettingsServiceImplementation.findByNucleus(nucleus).next())
+                                .flatMap(multiplicitySectionsSettingsRecord -> buildFragments(dataSetFlux, nucleus,
+                                                customFragmentRepositoryImplementation,
+                                                multiplicitySectionsSettingsRecord, onBatchProcessed))
+                                .switchIfEmpty(Mono.fromRunnable(() -> LOGGER.warn(
+                                                "No multiplicity section settings found for nucleus {}; fragment rebuild skipped",
+                                                nucleus)))
+                                .doOnCancel(() -> LOGGER
+                                                .warn("Fragment replaceAll pipeline cancelled for nucleus {}", nucleus))
+                                .doOnError(error -> LOGGER
+                                                .error("Failed to rebuild fragments for nucleus {}", nucleus, error))
+                                .then();
+        }
+
+        private static Mono<Void> buildFragments(final Flux<DataSet> dataSetFlux, final String nucleus,
+                        final CustomFragmentRepositoryImplementation customFragmentRepositoryImplementation,
+                        final MultiplicitySectionsSettingsRecord multiplicitySectionsSettingsRecord,
+                        final IntConsumer onBatchProcessed) {
                 final int[] multiplicitySectionSettings = multiplicitySectionsSettingsRecord
                                 .getMultiplicitySectionsSettings();
-                System.out.println("-> build and store fragments in DB for nucleus: "
-                                + nucleus
-                                + " ...");
-
                 final MultiplicitySectionsBuilder multiplicitySectionsBuilder = new MultiplicitySectionsBuilder();
                 multiplicitySectionsBuilder.setMinLimit(multiplicitySectionSettings[0]);
                 multiplicitySectionsBuilder.setMaxLimit(multiplicitySectionSettings[1]);
                 multiplicitySectionsBuilder.setStepSize(multiplicitySectionSettings[2]);
-
                 final int nBits = multiplicitySectionsBuilder.getSteps();
-                System.out.println(" -> steps: "
-                                + nBits
-                                + "\n");
-                customFragmentRepositoryImplementation.createFragmentsTable(nBits);
 
-                AtomicInteger counter = new AtomicInteger(0);
-                dataSetFlux.doOnNext(dataSet -> {
-                        final List<DataSet> fragments = Fragmentation
-                                        .buildFragmentDataSets(
-                                                        dataSet, 3,
-                                                        1, 6, true);
-                        if (fragments != null) {
-                                fragments.stream()
-                                                .filter(fragmentDataSet -> !Utils
-                                                                .isSaturated(
-                                                                                fragmentDataSet.getStructure()
-                                                                                                .toAtomContainer()))
-                                                .forEach(fragmentDataSet -> {
-                                                        final BitSetFingerprint bitSetFingerprint = Similarity
-                                                                        .getBitSetFingerprint(
-                                                                                        fragmentDataSet.getSpectrum()
-                                                                                                        .toSpectrum(),
-                                                                                        0,
-                                                                                        multiplicitySectionsBuilder);
+                LOGGER.info("Building and storing fragments for nucleus {} (steps={})", nucleus, nBits);
 
-                                                        customFragmentRepositoryImplementation
-                                                                        .insertIntoTable(
-                                                                                        nucleus,
-                                                                                        BitUtilities.buildBitStringFromBigInteger(
-                                                                                                        BitUtilities.buildBits(
-                                                                                                                        bitSetFingerprint,
-                                                                                                                        nBits),
-                                                                                                        nBits),
-                                                                                        nBits,
-                                                                                        gson.toJson(
-                                                                                                        fragmentDataSet,
-                                                                                                        DataSet.class));
-                                                });
-                        }
-                        if (counter.incrementAndGet() % 1000 == 0) {
-                                System.out.println(" -> processed datasets: "
-                                                + counter.get());
-                        }
-                }).doAfterTerminate(() -> {
-                        customFragmentRepositoryImplementation
-                                        .createIndicesAndAnalyze();
-                        System.out.println(
-                                        " -> fragments stored in DB for: "
-                                                        + nucleus);
-                        System.out.println(
-                                        "--------------------------------------------------\n");
-                }).subscribe();
+                // Shared counters so the trailing remainder (< PROGRESS_REPORT_EVERY) can be
+                // flushed after the stream completes; otherwise the reported total would stop
+                // at the last full batch (e.g. 36000 instead of 36123).
+                final AtomicInteger processedCounter = new AtomicInteger(0);
+                final AtomicInteger pendingReportCounter = new AtomicInteger(0);
+
+                return Mono.<Void>fromRunnable(() -> customFragmentRepositoryImplementation.createFragmentsTable(nBits))
+                                .subscribeOn(Schedulers.boundedElastic())
+                                .thenMany(dataSetFlux)
+                                .publishOn(Schedulers.boundedElastic())
+                                .doOnNext(new java.util.function.Consumer<DataSet>() {
+                                        @Override
+                                        public void accept(final DataSet dataSet) {
+                                                final List<DataSet> fragments = Fragmentation
+                                                                .buildFragmentDataSets(dataSet, 3, 1, 6, true);
+                                                if (fragments != null) {
+                                                        fragments.stream()
+                                                                        .filter(fragmentDataSet -> !Utils.isSaturated(
+                                                                                        fragmentDataSet.getStructure()
+                                                                                                        .toAtomContainer()))
+                                                                        .forEach(fragmentDataSet -> {
+                                                                                final BitSetFingerprint bitSetFingerprint = Similarity
+                                                                                                .getBitSetFingerprint(
+                                                                                                                fragmentDataSet
+                                                                                                                                .getSpectrum()
+                                                                                                                                .toSpectrum(),
+                                                                                                                0,
+                                                                                                                multiplicitySectionsBuilder);
+                                                                                customFragmentRepositoryImplementation
+                                                                                                .insertIntoTable(
+                                                                                                                nucleus,
+                                                                                                                BitUtilities.buildBitStringFromBigInteger(
+                                                                                                                                BitUtilities.buildBits(
+                                                                                                                                                bitSetFingerprint,
+                                                                                                                                                nBits),
+                                                                                                                                nBits),
+                                                                                                                nBits,
+                                                                                                                gson.toJson(fragmentDataSet,
+                                                                                                                                DataSet.class));
+                                                                        });
+                                                }
+                                                final int currentCount = processedCounter.incrementAndGet();
+                                                if (currentCount % 1000 == 0) {
+                                                        LOGGER.info("Fragments: processed {} datasets for nucleus {}",
+                                                                        currentCount, nucleus);
+                                                }
+                                                if (pendingReportCounter.incrementAndGet() >= PROGRESS_REPORT_EVERY) {
+                                                        final int reported = pendingReportCounter.getAndSet(0);
+                                                        onBatchProcessed.accept(reported);
+                                                }
+                                        }
+                                })
+                                .then(Mono.<Void>fromRunnable(() -> {
+                                        // Flush the trailing remainder so the reported total matches the
+                                        // actual number of datasets processed (last partial batch).
+                                        final int remaining = pendingReportCounter.getAndSet(0);
+                                        if (remaining > 0) {
+                                                onBatchProcessed.accept(remaining);
+                                        }
+                                        customFragmentRepositoryImplementation.createIndicesAndAnalyze();
+                                        LOGGER.info("Fragments stored for nucleus {} ({} datasets processed)",
+                                                        nucleus, processedCounter.get());
+                                }).subscribeOn(Schedulers.boundedElastic()));
         }
-
 }

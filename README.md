@@ -15,52 +15,60 @@ A [graphical user interface](https://github.com/michaelwenk/sherlock-frontend) a
 - Elucidation
 - Retrieval of previously generated results
 
-The dereplication, chemical shift prediction and statistical detection of structural constraints are enabled by using entries from NMRShiftDB and COCONUT containing structural and spectral properties. Spectra in use are both experimental and predicted.
+The dereplication, chemical shift prediction and statistical detection of structural constraints are enabled by using entries from spectral knowledge bases, such as [NMRShiftDB](https://sourceforge.net/projects/nmrshiftdb2/files/data/nmrshiftdb2withsignals.sd), containing both structural and spectral properties.
 
-[casekit](https://github.com/michaelwenk/casekit) serves as computational library within Sherlock.
+[casekit](https://github.com/michaelwenk/casekit) serves as computational library in Sherlock.
 
-[PyLSD](https://github.com/nuzillard/PyLSD) is used for structure generation.
+[PyLSD](https://github.com/nuzillard/PyLSD/blob/4db027118acf3d9c77d3a5f8dc9ce51dd3cbd468/pylsd-linux-a8.tar.gz) is used for structure generation.
 
-<!---
-See [Dependencies](#dependencies) section.
--->
+## Docker and Databases
 
-## Docker and Execution of pre-built Containers
+This project uses Docker containers (https://www.docker.com) and starts them via docker compose. Make sure that docker compose is installed.
 
-This project uses Docker containers (https://www.docker.com) and starts them via docker-compose. Make sure that docker-compose is installed.
-
-NOTE: It is recommended to set the accessible RAM to 6 GB or higher and the number of available CPU cores to two. This can be done easily in the Docker Desktop application, see [here](/public/Docker_settings.png).
+NOTE: It is recommended to set the accessible RAM to 8 GB or higher and the number of available CPU cores to four or higher. For example, this can be done in the Docker Desktop application, see [here](/public/Docker_settings.png).
 
 ### Download
 
 Clone this repository and change the directory:
 
-    git clone https://github.com/michaelwenk/sherlock.git
-    cd sherlock
+    git clone https://github.com/michaelwenk/sherlock.git && \
+    cd sherlock && \
+    cp env.dist .env
 
-Now pull all the containers needed for execution from Docker Hub:
+### Preparation
 
-     docker compose -f docker-compose.yml -f docker-compose.publish.yml pull
+In order to fill the database with datasets and to create different statistics, databases in specific SD format, e.g. [NMRShiftDB](https://sourceforge.net/projects/nmrshiftdb2/files/data/nmrshiftdb2withsignals.sd), can be imported into Sherlock's backend system.
 
-### Create and Start
+The directory _data/nmrshiftdb_ (default) may contain the NMRShiftDB file, but ending with _.sdf_, e.g. _nmrshiftdb.sdf_. The directory _data/coconut_ (default) may contain the COCONUT database, e.g. _coconut.sdf_. Each file each should not contain more than 125.000 entries, due to potential in-memory issues.
 
-To create the network and start the services for the first time (in detached mode) use:
+The directory _data/lsd/filters_ (default) may contain molecular fragments in LSD format, such as the filter examples in the _data/lsd/PyLSD/LSD/Filters_ folder, which then will be applied as structural constraints (badlist) to not allow such fragments during the structure generation process.
 
-    docker compose -f docker-compose.yml -f docker-compose.publish.yml up -d
+Uncomment und modify _DATASET_NMRSHIFTDB_PATH_, _DATASET_COCONUT_PATH_ or _CUSTOM_FILTERS_PATH_ in the _.env_ file if another folder than the default ones should be mounted and used by Docker.
 
-Note: It will take several minutes until all services are available and registered, i.e. due to the extraction of the compressed fragment data.
+Run the following script to delete previous database records, load-in the spectral data and to build the statistics.
 
-If the container network was already created beforehand and stopped via "stop" command, then the "start" command can be used.
-This will avoid extracting the fragments again and the services should be ready within a few seconds.
+    sh scripts/fill_DBs.sh
 
-    docker compose -f docker-compose.yml -f docker-compose.publish.yml start
+After the dataset import, this script continues with building different statitics, such as about hybridisation states or HOSE codes. The progress of that process can be tracked via with login data, which can be adjusted in the _.env_ file:
 
-### Stop and Removal
+    curl -X 'GET' 'http://localhost:8080/database/buildStatistics/status' -u 'admin:password'
 
-To stop the application use:
+### Start
 
-    docker compose -f docker-compose.yml -f docker-compose.publish.yml stop
+Start the docker compose with pre-built images in detached mode:
 
-If the removal of the network created by docker-compose is desired, then use the down command:
+    docker compose up -d
 
-    docker compose -f docker-compose.yml -f docker-compose.publish.yml down
+Or to re-build the images, download [PyLSD](https://github.com/nuzillard/PyLSD/blob/4db027118acf3d9c77d3a5f8dc9ce51dd3cbd468/pylsd-linux-a8.tar.gz) and make sure that the unpacked folder is located in the _data/lsd/_ folder and is re-named to "_PyLSD_". Copy the two modified files from the _data/lsd/PyLSD_Variant_mod_ folder into the _data/lsd/PyLSD/Variant_ folder and overwrite the two existing files there.
+
+To build and start the services in detached mode use:
+
+    docker compose up -d --build
+
+### Stop
+
+To shutdown the services and to remove the docker compose network use:
+
+    docker compose down -v
+
+###

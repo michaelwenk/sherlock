@@ -13,11 +13,13 @@ services:
     environment:
       - VERSION=${VERSION}
       - CONTEXT_PATH=${CONTEXT_PATH}
-      # - PORT=${PORT}
-      # - HOSTNAME=${HOSTNAME}
       - SPRING_SECURITY_USER_NAME=${SPRING_SECURITY_USER_NAME}
       - SPRING_SECURITY_USER_PASSWORD=${SPRING_SECURITY_USER_PASSWORD}
       - SHERLOCK_CORS_ALLOWED_ORIGIN_PATTERNS=${SHERLOCK_CORS_ALLOWED_ORIGIN_PATTERNS}
+    volumes:
+      - "${DATASET_NMRSHIFTDB_PATH:-./data/nmrshiftdb}:/data/nmrshiftdb"
+      # - "${DATASET_COCONUT_PATH:-./data/coconut}:/data/coconut"
+      - "${CUSTOM_FILTERS_PATH:-./data/lsd/filters}:/data/lsd/filters"
 
   sherlock-db-mongo:
     container_name: sherlock-db-mongo
