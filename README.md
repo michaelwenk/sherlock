@@ -35,17 +35,17 @@ Clone this repository and change the directory:
     cd sherlock && \
     cp env.dist .env
 
-### Preparation
+### Steps for Data Import and Statistics
 
 In order to fill the database with datasets and to create different statistics, databases in specific SD format, e.g. [NMRShiftDB](https://sourceforge.net/projects/nmrshiftdb2/files/data/nmrshiftdb2withsignals.sd), can be imported into Sherlock's backend system.
 
-The directory _data/nmrshiftdb_ (default) may contain the NMRShiftDB file, but ending with _.sdf_, e.g. _nmrshiftdb.sdf_. The directory _data/coconut_ (default) may contain the COCONUT database, e.g. _coconut.sdf_. Each file each should not contain more than 125.000 entries, due to potential in-memory issues.
+The directory _data/nmrshiftdb_ (default) may contain the NMRShiftDB file, but ending with _.sdf_, e.g. _nmrshiftdb.sdf_. The directory _data/coconut_ (default) may contain the COCONUT database, e.g. _coconut_1.sdf_ or _coconut_2.sdf_. Each file should not contain more than 125.000 entries, due to potential in-memory issues.
 
 The directory _data/lsd/filters_ (default) may contain molecular fragments in LSD format, such as the filter examples in the _data/lsd/PyLSD/LSD/Filters_ folder, which then will be applied as structural constraints (badlist) to not allow such fragments during the structure generation process.
 
 Uncomment und modify _DATASET_NMRSHIFTDB_PATH_, _DATASET_COCONUT_PATH_ or _CUSTOM_FILTERS_PATH_ in the _.env_ file if another folder than the default ones should be mounted and used by Docker.
 
-Run the following script to delete previous database records, load-in the spectral data and to build the statistics.
+After starting via docker compose, run the following script to delete previous database records, load-in the spectral data and to build the statistics.
 
     sh scripts/fill_DBs.sh
 
