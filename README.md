@@ -65,6 +65,14 @@ To build and start the services in detached mode use:
 
     docker compose up -d --build
 
+The following URL leads to the Swagger UI and offers an overview of what REST endpoints are available, both public or internal (private with login only) ones:
+
+    http://localhost:8080/swagger-ui.html
+
+To access the generated OpenAPI JSON file just visit or fetch:
+
+    http://localhost:8080/api-docs
+
 ### Stop
 
 To shutdown the services and to remove the docker compose network use:
