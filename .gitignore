@@ -34,6 +34,7 @@
 **/target
 **/HELP.md
 .env
+scripts/tag_and_push_image.sh
 
 # entire data folder, except lsd.py and defaults.py as modified files from Variant folder
 data/*/**

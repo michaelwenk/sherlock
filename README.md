@@ -49,7 +49,7 @@ After starting via docker compose, run the following script to delete previous d
 
     sh scripts/fill_DBs.sh
 
-After the dataset import, this script continues with building different statitics, such as about hybridisation states or HOSE codes. The progress of that process can be tracked via with login data, which can be adjusted in the _.env_ file:
+After the dataset import, this script continues with building different statitics, such as about hybridisation states or HOSE codes. The progress of that process can be tracked via console logging or via a API endpoint with login data, which can be adjusted in the _.env_ file:
 
     curl -X 'GET' 'http://localhost:8080/database/buildStatistics/status' -u 'admin:password'
 
