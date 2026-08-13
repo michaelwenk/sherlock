@@ -193,7 +193,7 @@ public class DataSetController {
                                         dataSetList = NMRShiftDB.getDataSetsFromNMRShiftDB(
                                                         sdfFile.toAbsolutePath().toString(),
                                                         new String[] { nucleus });
-                                } else if (dbName.equals("coconut")) {
+                                } else if (dbName.equals("acd_labs_predictions")) {
                                         System.out.println(" -> datasets creation for \""
                                                         + dbName + "\"...");
                                         dataSetList = COCONUT.getDataSetsWithShiftPredictionFromCOCONUT(

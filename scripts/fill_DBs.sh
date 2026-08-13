@@ -24,9 +24,9 @@ echo "-> filling datasets from nmrshiftdb..." && \
 time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/insertByDirPathAndDbName?pathToDir=%2Fdata%2Fnmrshiftdb&dbName=nmrshiftdb&nucleus=13C&minShift=-5&maxShift=230' -u $SPRING_SECURITY_USER_NAME:$SPRING_SECURITY_USER_PASSWORD && \
 echo "-> filling datasets from nmrshiftdb done." && \
 
-# echo "-> filling datasets from coconut database containing spectral predictions..." && \
-# time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/insertByDirPathAndDbName?pathToDir=%2Fdata%2Fcoconut&dbName=coconut&nucleus=13C&minShift=-5&maxShift=230' -u $SPRING_SECURITY_USER_NAME:$SPRING_SECURITY_USER_PASSWORD && \
-# echo "-> filling datasets from coconut database done." && \
+# echo "-> filling datasets from acd_labs_predictions database containing spectral predictions..." && \
+# time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/insertByDirPathAndDbName?pathToDir=%2Fdata%2Facd_labs_predictions&dbName=acd_labs_predictions&nucleus=13C&minShift=-5&maxShift=230' -u $SPRING_SECURITY_USER_NAME:$SPRING_SECURITY_USER_PASSWORD && \
+# echo "-> filling datasets from acd_labs_predictions database done." && \
 
 echo "-> updating indices in datasets collection..." && \
 time curl -s -o /dev/null -X POST -i 'http://localhost:8080/dataset/updateIndexes' -u $SPRING_SECURITY_USER_NAME:$SPRING_SECURITY_USER_PASSWORD && \

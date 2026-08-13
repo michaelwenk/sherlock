@@ -39,11 +39,11 @@ Clone this repository and change the directory:
 
 In order to fill the database with datasets and to create different statistics, databases in specific SD format, e.g. [NMRShiftDB](https://sourceforge.net/projects/nmrshiftdb2/files/data/nmrshiftdb2withsignals.sd), can be imported into Sherlock's backend system.
 
-The directory _data/nmrshiftdb_ (default) may contain the NMRShiftDB file, but ending with _.sdf_, e.g. _nmrshiftdb.sdf_. The directory _data/coconut_ (default) may contain the COCONUT database, e.g. _coconut_1.sdf_ or _coconut_2.sdf_. Each file should not contain more than 125.000 entries, due to potential in-memory issues.
+The directory _data/nmrshiftdb_ (default) may contain the NMRShiftDB file but ending with _.sdf_, such as _nmrshiftdb.sdf_. The directory _data/acd_labs_predictions_ (default) may contain database with predicted spectra produced by ACD/Labs. Each file should not contain more than 125.000 entries, due to potential in-memory issues. Multiple files with subsets are possible, e.g. from [LOTUS](https://doi.org/10.5281/zenodo.8175939) or COCONUT, e.g. _lotus_1.sdf_, _lotus_2.sdf_ etc.
 
 The directory _data/lsd/filters_ (default) may contain molecular fragments in LSD format, such as the filter examples in the _data/lsd/PyLSD/LSD/Filters_ folder, which then will be applied as structural constraints (badlist) to not allow such fragments during the structure generation process.
 
-Uncomment und modify _DATASET_NMRSHIFTDB_PATH_, _DATASET_COCONUT_PATH_ or _CUSTOM_FILTERS_PATH_ in the _.env_ file if another folder than the default ones should be mounted and used by Docker.
+Uncomment und modify _DATASET_NMRSHIFTDB_PATH_, _DATASET_ACD_LABS_PREDICTIONS_PATH_ or _CUSTOM_FILTERS_PATH_ in the _.env_ file if another folder than the default ones should be mounted and used by Docker.
 
 After starting via docker compose, run the following script to delete previous database records, load-in the spectral data and to build the statistics.
 
