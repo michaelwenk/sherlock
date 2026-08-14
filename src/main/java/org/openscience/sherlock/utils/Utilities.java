@@ -203,8 +203,7 @@ public class Utilities {
         return Collections.emptyList();
     }
 
-    public static String convertDataSetsToSdfString(final List<DataSet> dataSetList, final String requestId,
-            final String sherlockVersion)
+    public static String convertResultRecordToSdfString(final ResultRecord resultRecord, final String sherlockVersion)
             throws IOException, CDKException {
 
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -216,15 +215,16 @@ public class Utilities {
         final Map<Object, Object> props = new HashMap<>();
         int rank = 1;
         StringBuilder spectrum13CStringBuilder = null;
-        for (final DataSet ds : dataSetList) {
+        for (final DataSet ds : resultRecord.getDataSetList()) {
             mol = ds.getStructure()
                     .toAtomContainer();
 
-            mol.setTitle("#" + rank + " for " + requestId);
+            mol.setTitle("#" + rank + " for " + resultRecord.getRequestId() + (resultRecord.getName() != null
+                    && !resultRecord.getName().isEmpty() ? " (" + resultRecord.getName() + ")" : ""));
 
-            props.put("request ID", requestId);
+            props.put("requestId", resultRecord.getRequestId());
             props.put("rank", rank);
-            props.put("sherlock version", sherlockVersion);
+            props.put("sherlockVersion", sherlockVersion);
 
             spectrum13CStringBuilder = new StringBuilder();
             spectrum = ds.getSpectrum().toSpectrum();

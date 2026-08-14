@@ -98,8 +98,7 @@ public class RetrievalController {
         }
         String sdf = null;
         try {
-            sdf = Utilities.convertDataSetsToSdfString(resultRecord.getDataSetList(), id,
-                    sherlockVersion);
+            sdf = Utilities.convertResultRecordToSdfString(resultRecord, sherlockVersion);
         } catch (IOException | CDKException e) {
             e.printStackTrace();
             return new ResponseEntity<>("Error converting result to SD format for request ID: " + id,
