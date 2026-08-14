@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
 public class WebSecurityConfiguration {
 
     public static final String[] PUBLIC_SERVICE_PATHS = { "/", "/dereplicate", "/elucidate", "/elucidateAsync",
-            "/detect", "/result", "/status", "/cancel" };
+            "/detect", "/result", "/resultSdf", "/status", "/cancel" };
 
     @Value("${spring.security.user.name}")
     private String username;

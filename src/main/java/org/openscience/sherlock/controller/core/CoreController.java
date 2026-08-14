@@ -44,8 +44,6 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 
 @Tag(name = "Core Controller", description = "Core functionalities of the Sherlock backend services.")
 @RestController
@@ -130,6 +128,19 @@ public class CoreController {
                         @Parameter(description = "Request ID returned when the asynchronous job was created.", required = true) @RequestParam String requestId,
                         @Parameter(description = "Password that was returned when the asynchronous job was created.", required = true) @RequestParam String requestPassword) {
                 return this.retrievalController.getByRequestId(requestId, requestPassword);
+        }
+
+        @Operation(summary = "Retrieve a result in SD file format by request ID", description = "Returns the stored Sherlock result payload associated with the provided request ID when the matching request password is supplied.")
+        @ApiResponses(value = {
+                        @ApiResponse(responseCode = "200", description = "Result returned successfully", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class))),
+                        @ApiResponse(responseCode = "403", description = "Invalid request password", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class))),
+                        @ApiResponse(responseCode = "404", description = "No result found for the provided request ID", content = @Content(mediaType = "application/json", schema = @Schema(implementation = RequestResult.class)))
+        })
+        @GetMapping(value = "/resultSdf", produces = "application/json")
+        public ResponseEntity<String> retrieveSdf(
+                        @Parameter(description = "Request ID returned when the asynchronous job was created.", required = true) @RequestParam String requestId,
+                        @Parameter(description = "Password that was returned when the asynchronous job was created.", required = true) @RequestParam String requestPassword) {
+                return this.retrievalController.getSdfByRequestId(requestId, requestPassword);
         }
 
         @Operation(summary = "Get job status by request ID", description = "Returns the current job snapshot for the provided asynchronous Sherlock request ID when the matching request password is supplied.")

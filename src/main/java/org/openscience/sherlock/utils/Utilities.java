@@ -1,13 +1,17 @@
 package org.openscience.sherlock.utils;
 
+import casekit.nmr.model.Assignment;
 import casekit.nmr.model.DataSet;
+import casekit.nmr.model.Signal;
 import casekit.nmr.model.Spectrum;
 import casekit.nmr.model.SpectrumCompact;
 import casekit.nmr.model.nmrium.Correlations;
 import casekit.nmr.utils.Utils;
 
 import org.openscience.cdk.exception.CDKException;
+import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.io.MDLV3000Writer;
+import org.openscience.cdk.io.SDFWriter;
 import org.openscience.sherlock.dbservice.dataset.controller.DataSetController;
 import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
 import org.openscience.sherlock.dbservice.result.model.ResultRecord;
@@ -17,6 +21,7 @@ import org.openscience.sherlock.utils.elucidation.job.JobSnapshot;
 import org.openscience.sherlock.utils.elucidation.job.JobState;
 
 import reactor.core.publisher.Flux;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,6 +29,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -196,4 +202,71 @@ public class Utilities {
 
         return Collections.emptyList();
     }
+
+    public static String convertDataSetsToSdfString(final List<DataSet> dataSetList, final String requestId,
+            final String sherlockVersion)
+            throws IOException, CDKException {
+
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        final SDFWriter sdfWriter = new SDFWriter(outputStream);
+
+        IAtomContainer mol = null;
+        Spectrum spectrum = null;
+        Assignment assignment = null;
+        final Map<Object, Object> props = new HashMap<>();
+        int rank = 1;
+        StringBuilder spectrum13CStringBuilder = null;
+        for (final DataSet ds : dataSetList) {
+            mol = ds.getStructure()
+                    .toAtomContainer();
+
+            mol.setTitle("#" + rank + " for " + requestId);
+
+            props.put("request ID", requestId);
+            props.put("rank", rank);
+            props.put("sherlock version", sherlockVersion);
+
+            spectrum13CStringBuilder = new StringBuilder();
+            spectrum = ds.getSpectrum().toSpectrum();
+            assignment = ds.getAssignment();
+
+            Signal signal = null;
+            int[] assignmentIndices = null;
+            final int dim = 0;
+            final String nucleus = "13C";
+            if (spectrum.getNuclei()[dim].equals(nucleus)) {
+                for (int i = 0; i < spectrum.getSignals().size(); i++) {
+                    signal = spectrum.getSignals().get(i);
+                    assignmentIndices = assignment.getAssignment(dim, i);
+                    for (int j = 0; j < assignmentIndices.length; j++) {
+                        spectrum13CStringBuilder.append(String.format("%.2f", signal.getShift(dim)))
+                                .append(";0.0")
+                                .append(signal.getMultiplicity().toUpperCase())
+                                .append(";")
+                                .append(assignmentIndices[j] + 1)
+                                .append("|");
+
+                    }
+                }
+            }
+
+            props.put("Spectrum 13C 0", spectrum13CStringBuilder.toString());
+            props.put("smiles", ds.getMeta().get("smiles"));
+            props.put("mf", ds.getMeta().get("mf"));
+
+            props.putAll(ds.getAttachment());
+
+            mol.addProperties(props);
+            sdfWriter.write(mol);
+
+            props.clear(); // Clear the properties map for the next DataSet
+            rank++;
+        }
+
+        sdfWriter.close();
+        outputStream.close();
+
+        return new String(outputStream.toByteArray());
+    }
+
 }

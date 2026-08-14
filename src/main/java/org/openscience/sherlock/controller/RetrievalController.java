@@ -1,5 +1,8 @@
 package org.openscience.sherlock.controller;
 
+import java.io.IOException;
+
+import org.openscience.cdk.exception.CDKException;
 import org.openscience.sherlock.configuration.OpenApiConfiguration;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -7,9 +10,11 @@ import org.springframework.web.bind.annotation.RestController;
 import org.openscience.sherlock.dbservice.result.model.ResultRecord;
 import org.openscience.sherlock.model.exchange.RequestResult;
 import org.openscience.sherlock.utils.RequestPasswordUtils;
+import org.openscience.sherlock.utils.Utilities;
 import org.openscience.sherlock.utils.elucidation.job.GlobalJobScheduler;
 import org.openscience.sherlock.utils.elucidation.job.JobSnapshot;
 import org.openscience.sherlock.utils.elucidation.job.JobState;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,6 +29,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RequestMapping(value = "/retrieval")
 public class RetrievalController {
 
+    @Value("${sherlock.version}")
+    private String sherlockVersion;
+
     private final ResultController resultController;
 
     public RetrievalController(final ResultController resultController) {
@@ -33,7 +41,7 @@ public class RetrievalController {
     @Operation(summary = "Retrieve a result by request ID", description = "Loads the stored Sherlock result for the given request ID.")
     @GetMapping("/getByRequestId")
     public ResponseEntity<RequestResult> getByRequestId(
-            @Parameter(description = "Request ID returned when the asynchronous job was created.", example = "2d9c2d6f-6d4f-4d9f-94b9-13c9a4db9fd2", required = true) @RequestParam final String id,
+            @Parameter(description = "Request ID returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = true) @RequestParam final String id,
             @Parameter(description = "Password that was returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = true) @RequestParam final String requestPassword) {
         final RequestResult requestResult = new RequestResult();
         requestResult.setRequestId(id);
@@ -65,6 +73,42 @@ public class RetrievalController {
                 : new JobSnapshot(id, JobState.UNKNOWN, null, null));
 
         return new ResponseEntity<>(requestResult, HttpStatus.OK);
+    }
+
+    @Operation(summary = "Retrieve a result in SD file format by request ID", description = "Loads the stored Sherlock result for the given request ID.")
+    @GetMapping("/getSdfByRequestId")
+    public ResponseEntity<String> getSdfByRequestId(
+            @Parameter(description = "Request ID returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = true) @RequestParam final String id,
+            @Parameter(description = "Password that was returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = true) @RequestParam final String requestPassword) {
+
+        if (id == null
+                || id.isEmpty()) {
+            return new ResponseEntity<>("Request ID is missing for RETRIEVE query type.", HttpStatus.BAD_REQUEST);
+        }
+        if (requestPassword == null || requestPassword.isEmpty()) {
+            return new ResponseEntity<>("Request password is missing for RETRIEVE query type.", HttpStatus.BAD_REQUEST);
+        }
+        final ResultRecord resultRecord = this.resultController
+                .findByRequestId(id).block();
+        if (resultRecord == null) {
+            return new ResponseEntity<>("No result found for request ID: " + id, HttpStatus.NOT_FOUND);
+        }
+        if (!RequestPasswordUtils.matches(requestPassword, resultRecord.getRequestPasswordHash())) {
+            return new ResponseEntity<>("Invalid request password for request ID: " + id, HttpStatus.FORBIDDEN);
+        }
+        String sdf = null;
+        try {
+            sdf = Utilities.convertDataSetsToSdfString(resultRecord.getDataSetList(), id,
+                    sherlockVersion);
+        } catch (IOException | CDKException e) {
+            e.printStackTrace();
+            return new ResponseEntity<>("Error converting result to SD format for request ID: " + id,
+                    HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+        if (sdf == null || sdf.isEmpty()) {
+            return new ResponseEntity<>("No SD format result available for request ID: " + id, HttpStatus.NOT_FOUND);
+        }
+        return new ResponseEntity<>(sdf, HttpStatus.OK);
     }
 
 }
