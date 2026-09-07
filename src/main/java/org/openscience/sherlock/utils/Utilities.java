@@ -8,6 +8,7 @@ import casekit.nmr.model.SpectrumCompact;
 import casekit.nmr.model.nmrium.Correlations;
 import casekit.nmr.utils.Utils;
 
+import com.google.gson.Gson;
 import org.openscience.cdk.exception.CDKException;
 import org.openscience.cdk.interfaces.IAtomContainer;
 import org.openscience.cdk.io.MDLV3000Writer;
@@ -35,6 +36,15 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 public class Utilities {
+
+    private static final Gson GSON = new Gson();
+
+    private static <T> T convertAttachmentValue(final Object value, final Class<T> targetType) {
+        if (value == null || targetType.isInstance(value)) {
+            return targetType.cast(value);
+        }
+        return GSON.fromJson(GSON.toJsonTree(value), targetType);
+    }
 
     public static Flux<DataSetRecord> getDataSetRecordFlux(
             final DataSetController dataSetController,
@@ -203,18 +213,48 @@ public class Utilities {
         return Collections.emptyList();
     }
 
+    public static String convertDataSetSpectrumToString(final Spectrum spectrum, final Assignment assignment,
+            final int dim, final String nucleus) {
+
+        if (spectrum.getNuclei()[dim].equals(nucleus)) {
+            final StringBuilder spectrum13CStringBuilder = new StringBuilder();
+            Signal signal = null;
+            int[] assignmentIndices = null;
+            for (int i = 0; i < spectrum.getSignals().size(); i++) {
+                signal = spectrum.getSignals().get(i);
+                assignmentIndices = assignment.getAssignment(dim, i);
+                for (int j = 0; j < assignmentIndices.length; j++) {
+                    spectrum13CStringBuilder.append(String.format("%.2f", signal.getShift(dim)))
+                            .append(";0.0")
+                            .append(signal.getMultiplicity().toUpperCase())
+                            .append(";")
+                            .append(assignmentIndices[j] + 1)
+                            .append("|");
+
+                }
+            }
+
+            return spectrum13CStringBuilder.toString();
+        }
+
+        return null;
+    }
+
     public static String convertResultRecordToSdfString(final ResultRecord resultRecord, final String sherlockVersion)
             throws IOException, CDKException {
 
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
         final SDFWriter sdfWriter = new SDFWriter(outputStream);
 
+        final Spectrum querySpectrum = resultRecord.getQuerySpectrum().toSpectrum();
         IAtomContainer mol = null;
-        Spectrum spectrum = null;
-        Assignment assignment = null;
         final Map<Object, Object> props = new HashMap<>();
         int rank = 1;
-        StringBuilder spectrum13CStringBuilder = null;
+        final int dim = 0;
+        final String nucleus = "13C";
+        String spectrumString;
+        String querySpectrumString;
+        Assignment spectralMatchAssignment, querySpectrumAssignment, spectrumAssignment;
         for (final DataSet ds : resultRecord.getDataSetList()) {
             mol = ds.getStructure()
                     .toAtomContainer();
@@ -226,31 +266,40 @@ public class Utilities {
             props.put("rank", rank);
             props.put("sherlockVersion", sherlockVersion);
 
-            spectrum13CStringBuilder = new StringBuilder();
-            spectrum = ds.getSpectrum().toSpectrum();
-            assignment = ds.getAssignment();
+            spectrumAssignment = ds.getAssignment();
+            spectrumString = convertDataSetSpectrumToString(ds.getSpectrum().toSpectrum(),
+                    spectrumAssignment, dim, nucleus);
+            props.put("Spectrum 13C 0", spectrumString);
 
-            Signal signal = null;
-            int[] assignmentIndices = null;
-            final int dim = 0;
-            final String nucleus = "13C";
-            if (spectrum.getNuclei()[dim].equals(nucleus)) {
-                for (int i = 0; i < spectrum.getSignals().size(); i++) {
-                    signal = spectrum.getSignals().get(i);
-                    assignmentIndices = assignment.getAssignment(dim, i);
-                    for (int j = 0; j < assignmentIndices.length; j++) {
-                        spectrum13CStringBuilder.append(String.format("%.2f", signal.getShift(dim)))
-                                .append(";0.0")
-                                .append(signal.getMultiplicity().toUpperCase())
-                                .append(";")
-                                .append(assignmentIndices[j] + 1)
-                                .append("|");
-
-                    }
+            spectralMatchAssignment = convertAttachmentValue(
+                    ds.getAttachment().get("spectralMatchAssignment"), Assignment.class);
+            if (spectralMatchAssignment != null) {
+                querySpectrumAssignment = new Assignment(querySpectrum.getNuclei(),
+                        new int[1][querySpectrum.getSignalCount()][]);
+                for (int i = 0; i < querySpectrumAssignment.getAssignments(dim).length; i++) {
+                    querySpectrumAssignment.setAssignment(dim, i, new int[] {});
                 }
+                for (int i = 0; i < spectralMatchAssignment.getAssignments(dim).length; i++) {
+                    final int[] match = spectralMatchAssignment.getAssignment(dim, i);
+                    if (match == null
+                            || match.length == 0) {
+                        continue;
+                    }
+                    final int querySignalIndex = match[0];
+                    if (querySignalIndex < 0
+                            || querySignalIndex >= querySpectrumAssignment.getAssignments(dim).length) {
+                        continue;
+                    }
+                    querySpectrumAssignment.setAssignment(dim, querySignalIndex,
+                            spectrumAssignment.getAssignment(dim, i));
+                }
+                querySpectrumString = convertDataSetSpectrumToString(querySpectrum,
+                        querySpectrumAssignment,
+                        dim, nucleus);
+
+                props.put("Query Spectrum 13C 0", querySpectrumString);
             }
 
-            props.put("Spectrum 13C 0", spectrum13CStringBuilder.toString());
             props.put("smiles", ds.getMeta().get("smiles"));
             props.put("mf", ds.getMeta().get("mf"));
 
