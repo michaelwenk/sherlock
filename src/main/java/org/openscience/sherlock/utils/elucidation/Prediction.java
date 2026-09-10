@@ -12,12 +12,9 @@ import org.openscience.sherlock.model.exchange.Transfer;
 import org.openscience.sherlock.dbservice.dataset.controller.DataSetController;
 import org.openscience.sherlock.dbservice.statistics.controller.HOSECodeController;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 
 import java.io.FileNotFoundException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 

@@ -628,15 +628,16 @@ public class PyLSD {
                 defaultBondDistances.put("hmbc", new Integer[] { 2, 3 });
                 defaultBondDistances.put("cosy", new Integer[] { 3, 4 });
 
+                final Grouping groupingToUse = responseTransfer.getElucidationOptions()
+                                .isUseCombinatorics()
+                                                ? responseTransfer.getGrouping()
+                                                : new Grouping(new HashMap<>(),
+                                                                new HashMap<>(),
+                                                                new HashMap<>());
                 responseTransfer.setPyLSDInputFileContentList(
                                 PyLSDInputFileBuilder.buildPyLSDInputFileContentList(responseTransfer.getCorrelations(),
                                                 responseTransfer.getMf(), detectionsToUse,
-                                                responseTransfer.getElucidationOptions()
-                                                                .isUseCombinatorics()
-                                                                                ? responseTransfer.getGrouping()
-                                                                                : new Grouping(new HashMap<>(),
-                                                                                                new HashMap<>(),
-                                                                                                new HashMap<>()),
+                                                groupingToUse,
                                                 responseTransfer.getElucidationOptions(),
                                                 defaultBondDistances));
 
