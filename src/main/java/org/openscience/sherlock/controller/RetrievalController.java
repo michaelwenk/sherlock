@@ -32,6 +32,9 @@ public class RetrievalController {
     @Value("${sherlock.version}")
     private String sherlockVersion;
 
+    @Value("${sherlock.result.password-check-enabled:true}")
+    private boolean passwordCheckEnabled;
+
     private final ResultController resultController;
 
     public RetrievalController(final ResultController resultController) {
@@ -42,7 +45,7 @@ public class RetrievalController {
     @GetMapping("/getByRequestId")
     public ResponseEntity<RequestResult> getByRequestId(
             @Parameter(description = "Request ID returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = true) @RequestParam final String id,
-            @Parameter(description = "Password that was returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = true) @RequestParam final String requestPassword) {
+            @Parameter(description = "Password that was returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = false) @RequestParam(required = false) final String requestPassword) {
         final RequestResult requestResult = new RequestResult();
         requestResult.setRequestId(id);
         if (id == null
@@ -51,7 +54,7 @@ public class RetrievalController {
                     "Request ID is missing for RETRIEVE query type.");
             return new ResponseEntity<>(requestResult, HttpStatus.BAD_REQUEST);
         }
-        if (requestPassword == null || requestPassword.isEmpty()) {
+        if (this.passwordCheckEnabled && (requestPassword == null || requestPassword.isEmpty())) {
             requestResult.setErrorMessage(
                     "Request password is missing for RETRIEVE query type.");
             return new ResponseEntity<>(requestResult, HttpStatus.BAD_REQUEST);
@@ -62,7 +65,8 @@ public class RetrievalController {
             requestResult.setErrorMessage("No result found for request ID: " + id);
             return new ResponseEntity<>(requestResult, HttpStatus.NOT_FOUND);
         }
-        if (!RequestPasswordUtils.matches(requestPassword, resultRecord.getRequestPasswordHash())) {
+        if (this.passwordCheckEnabled
+                && !RequestPasswordUtils.matches(requestPassword, resultRecord.getRequestPasswordHash())) {
             requestResult.setErrorMessage("Invalid request password for request ID: " + id);
             return new ResponseEntity<>(requestResult, HttpStatus.FORBIDDEN);
         }
@@ -79,13 +83,13 @@ public class RetrievalController {
     @GetMapping("/getSdfByRequestId")
     public ResponseEntity<String> getSdfByRequestId(
             @Parameter(description = "Request ID returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = true) @RequestParam final String id,
-            @Parameter(description = "Password that was returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = true) @RequestParam final String requestPassword) {
+            @Parameter(description = "Password that was returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = false) @RequestParam(required = false) final String requestPassword) {
 
         if (id == null
                 || id.isEmpty()) {
             return new ResponseEntity<>("Request ID is missing for RETRIEVE query type.", HttpStatus.BAD_REQUEST);
         }
-        if (requestPassword == null || requestPassword.isEmpty()) {
+        if (this.passwordCheckEnabled && (requestPassword == null || requestPassword.isEmpty())) {
             return new ResponseEntity<>("Request password is missing for RETRIEVE query type.", HttpStatus.BAD_REQUEST);
         }
         final ResultRecord resultRecord = this.resultController
@@ -93,7 +97,8 @@ public class RetrievalController {
         if (resultRecord == null) {
             return new ResponseEntity<>("No result found for request ID: " + id, HttpStatus.NOT_FOUND);
         }
-        if (!RequestPasswordUtils.matches(requestPassword, resultRecord.getRequestPasswordHash())) {
+        if (this.passwordCheckEnabled
+                && !RequestPasswordUtils.matches(requestPassword, resultRecord.getRequestPasswordHash())) {
             return new ResponseEntity<>("Invalid request password for request ID: " + id, HttpStatus.FORBIDDEN);
         }
         String sdf = null;

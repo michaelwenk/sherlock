@@ -8,6 +8,7 @@ import org.bson.types.ObjectId;
 import org.openscience.sherlock.configuration.OpenApiConfiguration;
 import org.openscience.sherlock.dbservice.result.model.ResultRecord;
 import org.openscience.sherlock.utils.RequestPasswordUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.core.io.buffer.DefaultDataBufferFactory;
@@ -46,6 +47,9 @@ public class ResultController {
     private final ReactiveGridFsTemplate reactiveGridFsTemplate;
     private final ReactiveGridFsOperations reactiveGridFsOperations;
 
+    @Value("${sherlock.result.password-check-enabled:true}")
+    private boolean passwordCheckEnabled;
+
     public ResultController(final ReactiveGridFsTemplate reactiveGridFsTemplate,
             final ReactiveGridFsOperations reactiveGridFsOperations) {
         this.reactiveGridFsTemplate = reactiveGridFsTemplate;
@@ -71,14 +75,14 @@ public class ResultController {
     @GetMapping(value = "/getByRequestId", produces = "application/json")
     public Mono<ResponseEntity<ResultRecord>> getByRequestId(
             @Parameter(description = "Request ID returned when the asynchronous job was created.", example = "2d9c2d6f-6d4f-4d9f-94b9-13c9a4db9fd2", required = true) @RequestParam final String requestId,
-            @Parameter(description = "Password that was returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = true) @RequestParam final String requestPassword) {
-        if (requestPassword == null || requestPassword.isBlank()) {
+            @Parameter(description = "Password that was returned when the asynchronous job was created.", example = "3fQ9xv0A7kLm2PzR", required = false) @RequestParam(required = false) final String requestPassword) {
+        if (this.passwordCheckEnabled && (requestPassword == null || requestPassword.isBlank())) {
             return Mono.just(new ResponseEntity<>(HttpStatus.BAD_REQUEST));
         }
 
         return this.findByRequestId(requestId)
-                .map(resultRecord -> RequestPasswordUtils.matches(requestPassword,
-                        resultRecord.getRequestPasswordHash())
+                .map(resultRecord -> !this.passwordCheckEnabled
+                        || RequestPasswordUtils.matches(requestPassword, resultRecord.getRequestPasswordHash())
                                 ? new ResponseEntity<>(resultRecord, HttpStatus.OK)
                                 : new ResponseEntity<ResultRecord>(HttpStatus.FORBIDDEN))
                 .defaultIfEmpty(new ResponseEntity<>(HttpStatus.NOT_FOUND));

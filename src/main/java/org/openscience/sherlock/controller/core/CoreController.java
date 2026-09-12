@@ -126,7 +126,7 @@ public class CoreController {
         @GetMapping(value = "/result", produces = "application/json")
         public ResponseEntity<RequestResult> retrieve(
                         @Parameter(description = "Request ID returned when the asynchronous job was created.", required = true) @RequestParam String requestId,
-                        @Parameter(description = "Password that was returned when the asynchronous job was created.", required = true) @RequestParam String requestPassword) {
+                        @Parameter(description = "Password that was returned when the asynchronous job was created. Optional when the server has sherlock.result.password-check-enabled=false.", required = false) @RequestParam(required = false) String requestPassword) {
                 return this.retrievalController.getByRequestId(requestId, requestPassword);
         }
 
@@ -139,7 +139,7 @@ public class CoreController {
         @GetMapping(value = "/resultSdf", produces = "application/json")
         public ResponseEntity<String> retrieveSdf(
                         @Parameter(description = "Request ID returned when the asynchronous job was created.", required = true) @RequestParam String requestId,
-                        @Parameter(description = "Password that was returned when the asynchronous job was created.", required = true) @RequestParam String requestPassword) {
+                        @Parameter(description = "Password that was returned when the asynchronous job was created. Optional when the server has sherlock.result.password-check-enabled=false.", required = false) @RequestParam(required = false) String requestPassword) {
                 return this.retrievalController.getSdfByRequestId(requestId, requestPassword);
         }
 
