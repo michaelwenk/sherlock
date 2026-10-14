@@ -140,6 +140,12 @@ public class CoreController {
                 return this.dereplicationController.dereplicate(requestData);
         }
 
+        @Operation(summary = "Start a dereplication query and return results in SDF format", description = "Runs dereplication and returns the ranked results as an SDF file.")
+        @PostMapping(value = "/dereplicateSdf", consumes = "application/json", produces = "chemical/x-mdl-sdfile")
+        public ResponseEntity<String> dereplicateSdf(@RequestBody final RequestData requestData) {
+                return this.dereplicationController.dereplicateSdf(requestData);
+        }
+
         // @Operation(summary = "Start an elucidation query", description = "Delegates
         // the request payload to the synchronous elucidation workflow. The response
         // will contain the completed result and the result is not stored into the

@@ -24,17 +24,21 @@
 
 package org.openscience.sherlock.controller;
 
+import java.io.IOException;
+
 import casekit.nmr.analysis.MultiplicitySectionsBuilder;
 import casekit.nmr.filterandrank.FilterAndRank;
 import casekit.nmr.model.DataSet;
 import casekit.nmr.model.Spectrum;
 
+import org.openscience.cdk.exception.CDKException;
 import org.openscience.sherlock.configuration.OpenApiConfiguration;
 import org.openscience.sherlock.model.exchange.RequestData;
 import org.openscience.sherlock.model.exchange.RequestResult;
 import org.openscience.sherlock.utils.Utilities;
 import org.openscience.sherlock.dbservice.dataset.controller.DataSetController;
 import org.openscience.sherlock.dbservice.dataset.db.model.DataSetRecord;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -53,6 +57,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 @RestController
 @RequestMapping(value = "/dereplication")
 public class DereplicationController {
+
+        @Value("${sherlock.version}")
+        private String sherlockVersion;
 
         private final DataSetController dataSetController;
 
@@ -150,5 +157,29 @@ public class DereplicationController {
                 requestResult.getResultRecord().setDataSetList(new ArrayList<>());
                 requestResult.getResultRecord().setDataSetListSize(0);
                 return new ResponseEntity<>(requestResult, HttpStatus.OK);
+        }
+
+        public ResponseEntity<String> dereplicateSdf(final RequestData requestData) {
+                final ResponseEntity<RequestResult> response = this.dereplicate(requestData);
+                final RequestResult requestResult = response.getBody();
+                if (!response.getStatusCode().is2xxSuccessful()) {
+                        final String errorMessage = requestResult != null && requestResult.getErrorMessage() != null
+                                        ? requestResult.getErrorMessage()
+                                        : "Dereplication failed.";
+                        return new ResponseEntity<>(errorMessage, response.getStatusCode());
+                }
+                if (requestResult == null || requestResult.getResultRecord() == null) {
+                        return new ResponseEntity<>("Dereplication returned no result.",
+                                        HttpStatus.INTERNAL_SERVER_ERROR);
+                }
+
+                try {
+                        final String sdf = Utilities.convertResultRecordToSdfString(requestResult.getResultRecord(),
+                                        sherlockVersion);
+                        return new ResponseEntity<>(sdf, response.getStatusCode());
+                } catch (final IOException | CDKException e) {
+                        return new ResponseEntity<>("Error converting dereplication result to SDF format.",
+                                        HttpStatus.INTERNAL_SERVER_ERROR);
+                }
         }
 }

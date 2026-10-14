@@ -233,9 +233,13 @@ public class Utilities {
             mol = ds.getStructure()
                     .toAtomContainer();
 
-            mol.setTitle("#" + rank + " for " + resultRecord.getRequestId() + " (Sherlock " + sherlockVersion + ")");
+            mol.setTitle(
+                    "#" + rank + " for "
+                            + (resultRecord.getRequestId() != null ? resultRecord.getRequestId() : "dereplication"));
 
-            props.put("requestId", resultRecord.getRequestId());
+            if (resultRecord.getRequestId() != null && !resultRecord.getRequestId().isEmpty()) {
+                props.put("requestId", resultRecord.getRequestId());
+            }
             if (resultRecord.getName() != null && !resultRecord.getName().isEmpty()) {
                 props.put("taskName", resultRecord.getName());
             }
@@ -278,6 +282,8 @@ public class Utilities {
             }
 
             props.putAll(ds.getAttachment());
+
+            props.put("sherlockVersion", sherlockVersion);
 
             mol.addProperties(props);
             sdfWriter.write(mol);
